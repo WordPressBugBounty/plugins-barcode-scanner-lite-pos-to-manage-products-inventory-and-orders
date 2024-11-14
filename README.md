@@ -1,0 +1,1 @@
+# plugins-barcode-scanner-lite-pos-to-manage-products-inventory-and-orders
