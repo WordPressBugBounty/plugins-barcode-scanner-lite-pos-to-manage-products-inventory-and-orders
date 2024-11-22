@@ -801,6 +801,10 @@ class ManagementActions
             $product->set_stock_quantity($quantity);
             $product->save();
 
+            if (function_exists("wc_update_product_stock")) {
+                \wc_update_product_stock($product, $quantity);
+            }
+
             if ($quantity !== "") {
                 update_post_meta($product->get_id(), "_stock", $quantity);
             }

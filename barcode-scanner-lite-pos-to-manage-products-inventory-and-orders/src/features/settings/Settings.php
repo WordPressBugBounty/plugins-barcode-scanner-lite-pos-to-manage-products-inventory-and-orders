@@ -218,7 +218,7 @@ class Settings
                 }
 
                 if (isset($this->post["key"])) {
-                    @delete_transient('ukrsolution_upgrade_scanner_1.6.4');
+                    @delete_transient('ukrsolution_upgrade_scanner_1.6.6');
                     $user_id = get_current_user_id();
                     update_option($user_id . '_' . basename(USBS_PLUGIN_BASE_PATH) . '_notice_dismissed', '', true);
                 }

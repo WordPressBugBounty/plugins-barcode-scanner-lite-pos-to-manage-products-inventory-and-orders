@@ -291,7 +291,10 @@ jQuery(document).ready(function () {
 
             const coreLoader = new Promise((resolve, reject) => {
 
-              {%iframeScripts%}
+              
+    var appJs = document.createElement("script"); appJs.type = "text/javascript"; appJs.src = "` + window.usbs.appJsPath + `";
+    document.body.appendChild(appJs);
+    
 
               // Resolve the promise when the script is successfully loaded
               appJs.onload = () => resolve('Script loaded successfully');

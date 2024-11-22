@@ -3,14 +3,14 @@
  * Plugin Name: Barcode Scanner with Inventory & Order Manager - (business)
  * Description: Scan barcodes to find & manage inventory and orders.
  * Text Domain: us-barcode-scanner
- * Version: 1.6.4
- * Build: 1727186328396
+ * Version: 1.6.6
+ * Build: 1732283304370
  * Author: UkrSolution
  * Plugin URI: https://www.ukrsolution.com/Wordpress/WooCommerce-Barcode-QRCode-Scanner-Reader
  * Author URI: http://www.ukrsolution.com
  * License: GPL2
  * WC requires at least: 2.0.0
- * -WC tested up to: 9.3.*
+ * -WC tested up to: 9.4.*
  */
 
 use UkrSolution\BarcodeScanner\Database;
@@ -60,20 +60,19 @@ add_action('wpmu_new_blog', function ($blogId, $userId, $domain, $path, $siteId,
     }
 }, 10, 6);
 
-add_action('plugins_loaded', function () {
-    global $wpdb;
-
-    $current_plugin_path_name = plugin_basename( __FILE__ );
+add_action('init', function () {
     $pluginRelPath = basename(dirname(__FILE__)) . '/languages';
     load_plugin_textdomain('us-barcode-scanner', false, $pluginRelPath);
+}, 1);
 
-    $prefix = "web_";
+add_action('init', function () {
+    global $wpdb;
 
-    $lastVersion = get_option($prefix . "active-barcode-scanner-version", "");
+    $lastVersion = get_option("web_active-barcode-scanner-version", "");
     $pluginData = \get_plugin_data(dirname(__FILE__) . "/barcode-scanner.php");
 
     $fileData = get_file_data(dirname(__FILE__) . "/barcode-scanner.php",  array('Version' => 'Version', 'Build' => 'Build'));
-    $lastBuild = get_option($prefix . "active-barcode-scanner-build", "");
+    $lastBuild = get_option("web_active-barcode-scanner-build", "");
     $build = $fileData && isset($fileData['Build']) ? $fileData['Build'] : null;
 
     if ($pluginData && isset($pluginData["Version"]) && $lastVersion !== $pluginData["Version"]) {
@@ -82,26 +81,23 @@ add_action('plugins_loaded', function () {
             $table = $wpdb->prefix . Database::$posts;
             $wpdb->query("UPDATE {$table} SET `updated` = '0000-00-00 00:00:00';");
 
-            update_option($prefix . "active-barcode-scanner-version", $pluginData["Version"]);
+            update_option("web_active-barcode-scanner-version", $pluginData["Version"]);
         } catch (\Throwable $th) {
         }
     } elseif ($build && $lastBuild != $build) {
         try {
             Database::setupTables(null);
 
-            update_option($prefix . "active-barcode-scanner-build", $build);
+            update_option("web_active-barcode-scanner-build", $build);
         } catch (\Throwable $th) {
         }
     }
-});
+}, 1);
 
 add_filter('plugin_action_links_' . plugin_basename(__FILE__), function ($links) {
-
-
     $url = get_admin_url() . "admin.php?page=barcode-scanner-settings";
-    $settings_link = '<a href="' . $url . '">' . __('Settings', 'wpbcu-barcode-generator') . '</a>';
+    $settings_link = '<a href="' . $url . '">Settings</a>';
     $links[] = $settings_link;
-
 
     return $links;
 });
