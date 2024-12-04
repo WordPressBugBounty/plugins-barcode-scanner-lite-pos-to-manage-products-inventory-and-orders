@@ -8,7 +8,7 @@ Requires PHP: 5.6
 License: GPLv2 or later 
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Fast POS to manage inventory. It reads barcodes & finds woocommerce products/orders. Create orders right from the wp-admin.
+Manage and sell (POS) your inventory. It reads barcodes & finds woocommerce products/orders. Create orders right from the wp-admin.
 
 == Description ==
 

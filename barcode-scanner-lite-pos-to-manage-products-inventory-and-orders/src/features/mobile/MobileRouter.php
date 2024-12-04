@@ -44,11 +44,11 @@ class MobileRouter
 
                 if (!$key) return null;
 
-                if (preg_match("/^\/?mobile-barcode-scanner\/(plugin|android|ios)\/(checker|display|auth)\/?(.*?)?$/", $key, $m)) {
-                    if (count($m) >= 3) {
+                if (preg_match("/^(.*?)mobile-barcode-scanner\/(plugin|android|ios)\/(checker|display|auth)\/?(.*?)?$/", $key, $m)) {
+                    if (count($m) >= 4) {
                         $data = array(
-                            "route" => str_replace("/", "", $m[1]),
-                            "params" => str_replace("/", "", $m[2]),
+                            "route" => str_replace("/", "", $m[2]),
+                            "params" => str_replace("/", "", $m[3]),
                         );
                     }
                 }
@@ -139,7 +139,7 @@ class MobileRouter
 
         echo "<";
         esc_html_e($this->tn, 'us-barcode-scanner');
-        echo " src='" . esc_url(USBS_PLUGIN_BASE_URL) . "src/features/mobile/assets/js/index.js?v=1.6.4&t=1727186327459' ";
+        echo " src='" . esc_url(USBS_PLUGIN_BASE_URL) . "src/features/mobile/assets/js/index.js?v=1.6.7&t=1733320838652' ";
         echo ">";
         echo "<";
         echo "/";
@@ -148,7 +148,7 @@ class MobileRouter
 
         echo "<";
         esc_html_e($this->tn, 'us-barcode-scanner');
-        echo " src='" . esc_url(USBS_PLUGIN_BASE_URL) . "src/features/mobile/assets/js/loader.js?v=1.6.4&t=1727186327459' ";
+        echo " src='" . esc_url(USBS_PLUGIN_BASE_URL) . "src/features/mobile/assets/js/loader.js?v=1.6.7&t=1733320838652' ";
         echo ">";
         echo "<";
         echo "/";

@@ -257,7 +257,7 @@ class Auth
                 "username" => $user->display_name ? $user->display_name : $user->user_nicename,
                 "website" => $domain,
                 "protocol" => $protocol,
-                "pluginVersion" => "1.6.4",
+                "pluginVersion" => "1.6.7",
                 "wpVersion" => $wp_version,
                 "wooVersion" => $this->getWooVersion(),
                 "phpVersion" => phpversion(),

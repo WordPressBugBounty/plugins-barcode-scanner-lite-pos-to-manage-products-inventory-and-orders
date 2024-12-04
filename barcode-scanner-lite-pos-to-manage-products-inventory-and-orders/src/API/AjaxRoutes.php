@@ -31,7 +31,7 @@ class AjaxRoutes
         $this->coreInstance = $coreInstance;
 
         if (isset($post["rout"]) && $post["rout"]) {
-            $rout = $post["rout"];
+            $rout = sanitize_text_field($post["rout"]);
 
             add_filter('scanner_filter_cart_item_price', function ($productId, $price, $customFilter) {
                 return $price;
@@ -88,16 +88,21 @@ class AjaxRoutes
             ))) {
                 $MobileRouter = new MobileRouter();
                 $platform = $this->getParam($get, "platform", "");
-                $urlData = $MobileRouter->getParamsFromPlainUrl();
-                $jsData = $this->coreInstance->adminEnqueueScripts(true, true, $urlData);
-                $usbs = $jsData && isset($jsData['usbs']) ? $jsData['usbs'] : array();
 
-                echo json_encode(array(
+                                $data = array(
                     "redirect" => 0,
-                    "data" => array("rout" => $rout),
-                    "f" => 1,
-                    "usbs" => $usbs
-                ));
+                    "data" => array("rout" => "invalid route"),
+                    "f" => 1
+                );
+
+                                if ($platform == "android" || $platform == "ios") {
+                    $urlData = $MobileRouter->getParamsFromPlainUrl();
+                    $jsData = $this->coreInstance->adminEnqueueScripts(true, true, $urlData);
+                    $usbs = $jsData && isset($jsData['usbs']) ? $jsData['usbs'] : array();
+                    $data['usbs'] = $usbs;
+                }
+
+                echo json_encode($data);
                 exit;
             }
 
@@ -551,8 +556,13 @@ class AjaxRoutes
                     PermissionsHelper::onePermRequired(['inventory', 'newprod']);
                     $response = BatchNumbersWebis::saveBatchField($request);
                     break;
-                default:
-                    break;
+                default: {
+                        echo json_encode(array(
+                            "errors" => array("Invalid input"),
+                            "token" => $token
+                        ));
+                        exit;
+                    }
             }
 
             $filter = $this->getParam($post, "filter", array());

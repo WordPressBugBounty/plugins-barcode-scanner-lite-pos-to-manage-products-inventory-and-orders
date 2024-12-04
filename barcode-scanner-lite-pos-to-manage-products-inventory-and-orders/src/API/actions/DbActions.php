@@ -75,7 +75,7 @@ class DbActions
 
                 if (!$customField && !key_exists($name, Database::$postsFields)) {
                     $key = $settings->getField("license", "key", "");
-                    $url = "https://www.ukrsolution.com/ExtensionsSupport/Support?extension=24&version=1.6.6&pversion=" . $wp_version . "&d=" . base64_encode($key);
+                    $url = "https://www.ukrsolution.com/ExtensionsSupport/Support?extension=24&version=1.6.7&pversion=" . $wp_version . "&d=" . base64_encode($key);
                     if ($type === "order") {
                         $message = __("Order's custom field \"{$name}\" not found. Please make sure you entered a correct database value or <a href='{$url}' target='_blank'>contact us</a> for help.", "us-barcode-scanner");
                     } else {
