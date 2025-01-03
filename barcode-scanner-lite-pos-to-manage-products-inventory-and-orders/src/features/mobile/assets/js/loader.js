@@ -68,10 +68,10 @@ jQuery(document).ready(function () {
         "message",
         function (event) {
           switch (event.data.message) {
-            case "localStorage.setItem":
+            case "USBS.localStorage.setItem":
               localStorage.setItem(event.data.storageKey, event.data.serializedData);
               break;
-            case "iframe.onload":
+            case "USBS.iframe.onload":
               jQuery(e.target).click();
               jQuery("#barcode-scanner-mobile-preloader").hide();
               break;

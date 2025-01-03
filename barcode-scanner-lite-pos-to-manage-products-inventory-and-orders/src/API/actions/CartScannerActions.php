@@ -4,10 +4,12 @@ namespace UkrSolution\BarcodeScanner\API\actions;
 
 use UkrSolution\BarcodeScanner\API\classes\Emails;
 use UkrSolution\BarcodeScanner\API\classes\Results;
+use UkrSolution\BarcodeScanner\API\classes\ResultsHelper;
 use UkrSolution\BarcodeScanner\API\classes\Users;
 use UkrSolution\BarcodeScanner\API\RequestHelper;
 use UkrSolution\BarcodeScanner\Database;
 use UkrSolution\BarcodeScanner\features\cart\Cart;
+use UkrSolution\BarcodeScanner\features\interfaceData\InterfaceData;
 use UkrSolution\BarcodeScanner\features\logs\LogActions;
 use UkrSolution\BarcodeScanner\features\settings\Settings;
 use WP_REST_Request;
@@ -53,7 +55,7 @@ class CartScannerActions
         $total = count($products);
 
         $defaultQuantity = $settings->getSettings("defaultProductQty");
-        $defaultQuantity = $defaultQuantity === null ? 1 : (int)$defaultQuantity->value;
+        $defaultQuantity = $defaultQuantity === null ? 1 : (float)$defaultQuantity->value;
 
         foreach ($products as &$product) {
             $product["post_type"] = "product_for_cart";
@@ -288,7 +290,7 @@ class CartScannerActions
             }
         }
 
-                $this->setOrderTotal($request);
+        $this->setOrderTotal($request);
 
         $result = array(
             "cartItems" => $this->getCartItems($request),
@@ -426,7 +428,7 @@ class CartScannerActions
 
         if (count(explode(":", $activeShippingMethod)) == 1) {
             foreach ($shippingMethods as $key => $value) {
-                if ($activeShippingMethod == $value["id"]) {
+                if ($activeShippingMethod === $value["id"]) {
                     $activeShippingMethod = $value["id"] . ":" . $value["instance_id"];
                     $isShippingInList = true;
                     break;
@@ -475,13 +477,47 @@ class CartScannerActions
         $itemsForOrder = array();
         $orderTaxDetails = array();
 
+        $orderCustomPrice = get_user_meta($userId, "scanner_custom_order_total", true);
+        $orderCustomShippingPrice = get_user_meta($userId, "scanner_custom_order_shipping", true);
+        $orderCustomShippingTax = get_user_meta($userId, "scanner_custom_order_shipping_tax", true);
+        $orderCustomTaxes = get_user_meta($userId, "scanner_custom_order_custom_taxes", true);
+
+        $isCustomShippingPrice = ($orderCustomShippingPrice || $orderCustomShippingPrice == 0) && $orderCustomShippingPrice != "" ? 1 : 0;
+
+        $fieldsChanged = array(
+            "orderCustomPrice" => ($orderCustomPrice || $orderCustomPrice == 0) && $orderCustomPrice != "" ? 1 : 0,
+            "orderCustomShippingPrice" => $isCustomShippingPrice ? 1 : 0,
+            "orderCustomShippingTax" => ($orderCustomShippingTax || $orderCustomShippingTax == 0) && $orderCustomShippingTax != "" ? 1 : 0,
+            "orderCustomTaxes" => $orderCustomTaxes,
+        );
+
         if ($activeShippingMethod) {
             $method_key_id = str_replace(':', '_', $activeShippingMethod);
 
             $option_name = 'woocommerce_' . $method_key_id . '_settings';
             $shipping = get_option($option_name, true);
 
+            if (!is_array($shipping) || $shipping == 1) {
+                $activeShippingMethodData = explode(':', $activeShippingMethod);
+
+                if (is_array($activeShippingMethodData) && count($activeShippingMethodData) >= 1) {
+                    $_shipping_id = $activeShippingMethodData[0];
+                    $allShippings = $cart->getShippingMethods($customerUserId, $taxAddress);
+
+                    foreach ($allShippings as $_shipping) {
+                        if ($_shipping["id"] === $_shipping_id) {
+                            $shipping = $_shipping;
+                            break;
+                        }
+                    }
+                }
+            }
+
             if ($shipping && isset($shipping["cost"])) {
+                if ($isCustomShippingPrice) {
+                    $shipping["cost"] = $orderCustomShippingPrice;
+                }
+
                 $shipping["cost"] = str_replace(",", ".", $shipping["cost"]);
                 $shipping["cost"] = apply_filters($cart->filter_cart_shipping_cost, $shipping["cost"], $shipping);
 
@@ -494,7 +530,10 @@ class CartScannerActions
                 if ($defaultOrderTax != "no_tax") {
                     $cartShippingTax = 0;
 
-                    if ($taxAddress["tax_based_on"] == 'base') {
+                    if (($orderCustomShippingTax || $orderCustomShippingTax == 0) && $orderCustomShippingTax != "") {
+                        $cartShippingTax = $orderCustomShippingTax;
+                    }
+                    else if ($taxAddress["tax_based_on"] == 'base') {
                         $cartShippingTax = (new Results)->getAddressShippingPriceTax($cartShippingTotal, $taxAddress);
                     }
                     else {
@@ -502,6 +541,8 @@ class CartScannerActions
                     }
 
                     $cartShippingTotalTax = $cartShippingTotal + $cartShippingTax;
+                } else {
+                    $cartShippingTotalTax = $cartShippingTotal;
                 }
 
                 if (!$isPricesIncludeTax) {
@@ -512,16 +553,20 @@ class CartScannerActions
             }
         }
 
+        $_used_custom_taxes = array();
+
         foreach ($items as $item) {
             $itemId = $item->id;
             $itemSubtotal = 0;
             $itemPrice = 0;
             $line_subtotal_tax = 0;
+            $use_custom_price = 0;
 
             if ($item->custom_price || $item->custom_price == "0") {
                 $customPrice = $this->formatPriceForUpdate($item->custom_price);
                 $itemPrice = (float)($customPrice);
                 $itemSubtotal = (float)($customPrice * $item->quantity);
+                $use_custom_price = 1;
             } else {
                 $itemPrice = (float)$item->price;
                 $itemSubtotal = (float)$item->price * $item->quantity;
@@ -548,6 +593,14 @@ class CartScannerActions
 
                     $line_subtotal_taxes = (new Results)->getUserProductTax($priceForTaxes, $product->get_tax_class(), $taxAddress, false);
 
+                    if ($line_subtotal_taxes && $orderCustomTaxes) {
+                        foreach ($line_subtotal_taxes as $key => &$value) {
+                            if (isset($orderCustomTaxes[$key]) && ($orderCustomTaxes[$key] || $orderCustomTaxes[$key] == 0) && $orderCustomTaxes[$key] != "") {
+                                $value = $orderCustomTaxes[$key];
+                            }
+                        }
+                    }
+
                     $line_subtotal_tax = array_sum($line_subtotal_taxes);
 
                     $cartSubtotalTax += $line_subtotal_tax;
@@ -571,13 +624,18 @@ class CartScannerActions
 
             if ($_rate && $defaultOrderTax != "no_tax") {
                 foreach ($_rate as $_rate_id => &$_rate_data) {
-                    $_tax_cost = isset($line_subtotal_taxes[$_rate_id]) ? $line_subtotal_taxes[$_rate_id] : 0;
+                    if (isset($orderCustomTaxes[$_rate_id]) && ($orderCustomTaxes[$_rate_id] || $orderCustomTaxes[$_rate_id] == 0) && $orderCustomTaxes[$_rate_id] != "") {
+                        $_tax_cost = in_array($_rate_id, $_used_custom_taxes) ? 0 : $orderCustomTaxes[$_rate_id];
+                        $_used_custom_taxes[] = $_rate_id;
+                    } else {
+                        $_tax_cost = isset($line_subtotal_taxes[$_rate_id]) ? $line_subtotal_taxes[$_rate_id] : 0;
+                    }
                     $_rate_data["subtotal_tax"] = $_tax_cost;
 
                     if (isset($orderTaxDetails[$_rate_id])) $orderTaxDetails[$_rate_id]["subtotal_tax"] += $_tax_cost;
                     else $orderTaxDetails[$_rate_id] = $_rate_data;
 
-                    $orderTaxDetails[$_rate_id]["subtotal_tax_c"] = strip_tags(wc_price($orderTaxDetails[$_rate_id]["subtotal_tax"]));
+                    $orderTaxDetails[$_rate_id]["subtotal_tax_c"] = ResultsHelper::getFormattedPrice(strip_tags(wc_price($orderTaxDetails[$_rate_id]["subtotal_tax"])));
 
                     $_line_tax_data["total"][$_rate_id] = $_tax_cost;
                     $_line_tax_data["subtotal"][$_rate_id] = $_tax_cost;
@@ -596,13 +654,11 @@ class CartScannerActions
                 "_line_tax_data" => $_line_tax_data,
                 "_rate" => $_rate,
                 "tax_info" => $tax_info,
+                "use_custom_price" => $use_custom_price,
             );
         }
 
-        $orderCustomPrice = get_user_meta($userId, "scanner_custom_order_total", true);
-
-        if ($orderCustomPrice) {
-            $cartSubtotal = $orderCustomPrice;
+        if (($orderCustomPrice || $orderCustomPrice == 0) && $orderCustomPrice != "") {
             $cartTotal = $orderCustomPrice;
         }
         else {
@@ -629,19 +685,19 @@ class CartScannerActions
 
         return array(
             "additionalTaxes" => $additionalTaxes,
-            "cart_total" => $cart_total,
+            "cart_total" => ResultsHelper::getFormattedPrice($cart_total),
             "cart_total_c" => strip_tags($cartTotal),
             "cart_subtotal" => $cart_subtotal,
             "cart_subtotal_c" => strip_tags(wc_price($cartSubtotal)), 
             "cart_subtotal_tax" => $cartSubtotalTax,
             "cart_subtotal_tax_c" => strip_tags(wc_price($cartSubtotalTax)),
             "total_tax" => $total_tax,
-            "total_tax_c" => strip_tags(wc_price($cartTaxTotal)),
-            "shipping" => strip_tags($cartShippingTotal),
-            "shipping_c" => strip_tags(wc_price($cartShippingTotal)),
-            "shipping_total_tax" => strip_tags(wc_price($cartShippingTotalTax)),
+            "total_tax_c" => ResultsHelper::getFormattedPrice(strip_tags(wc_price($cartTaxTotal))),
+            "shipping" => ResultsHelper::getFormattedPrice(strip_tags($cartShippingTotal)),
+            "shipping_c" => ResultsHelper::getFormattedPrice(strip_tags(wc_price($cartShippingTotal))),
+            "shipping_total_tax" => ResultsHelper::getFormattedPrice(strip_tags(wc_price($cartShippingTotalTax))),
             "shipping_tax" => $cartShippingTax,
-            "shipping_tax_c" => strip_tags(wc_price($cartShippingTax)),
+            "shipping_tax_c" => ResultsHelper::getFormattedPrice(strip_tags(wc_price($cartShippingTax))),
             "shippingMethods" => $shippingMethods,
             "timestamp" => time(),
             "itemsForOrder" => $itemsForOrder,
@@ -650,6 +706,8 @@ class CartScannerActions
             "couponError" => $couponError,
             "cid" => $customerUserId,
             "taxAddress" => $taxAddress,
+            "isPricesIncludeTax" => $isPricesIncludeTax,
+            "fieldsChanged" => $fieldsChanged,
         );
     }
 
@@ -816,7 +874,7 @@ class CartScannerActions
             }
 
             $coupon["amount_discount"] += $discount;
-            $coupon["amount_c"] = $discount ? "-" . strip_tags(wc_price($discount)) : "";
+            $coupon["amount_c"] = $discount ? "-" . strip_tags(wc_price($coupon["amount_discount"])) : "";
         }
 
         return $discountPrice;
@@ -879,7 +937,7 @@ class CartScannerActions
             $cartItemData = array();
         }
 
-        $quantity_step = ($cartItemData && isset($cartItemData["number_field_step"]) && $cartItemData["number_field_step"]) ? (float)$cartItemData["number_field_step"] : 1;
+        $quantity_step = ($cartItemData && isset($cartItemData["number_field_step"]) && $cartItemData["number_field_step"]) ? (float)$cartItemData["number_field_step"] : $quantity;
         if (!$quantity_step || $quantity_step == 0) $quantity_step = 1;
 
         $priceField = (new Results())->getFieldPrice($orderUserId);
@@ -991,7 +1049,21 @@ class CartScannerActions
 
     private function getVariations($product)
     {
-        return (new Results)->getChildren($product);
+        $variations = (new Results)->getChildren($product);
+
+        if ($variations) {
+            foreach ($variations as $variation) {
+                if ($variation->post_parent) {
+                    $variation->product_thumbnail_url = (new Results)->getThumbnailUrl($variation->post_parent);
+                }
+
+                $variation->post_status = get_post_status($variation->post_id);
+
+                $variation->_stock_status = get_post_meta($variation->post_id, "_stock_status", true);
+            }
+        }
+
+        return $variations;
     }
 
     private function findProductInCart($request, $product)
@@ -1048,6 +1120,7 @@ class CartScannerActions
 
         $tableCart = $wpdb->prefix . Database::$cart;
         $quantity = $productCart->quantity + $step;
+
         return $wpdb->update($tableCart, array("quantity" => $quantity), array("id" => $productCart->id));
     }
 
@@ -1133,8 +1206,7 @@ class CartScannerActions
             'line_items' => array(),
         );
 
-        if ($userId) {
-        } else {
+        if (!$userId) {
             $userId = $currentUserId;
         }
 
@@ -1237,6 +1309,11 @@ class CartScannerActions
             $orderCustomPrice = get_user_meta($currentUserId, "scanner_custom_order_total", true);
             $details = $this->getCartDetails($request);
 
+            $interfaceData = new InterfaceData();
+            $_userId = $request ? Users::getUserId($request) : $currentUserId;
+            $_userRole = Users::getUserRole($_userId);
+            $interfaceFields = $interfaceData::getFields(true, "", false, $_userRole);
+
             foreach ($details["itemsForOrder"] as $value) {
                 $product = $value["variation_id"] ? \wc_get_product($value["variation_id"]) : \wc_get_product($value["product_id"]);
 
@@ -1252,6 +1329,20 @@ class CartScannerActions
                     \wc_update_order_item_meta($orderItemId, '_line_tax_data', $value["_line_tax_data"]);
 
                     $tax_amount += $value["tax"];
+                }
+
+                if ($product && $orderItemId && $interfaceFields) {
+                    foreach ($interfaceFields as $interfaceField) {
+                        if ($interfaceField['status'] == 1 && $interfaceField['show_in_create_order'] == 1) {
+                            if ($interfaceField['field_name'] && is_string($interfaceField['field_name']) && $interfaceField['field_name'] != "_sku") {
+                                $fieldValue = get_post_meta($product->get_id(), $interfaceField['field_name'], true);
+
+                                if ($fieldValue && trim($fieldValue) != "") {
+                                    wc_update_order_item_meta($orderItemId, $interfaceField['field_label'], $fieldValue);
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
@@ -1298,6 +1389,15 @@ class CartScannerActions
                 }
 
                 $shipping_method = new \WC_Shipping_Rate($activeShippingMethod, $shippingLabel, $details["shipping"], 0);
+
+                if ($shipping_method) {
+                    $shipping_data = @explode(":", $shipping_method->id);
+
+                    if ($shipping_data && is_array($shipping_data) && count($shipping_data) == 2 && $shipping_data[0] == "free_shipping") {
+                        $shipping_method->set_method_id($shipping_data[0]);
+                        $shipping_method->set_instance_id($shipping_data[1]);
+                    }
+                }
 
                 $orderItemId = $order->add_shipping($shipping_method);
                 $order->set_shipping_total($details["shipping"]);
@@ -1358,7 +1458,7 @@ class CartScannerActions
             }
 
 
-            if ($orderCustomPrice) {
+            if ($orderCustomPrice && $orderCustomPrice != "") {
                 $order->set_total($orderCustomPrice);
             }
             else {
@@ -1443,6 +1543,16 @@ class CartScannerActions
 
             if ($orderId) {
                 $orderCustomFields = array();
+
+                $userFormFields = InterfaceData::getUserFormFields();
+
+                foreach ($userFormFields as $field) {
+                    if ($field["position"] == "billing_section" || $field["position"] == "shipping_section" || $field["position"] == "bottom_section") {
+                        if (isset($addr[$field["name"]]) && $addr[$field["name"]] != "") {
+                            $orderCustomFields[$field["name"]] = $addr[$field["name"]];
+                        }
+                    }
+                }
 
                 foreach ($addr as $key => $value) {
                     if (strpos($key, 'uscf_') === 0) {
@@ -1531,6 +1641,9 @@ class CartScannerActions
         $wpdb->delete($tableCart, array("user_id" => $userId));
 
         update_user_meta($userId, "scanner_custom_order_total", "");
+        update_user_meta($userId, "scanner_custom_order_shipping", "");
+        update_user_meta($userId, "scanner_custom_order_shipping_tax", "");
+        update_user_meta($userId, "scanner_custom_order_custom_taxes", "");
         update_user_meta($userId, "scanner_active_shipping_method", "");
         update_user_meta($userId, "scanner_active_payment_method", "");
 
@@ -1546,8 +1659,26 @@ class CartScannerActions
         }
     }
 
+    public function resetCustomPrices(WP_REST_Request $request)
+    {
+        $userId = get_current_user_id();
+        $tokenUserId = $request ? $request->get_param("token_user_id") : null;
+        if ($tokenUserId) $userId = $tokenUserId;
+
+        update_user_meta($userId, "scanner_custom_order_total", "");
+        update_user_meta($userId, "scanner_custom_order_shipping", "");
+        update_user_meta($userId, "scanner_custom_order_shipping_tax", "");
+        update_user_meta($userId, "scanner_custom_order_custom_taxes", "");
+    }
+
     public function cartRecalculate(WP_REST_Request $request, $confirmation = "")
     {
+        $resetCustomPrices = $request->get_param("resetCustomPrices");
+
+        if ($resetCustomPrices) {
+            $this->resetCustomPrices($request);
+        }
+
         $itemsCustomPrices = $request->get_param("itemsCustomPrices");
         $orderUserId = $request->get_param("orderUserId");
         $extraData = $request->get_param("extraData");
@@ -1640,6 +1771,10 @@ class CartScannerActions
         $this->updateOrderExtraData($extraData, $userId);
         $this->updateOrderCustomPrices($itemsCustomPrices);
 
+        if ($orderUserId) {
+            $userData = apply_filters('barcode_scanner_order_user_data', $userData, $orderUserId);
+        }
+
         $result = array(
             "cartItems" => $this->getCartItems($request),
             "cartDetails" => $this->getCartDetails($request),
@@ -1689,6 +1824,9 @@ class CartScannerActions
     private function setOrderTotal(WP_REST_Request $request)
     {
         $orderCustomPrice = $this->formatPriceForUpdate($request->get_param("orderCustomPrice"));
+        $orderCustomShipping = $this->formatPriceForUpdate($request->get_param("orderCustomShipping"));
+        $orderCustomShippingTax = $this->formatPriceForUpdate($request->get_param("orderCustomShippingTax"));
+        $orderCustomTaxes = $this->formatPriceForUpdate($request->get_param("orderCustomTaxes"));
         $orderCustomTax = $request->get_param("orderCustomTax");
 
         $userId = get_current_user_id();
@@ -1701,6 +1839,31 @@ class CartScannerActions
 
         if (is_numeric($orderCustomPrice) && $orderCustomPrice >= 0 && (float)$orderCustomPrice >= 0) {
             update_user_meta($userId, "scanner_custom_order_total", $orderCustomPrice);
+        } else if ($orderCustomPrice == " ") {
+            update_user_meta($userId, "scanner_custom_order_total", "");
+        }
+
+        if (is_numeric($orderCustomShipping) && $orderCustomShipping >= 0 && (float)$orderCustomShipping >= 0) {
+            update_user_meta($userId, "scanner_custom_order_shipping", $orderCustomShipping);
+        } else if ($orderCustomShipping == " ") {
+            update_user_meta($userId, "scanner_custom_order_shipping", "");
+        }
+
+        if (is_numeric($orderCustomShippingTax) && $orderCustomShippingTax >= 0 && (float)$orderCustomShippingTax >= 0) {
+            update_user_meta($userId, "scanner_custom_order_shipping_tax", $orderCustomShippingTax);
+        } else if ($orderCustomShippingTax == " ") {
+            update_user_meta($userId, "scanner_custom_order_shipping_tax", "");
+        }
+
+        if ($orderCustomTaxes) {
+            $list = array();
+
+            foreach ($orderCustomTaxes as $key => $value) {
+                if (($value || $value == 0) && $value != " ") $list[$key] = $value;
+            }
+
+            if (!count($list)) $list = "";
+            update_user_meta($userId, "scanner_custom_order_custom_taxes", $list);
         }
     }
 
@@ -1716,7 +1879,7 @@ class CartScannerActions
         $wpdb->delete($table, array("user_id" => $userId));
 
         foreach ($data as $key => $value) {
-            if (!in_array($key, $excludes)) {
+            if (!in_array($key, $excludes) && in_array(gettype($value), array('string', 'integer'))) {
                 $wpdb->insert($table, array("user_id" => $userId, "param" => $key, "value" => $value));
             }
         }

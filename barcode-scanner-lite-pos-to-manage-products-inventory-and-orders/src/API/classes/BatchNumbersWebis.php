@@ -10,6 +10,11 @@ use WP_REST_Request;
 class BatchNumbersWebis
 {
     static private $hook_update_batch_fields = 'usbs_batch_numbers_webis_update_batch_fields';
+    static private $hook_after_update_batch_fields = 'usbs_batch_numbers_webis_after_update_batch_fields';
+    static private $hook_before_delete_batch = 'usbs_batch_numbers_webis_before_delete_batch';
+    static private $hook_after_delete_batch = 'usbs_batch_numbers_webis_after_delete_batch';
+    static private $hook_before_create_batch = 'usbs_batch_numbers_webis_before_create_batch';
+    static private $hook_after_created_batch = 'usbs_batch_numbers_webis_after_created_batch';
 
     static public function status()
     {
@@ -49,7 +54,11 @@ class BatchNumbersWebis
         $postId = (int)$request->get_param("postId");
 
         if ($batchId && $postId) {
+            apply_filters(self::$hook_before_delete_batch, $postId, $batchId);
+
             $wpdb->delete("{$wpdb->prefix}webis_pbet", array("id" => $batchId));
+
+            apply_filters(self::$hook_after_delete_batch, $postId);
         }
 
         $managementActions = new ManagementActions();
@@ -66,10 +75,14 @@ class BatchNumbersWebis
         $postId = (int)$request->get_param("postId");
 
         if ($postId) {
+            apply_filters(self::$hook_before_create_batch, $postId);
+
             $wpdb->insert("{$wpdb->prefix}webis_pbet", array(
                 "post_id" => $postId,
                 "quantity" => 0,
             ));
+
+            apply_filters(self::$hook_after_created_batch, $postId, $wpdb->insert_id);
         }
 
         $managementActions = new ManagementActions();
@@ -95,6 +108,8 @@ class BatchNumbersWebis
             $fields = apply_filters(self::$hook_update_batch_fields, $fields, $batchId);
 
             $wpdb->update("{$wpdb->prefix}webis_pbet", $fields, array("id" => $batchId));
+
+            apply_filters(self::$hook_after_update_batch_fields, $fields, $batchId, $postId);
         }
 
         $managementActions = new ManagementActions();
@@ -104,7 +119,7 @@ class BatchNumbersWebis
         return $managementActions->productSearch($productRequest, false, true);
     }
 
-    static public function updateBatches($batches)
+    static public function updateBatches($batches, $postId)
     {
         global $wpdb;
 
@@ -112,7 +127,7 @@ class BatchNumbersWebis
 
         try {
             foreach ($batches as $key => $value) {
-                $data = array(
+                $fields = array(
                     'expiry_date' => $value['expiry_date'],
                     'quantity' => $value['quantity'],
                     'batch_num' => $value['batch_num'],
@@ -120,9 +135,11 @@ class BatchNumbersWebis
                     'supplier' => $value['supplier'],
                 );
 
-                $fields = apply_filters(self::$hook_update_batch_fields, $data, $value['id']);
+                $fields = apply_filters(self::$hook_update_batch_fields, $fields, $value['id']);
 
-                $wpdb->update("{$wpdb->prefix}webis_pbet", $data, array("id" => $value['id']));
+                $wpdb->update("{$wpdb->prefix}webis_pbet", $fields, array("id" => $value['id']));
+
+                apply_filters(self::$hook_after_update_batch_fields, $fields, $value['id'], $postId);
             }
         } catch (\Throwable $th) {
             throw $th;

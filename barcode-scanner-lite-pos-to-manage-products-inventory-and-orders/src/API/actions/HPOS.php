@@ -2,6 +2,7 @@
 
 namespace UkrSolution\BarcodeScanner\API\actions;
 
+use UkrSolution\BarcodeScanner\API\classes\OrdersHelper;
 use UkrSolution\BarcodeScanner\API\classes\PickList;
 use UkrSolution\BarcodeScanner\API\classes\Post;
 use UkrSolution\BarcodeScanner\API\classes\ProductsHelper;
@@ -85,7 +86,6 @@ class HPOS
         Debug::addPoint("1. orders = " . count($orders));
 
         if (count($orders)) {
-
             return array(
                 "posts" => $orders,
                 "filter" => (new Post())->getFilterParams($filterWithoutTitle),
@@ -155,7 +155,6 @@ class HPOS
         $params = (new Post())->getFilterParams($filter);
         $isNumeric = (preg_match('/^[0-9]{0,20}$/', trim($query), $m)) ? true : false;
 
-
         $sql = "SELECT O.* %SELECT_COLUMNS% FROM {$posts} AS P, {$wpdb->prefix}wc_orders AS O 
                 WHERE O.id = P.post_id AND ( P.post_status NOT IN('{$statuses}') OR P.post_status IS NULL ) 
                     AND ( P.post_parent = 0 OR P.post_parent IS NULL OR P.post_parent_status IS NUll OR P.post_parent_status NOT IN('{$statuses}')  ) 
@@ -199,6 +198,36 @@ class HPOS
 
                 $filterSql .= $_sql;
                 $selectColumns[] = "{$_sql} AS '{$field}'";
+            }
+        }
+
+        foreach ($params as $_key => $_fieldName) {
+            if (preg_match("/^order-custom-\d+$/", $_key, $m)) {
+                $_status = isset($params[$m[0] . "-status"]) ? $params[$m[0] . "-status"] : 1;
+
+                foreach ($tableColumns as $value) {
+                    if ($value->name === $_fieldName && $value->table == "postmeta") {
+                        $field = $value->column;
+
+                        $filterSql .= (strlen($filterSql)) ? " OR " : "";
+                        $types = "'shop_order'";
+                        $_sql = self::sqlComp($_status, $types, $query, "P.{$field}");
+                        $filterSql .= $_sql;
+                        $selectColumns[] = "{$_sql} AS '{$field}'";
+                    }
+                }
+            } else if (preg_match("/^order-item-\d+$/", $_key, $m)) {
+                foreach ($tableColumns as $value) {
+                    if ($value->name === $_fieldName && $value->table == "order-item") {
+                        $field = $value->column;
+
+                        $filterSql .= (strlen($filterSql)) ? " OR " : "";
+                        $types = "'shop_order'";
+                        $_sql = self::sqlComp(2, $types, $query, "P.{$field}");
+                        $filterSql .= $_sql;
+                        $selectColumns[] = "{$_sql} AS '{$field}'";
+                    }
+                }
             }
         }
 
@@ -250,7 +279,7 @@ class HPOS
 
         $limit = self::$limit;
         $sql .= ($filterSql) ? $filterSql : " 1 != 1 ";
-        $sql .= " ) GROUP BY P.ID LIMIT {$limit} ";
+        $sql .= " ) GROUP BY P.ID ORDER BY P.post_date DESC LIMIT {$limit} ";
 
         if ($selectColumns) {
             $sql = str_replace("%SELECT_COLUMNS%", ", " . implode(", ", $selectColumns), $sql);
@@ -278,7 +307,7 @@ class HPOS
 
         if (count($posts) > 1) {
             foreach ($posts as $post) {
-                $order = self::formatOrder($post, $additionalFields, $page);
+                $order = self::formatOrder($post, $additionalFields, 'orders_list');
 
                 if ($order) $orders[] = $order;
             }
@@ -441,6 +470,22 @@ class HPOS
 
             $quantity = \wc_get_order_item_meta($item->get_id(), '_qty', true);
 
+            $product = $item->get_product();
+            $variationForPreview = array();
+
+            if ($product && $product->is_type('variation')) {
+                $variation_attributes = $product->get_attributes();
+
+                foreach ($variation_attributes as $attribute_name => $attribute_value) {
+                    if (taxonomy_is_product_attribute($attribute_name)) {
+                        $attribute_label = wc_attribute_label($attribute_name);
+                    } else {
+                        $attribute_label = wc_attribute_label($attribute_name, $product);
+                    }
+
+                    $variationForPreview[] = array("label" => esc_html($attribute_label), "value" => esc_html($attribute_value));
+                }
+            }
             $_productData = array(
                 "ID" => $_post->ID,
                 "variation_id" => $variationId,
@@ -474,6 +519,8 @@ class HPOS
                 "fulfillment_user_name" => $fulfillment_user_name,
                 "fulfillment_user_email" => $fulfillment_user_email,
                 "product_categories" => wp_get_post_terms($item->get_product_id(), 'product_cat'),
+                "variationForPreview" => $variationForPreview,
+                "refund_data" => OrdersHelper::getOrderItemRefundData($order, $item)
             );
 
 
@@ -498,12 +545,12 @@ class HPOS
 
                         if (isset($order_subtotal_taxes[$tax_rate_id])) {
                             $order_subtotal_taxes[$tax_rate_id]['cost'] += $tax_amount;
-                            $order_subtotal_taxes[$tax_rate_id]['cost_c'] = strip_tags(wc_price($order_subtotal_taxes[$tax_rate_id]['cost']));
+                            $order_subtotal_taxes[$tax_rate_id]['cost_c'] = ResultsHelper::getFormattedPrice(strip_tags(wc_price($order_subtotal_taxes[$tax_rate_id]['cost'])));
                         } else {
                             $order_subtotal_taxes[$tax_rate_id] = array(
                                 'label' => \WC_Tax::get_rate_label($tax_rate_id),
                                 'cost' => $tax_amount,
-                                'cost_c' => strip_tags(wc_price($tax_amount)),
+                                'cost_c' => ResultsHelper::getFormattedPrice(strip_tags(wc_price($tax_amount))),
                                 'rate_id' => $tax_rate_id,
                             );
                         }
@@ -600,6 +647,7 @@ class HPOS
                     'first_name' => $order->get_shipping_first_name(),
                     'last_name' => $order->get_shipping_last_name(),
                     'company' => $order->get_shipping_company(),
+                    'phone' => $order->get_shipping_phone(),
                     'address_1' => $order->get_shipping_address_1(),
                     'address_2' => $order->get_shipping_address_2(),
                     'postcode' => $order->get_shipping_postcode(),
@@ -627,16 +675,16 @@ class HPOS
             "order_subtotal_tax" => $order_subtotal_tax,
             "order_subtotal_tax_c" => strip_tags(wc_price($order_subtotal_tax)),
             "order_shipping" => $order_shipping,
-            "order_shipping_c" => strip_tags(wc_price($order_shipping)),
+            "order_shipping_c" => ResultsHelper::getFormattedPrice(strip_tags(wc_price($order_shipping))),
             "order_shipping_tax" => $order_shipping_tax,
-            "order_shipping_tax_c" => strip_tags(wc_price($order_shipping_tax)),
+            "order_shipping_tax_c" => ResultsHelper::getFormattedPrice(strip_tags(wc_price($order_shipping_tax))),
             "order_shipping_name" => $order_shipping_name,
             "order_shipping_title" => $order_shipping_title,
             "order_payment" => $order_payment,
             "order_payment_title" => $order_payment_title,
             "additionalTaxes" => $additionalTaxes,
             "order_total" => $order->get_total(),
-            "order_total_c" => strip_tags(wc_price($order->get_total())),
+            "order_total_c" => ResultsHelper::getFormattedPrice(strip_tags(wc_price($order->get_total()))),
             "customer_id" => $customerId,
             "customer_name" => trim($customerName),
             "customer_country" => $customerCountry,
@@ -656,6 +704,7 @@ class HPOS
             "pickListTemplate" => !in_array($page, array('history', 'orders_list')) ? PickList::getTemplate($post, $order, $settings) : '',
             "customer_orders_count" => 0,
             "user_pending_orders_count" => ResultsHelper::get_user_pending_orders_count($customerId, $post->ID, $orderStatusesAreStillNotCompleted),
+            "refund_data" => OrdersHelper::getOrderRefundData($order),
         );
 
         Debug::addPoint(" - formatOrder order props");
@@ -667,7 +716,6 @@ class HPOS
             ));
 
             $props["customer_orders_count"] = $customerOrders ? $customerOrders->count : 0;
-
         }
 
         Debug::addPoint(" - formatOrder customer orders");
@@ -736,6 +784,20 @@ class HPOS
             $customerName = get_user_meta($customerId, 'first_name', true) . ' ' . get_user_meta($customerId, 'last_name', true);
         }
 
+        $user = $order->get_user();
+        $userData = null;
+
+        if ($customerId && $user) {
+            $userData = $user->data;
+            $userData->avatar = @get_avatar_url($customerId);
+        }
+
+        $products = array();
+
+        foreach ($order->get_items("line_item") as $item) {
+            $products[] = array('item_id' => $item->get_id());
+        }
+
         $settings = new Settings();
 
         $fulfillmentField = $settings->getSettings("orderFulFillmentField");
@@ -760,6 +822,8 @@ class HPOS
             "total_products" => count($order->get_items("line_item")),
             "updated" => time(),
             "customer_orders_count" => 0,
+            "user" => $userData,
+            "products" => $products,
         );
 
         if ($fulfillmentField) {

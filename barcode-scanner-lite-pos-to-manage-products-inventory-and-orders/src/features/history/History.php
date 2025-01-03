@@ -3,6 +3,7 @@
 namespace UkrSolution\BarcodeScanner\features\history;
 
 use UkrSolution\BarcodeScanner\API\actions\HPOS;
+use UkrSolution\BarcodeScanner\API\classes\ProductsHelper;
 use UkrSolution\BarcodeScanner\API\classes\Results;
 use UkrSolution\BarcodeScanner\Database;
 use UkrSolution\BarcodeScanner\features\Debug\Debug;
@@ -60,7 +61,7 @@ class History
                     "SELECT H.*, 
                     (SELECT COUNT(order_item_id) FROM {$wpdb->prefix}woocommerce_order_items WHERE order_id = O.id AND order_item_type = 'line_item') AS 'items_count'
                     FROM {$table} AS H, {$wpdb->prefix}wc_orders AS O 
-                    WHERE O.id = H.post_id AND H.user_id = %d ORDER BY H.updated DESC LIMIT 15;",
+                    WHERE O.type = 'shop_order' AND O.id = H.post_id AND H.user_id = %d ORDER BY H.updated DESC LIMIT 15;",
                     $uid
                 ));
             } else {
@@ -100,10 +101,12 @@ class History
                         $product_parent_large_thumbnail_url = $resultsClass->getThumbnailUrl($post->post_parent, 'large');
                     }
 
+                    $post_title = ProductsHelper::getPostName($post);
+
                     $list[] = array(
                         "ID" => $post->ID,
                         "post_type" => $post->post_type,
-                        "post_title" => base64_encode($post->post_title),
+                        "post_title" => base64_encode($post_title),
                         "product_sku" => get_post_meta($post->ID, "_sku", true),
                         "translation" => array("language_code" => $translation && isset($translation->language_code) ? $translation->language_code : ""),
                         "product_thumbnail_url" => $product_thumbnail_url ? $product_thumbnail_url : "",

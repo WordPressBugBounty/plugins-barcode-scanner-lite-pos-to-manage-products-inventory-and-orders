@@ -78,6 +78,7 @@ $productColumn4Width = $productColumn4Width === null ? '260' : $productColumn4Wi
                 "disabled_field" => "0",
                 "use_for_auto_action" => "0",
                 "attribute_id" => "",
+                "button_width" => "",
             );
             $rootClass = "new_field_template";
             require __DIR__ . "/field.php";

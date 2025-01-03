@@ -55,14 +55,16 @@ class Users
 
     public static function getUserRole($userId)
     {
-        global $wpdb;
+        if ($userId) {
+            $user = get_user_by('ID', $userId);
+            $roles = $user && isset($user->roles) ? (array)$user->roles : array();
+            return $roles && count($roles) ? $roles[0] : '';
+        }
 
-        $user = get_user_by('ID', $userId);
-        $roles = $user && isset($user->roles) ? (array)$user->roles : array();
-        return count($roles) ? $roles[0] : '';
+        return '';
     }
 
-    public static function getUToken($userId)
+    public static function getUToken($userId, $platform)
     {
         try {
             $token = get_user_meta($userId, 'barcode_scanner_web_otp', true);
@@ -78,5 +80,57 @@ class Users
         } catch (\Throwable $th) {
             return "";
         }
+    }
+
+    public static function getUsersAppUsesTimeData()
+    {
+        global $wpdb;
+
+        return $wpdb->get_results("SELECT * FROM {$wpdb->usermeta} AS UM WHERE UM.meta_key = 'barcode_scanner_app_last_used';");
+    }
+
+    public static function updateAppUsesTime($userId)
+    {
+        try {
+            if ($userId) {
+                update_user_meta($userId, 'barcode_scanner_app_last_used', time());
+            }
+        } catch (\Throwable $th) {
+            return "";
+        }
+    }
+
+    public static function getNewUserRoles()
+    {
+        global $wp_roles;
+
+        if ($wp_roles && $wp_roles->roles) {
+            $roles = $wp_roles->roles;
+            $filtered_roles = array();
+
+            foreach ($roles as $role_name => $role) {
+                if (!isset($role['capabilities'])) {
+                    continue;
+                }
+
+                $has_higher_level = false;
+                foreach ($role['capabilities'] as $cap => $value) {
+                    if (preg_match('/^level_([1-9]|10)$/', $cap) && $value) {
+                        $has_higher_level = true;
+                        break;
+                    }
+                }
+
+                if (!$has_higher_level) {
+                    $filtered_roles[$role_name] = array('name' => $role['name']);
+                }
+            }
+
+            $filtered_roles = apply_filters('barcode_scanner_new_user_roles', $filtered_roles);
+
+            return $filtered_roles;
+        }
+
+        return array();
     }
 }

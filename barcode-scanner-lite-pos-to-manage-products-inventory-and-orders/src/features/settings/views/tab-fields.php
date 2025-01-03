@@ -105,7 +105,6 @@ if ($roleActive) {
     <input type="hidden" name="nonce" value="<?php echo esc_attr($nonce); ?>" />
     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; max-width: 1190px;">
         <div style="padding: 0px 0 0 10px;"><?php echo esc_html('Here you can add/edit/remove fields which displays in the "Inventory" tab (in popup).', "us-barcode-scanner"); ?></div>
-        <?php  ?>
     </div>
     <div style="display: flex; padding: 25px 0 0 10px; flex-flow: row wrap;">
         <?php
@@ -130,6 +129,8 @@ if ($roleActive) {
 </form>
 
 <script>
+    let codeMirrorInstances = [];
+
     jQuery(document).ready(() => {
         console.log("ready");
 
@@ -137,5 +138,83 @@ if ($roleActive) {
             const section = jQuery(e.target).attr('data-section');
             jQuery('div[data-section-content="' + section + '"]').slideToggle();
         });
+
+        jQuery(document).on("click", '.edit_java_script', (e) => {
+            const editJavaScriptModalEl = jQuery(e.target).closest(".settings_field_body").find(".edit_java_script_modal");
+            editJavaScriptModalEl.removeAttr("style");
+
+            setTimeout(() => {
+                const settingsFieldBody = e.target.closest('.settings_field_body');
+                const textarea = settingsFieldBody ? settingsFieldBody.querySelector('.edit_java_script_modal .button_js') : null;
+                reinitializeCodeMirror(textarea);
+
+                const codeMirrorInstance = editJavaScriptModalEl.find('.CodeMirror')[0].CodeMirror;
+
+                if (codeMirrorInstance) codeMirrorInstance.focus();
+            }, 0);
+        });
+
+        jQuery(document).on("click", '.edit_java_script_modal_close', (e) => {
+            const editJavaScriptModalEl = jQuery(e.target).closest(".settings_field_body").find(".edit_java_script_modal");
+            editJavaScriptModalEl.css("display", "none");
+        });
+
+        jQuery(document).on("click", '.edit_java_script_modal', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+        });
+
+        jQuery(document).on("mousedown", '.edit_java_script_modal', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+        });
+
+        jQuery(document).on("mousemove", '.edit_java_script_modal', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+        });
+
     });
+
+    function reinitializeCodeMirror(textarea) {
+        if (!textarea.classList.contains('initialized')) {
+            const editor = CodeMirror.fromTextArea(textarea, {
+                mode: 'javascript',
+                lineNumbers: true
+            });
+
+            codeMirrorInstances.push(editor);
+
+            textarea.classList.add('initialized');
+        }
+    }
 </script>
+
+<style>
+    .edit_java_script_modal {
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background: #0000004d;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+    }
+
+    .edit_java_script_modal>div {
+        background: #fff;
+        border-radius: 4px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .edit_java_script_modal .CodeMirror {
+        width: 600px;
+        box-sizing: border-box;
+    }
+</style>

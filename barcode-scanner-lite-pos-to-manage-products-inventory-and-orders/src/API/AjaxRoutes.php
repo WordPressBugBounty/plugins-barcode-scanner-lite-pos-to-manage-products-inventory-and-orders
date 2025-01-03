@@ -17,6 +17,7 @@ use UkrSolution\BarcodeScanner\features\logs\Logs;
 use UkrSolution\BarcodeScanner\features\mobile\MobileRouter;
 use UkrSolution\BarcodeScanner\features\settings\PermissionsHelper;
 use UkrSolution\BarcodeScanner\features\settings\Settings;
+use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
 use WP_REST_Request;
 
 
@@ -31,7 +32,7 @@ class AjaxRoutes
         $this->coreInstance = $coreInstance;
 
         if (isset($post["rout"]) && $post["rout"]) {
-            $rout = sanitize_text_field($post["rout"]);
+            $route = sanitize_text_field($post["rout"]);
 
             add_filter('scanner_filter_cart_item_price', function ($productId, $price, $customFilter) {
                 return $price;
@@ -46,8 +47,9 @@ class AjaxRoutes
             $cartActions = new CartScannerActions();
             $request = new WP_REST_Request("", "");
 
+            $token = $this->getParam($get, "token", "");
             $routes = new Routes();
-            $request->set_param("token", $this->getParam($get, "token", ""));
+            $request->set_param("token", $token);
 
             $tokenUserId = $routes->getUserId($request);
             $request->set_param("platform", $this->getParam($get, "platform", ""));
@@ -61,6 +63,8 @@ class AjaxRoutes
                 $userRole = $tokenUserId ? Users::getUserRole($tokenUserId) : '';
                 Users::setUserId($tokenUserId);
                 Users::setUserRole($userRole);
+
+                Users::updateAppUsesTime($tokenUserId);
             }
 
             if (!key_exists('woocommerce/woocommerce.php', get_plugins())) {
@@ -75,7 +79,7 @@ class AjaxRoutes
                 wp_die();
             }
 
-            if (!$checker && !in_array($rout, array(
+            if (!$checker && !in_array($route, array(
                 "recalculate",
                 "backgroundIndexing",
                 "checkOtherPrices",
@@ -89,13 +93,13 @@ class AjaxRoutes
                 $MobileRouter = new MobileRouter();
                 $platform = $this->getParam($get, "platform", "");
 
-                                $data = array(
+                $data = array(
                     "redirect" => 0,
                     "data" => array("rout" => "invalid route"),
                     "f" => 1
                 );
 
-                                if ($platform == "android" || $platform == "ios") {
+                if ($platform == "android" || $platform == "ios") {
                     $urlData = $MobileRouter->getParamsFromPlainUrl();
                     $jsData = $this->coreInstance->adminEnqueueScripts(true, true, $urlData);
                     $usbs = $jsData && isset($jsData['usbs']) ? $jsData['usbs'] : array();
@@ -132,6 +136,8 @@ class AjaxRoutes
                 "byId",
                 "setQty",
                 "orderCustomPrice",
+                "orderCustomShipping",
+                "orderCustomShippingTax",
                 "orderCustomSubPrice",
                 "orderCustomTax",
                 "orderStatus",
@@ -169,7 +175,8 @@ class AjaxRoutes
                 "withoutStatuses",
                 "attributeName",
                 "attributeValue",
-                "loadCustomerData"
+                "loadCustomerData",
+                "taxonomy"
             );
             $keysArray = array(
                 "filter",
@@ -177,12 +184,15 @@ class AjaxRoutes
                 "filterExcludes",
                 "products",
                 "fields",
+                "searchAttributes",
                 "progress",
                 "userData",
                 "currentItems",
                 "itemsCustomPrices",
                 "cartItem",
                 "extraData",
+                "orderCustomTaxes",
+                "resetCustomPrices",
                 "inputs",
                 "data",
                 "categories",
@@ -219,7 +229,7 @@ class AjaxRoutes
 
             $_POST["bsInstanceFrontendStatus"] = $request->get_param("bsInstanceFrontendStatus");
 
-            switch ($rout) {
+            switch ($route) {
                 case 'getPost':
                     PermissionsHelper::onePermRequired(['inventory', 'orders']);
                     $response = $postActions->postSearch($request);
@@ -304,6 +314,10 @@ class AjaxRoutes
                     PermissionsHelper::onePermRequired(['inventory', 'newprod']);
                     $response = $managementActions->removePostMainImage($request);
                     break;
+                case 'sortProductGallery':
+                    PermissionsHelper::onePermRequired(['inventory', 'newprod']);
+                    $response = $managementActions->sortProductGallery($request);
+                    break;
                 case 'changeStatus':
                     PermissionsHelper::onePermRequired(['orders']);
                     $response = $managementActions->orderChangeStatus($request);
@@ -340,9 +354,17 @@ class AjaxRoutes
                     PermissionsHelper::onePermRequired(['inventory', 'newprod']);
                     $response = $managementActions->getProductCategories($request);
                     break;
+                case 'getProductTaxonomy':
+                    PermissionsHelper::onePermRequired(['inventory', 'newprod']);
+                    $response = $managementActions->getProductTaxonomy($request);
+                    break;
                 case 'updateCategories':
                     PermissionsHelper::onePermRequired(['inventory', 'newprod']);
                     $response = $managementActions->updateCategories($request);
+                    break;
+                case 'updateTaxonomy':
+                    PermissionsHelper::onePermRequired(['inventory', 'newprod']);
+                    $response = $managementActions->updateTaxonomy($request);
                     break;
                 case 'updateAttributes':
                     PermissionsHelper::onePermRequired(['inventory', 'newprod']);
@@ -449,6 +471,10 @@ class AjaxRoutes
                     PermissionsHelper::onePermRequired(['cart']);
                     $response = $cartActions->cartRecalculate($request);
                     break;
+                case 'resetCustomPrices':
+                    PermissionsHelper::onePermRequired(['cart']);
+                    $response = $cartActions->resetCustomPrices($request);
+                    break;
                 case 'createColumn':
                     PermissionsHelper::onePermRequired(['inventory', 'newprod', 'orders', 'cart']);
                     $response = $dbActions->createColumn($request);
@@ -519,7 +545,7 @@ class AjaxRoutes
                     break;
                 case 'getHistory':
                     PermissionsHelper::onePermRequired(['inventory', 'orders', 'cart']);
-                    $response = rest_ensure_response(array("history" => History::getByUser()));
+                    $response = rest_ensure_response(array("history" => History::getByUser(Users::getUserId($request))));
                     break;
 
                 case 'usbs_find_order_save_id':
@@ -566,11 +592,10 @@ class AjaxRoutes
             }
 
             $filter = $this->getParam($post, "filter", array());
-            if ($filter && in_array($rout, array("checkCustomFields", "createColumn"))) {
+            if ($filter && in_array($route, array("checkCustomFields", "createColumn"))) {
                 $settings = new Settings();
                 $settings->updateSettings('search_filter', json_encode($filter));
             }
-
 
             if ($response && $response->data) {
                 $updatedTimestamp = $settings->getSettings("updated_timestamp");

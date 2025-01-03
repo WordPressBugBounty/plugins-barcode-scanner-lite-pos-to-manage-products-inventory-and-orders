@@ -109,4 +109,28 @@ class ResultsHelper
 
         return $extraData;
     }
+
+    public static function getFormattedPrice($data)
+    {
+        $priceThousandSeparator = "";
+        $priceDecimalSeparator = ".";
+
+        if (function_exists('wc_get_price_thousand_separator')) {
+            $priceThousandSeparator = \wc_get_price_thousand_separator();
+        }
+
+        if (function_exists('wc_get_price_decimal_separator')) {
+            $priceDecimalSeparator = \wc_get_price_decimal_separator();
+        }
+
+        $string = html_entity_decode($data);
+
+        $escapedThousandSeparator = preg_quote($priceThousandSeparator, '/');
+        $escapedDecimalSeparator = preg_quote($priceDecimalSeparator, '/');
+
+        $regex = "/[^0-9{$escapedThousandSeparator}{$escapedDecimalSeparator}]/";
+        $price = preg_replace($regex, '', $string);
+
+        return trim($price, ".,");
+    }
 }

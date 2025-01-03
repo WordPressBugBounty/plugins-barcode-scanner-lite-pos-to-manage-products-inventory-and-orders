@@ -2,6 +2,7 @@
 
 namespace UkrSolution\BarcodeScanner\API\actions;
 
+use UkrSolution\BarcodeScanner\API\classes\Users;
 use UkrSolution\BarcodeScanner\API\RequestHelper;
 use UkrSolution\BarcodeScanner\features\interfaceData\InterfaceData;
 use UkrSolution\BarcodeScanner\features\logs\LogActions;
@@ -83,25 +84,53 @@ class UsersActions
             return rest_ensure_response(array("error" => esc_html__("Username is required", "us-barcode-scanner")));
         }
 
-
         $settings = new Settings();
         $orderCreateEmail = $settings->getField("general", "orderCreateEmail", "on");
         $shippingAsBilling = isset($userData["shipping_as_billing"]) && $userData["shipping_as_billing"] == 1;
+        $email = isset($userData["email"]) ? $userData["email"] : '';
+        $role = isset($userData["role"]) ? $userData["role"] : 'customer';
 
-        $userId = wp_create_user($userData["username"], md5($userData["username"]), $userData["email"]);
+        $userId = wp_create_user($userData["username"], md5($userData["username"]), $email);
+
         if (is_wp_error($userId)) {
             return rest_ensure_response(array("error" => $userId->get_error_message()));
-        } else if ($orderCreateEmail === "on") {
+        }
+        else if ($orderCreateEmail === "on" && $userId && $email) {
             wp_new_user_notification($userId, null, 'both');
+        }
+
+        $availableRoles = Users::getNewUserRoles();
+
+        if (isset($availableRoles[$role])) {
+            $user = get_user_by('ID', $userId);
+            $user->set_role($role);
         }
 
         if ($userId) {
             $keysList = array(
-                'first_name', 'last_name',
-                'billing_first_name', 'billing_last_name', 'billing_company', 'billing_phone', 'billing_address_1', 'billing_address_2',
-                'billing_city', 'billing_postcode', 'billing_country', 'billing_state', 'billing_email',
-                'shipping_first_name', 'shipping_last_name', 'shipping_company', 'shipping_phone', 'shipping_address_1', 'shipping_address_2',
-                'shipping_city', 'shipping_postcode', 'shipping_country', 'shipping_state'
+                'first_name',
+                'last_name',
+                'billing_first_name',
+                'billing_last_name',
+                'billing_company',
+                'billing_phone',
+                'billing_address_1',
+                'billing_address_2',
+                'billing_city',
+                'billing_postcode',
+                'billing_country',
+                'billing_state',
+                'billing_email',
+                'shipping_first_name',
+                'shipping_last_name',
+                'shipping_company',
+                'shipping_phone',
+                'shipping_address_1',
+                'shipping_address_2',
+                'shipping_city',
+                'shipping_postcode',
+                'shipping_country',
+                'shipping_state'
             );
 
             foreach (InterfaceData::getUserFields() as $value) {
@@ -123,6 +152,8 @@ class UsersActions
                         \update_user_meta($userId, $shippingKey, $value);
                     }
                 }
+
+                apply_filters('barcode_scanner_update_user_custom_fields', $key, $value, $userId);
             }
         }
 

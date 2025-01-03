@@ -2,6 +2,16 @@
 
 use UkrSolution\BarcodeScanner\API\classes\BatchNumbers;
 use UkrSolution\BarcodeScanner\API\classes\BatchNumbersWebis;
+use UkrSolution\BarcodeScanner\API\classes\YITHPointOfSale;
+
+$button_js_default = '// Get product details
+// const product = window.BarcodeScannerApp.productTab.getCurrentProduct();
+
+// Set and save field for product
+// window.BarcodeScannerApp.productTab.setProductMeta({ "_sku", "NEW_SKU" });
+
+// Display prompt popup
+// const value = await window.BarcodeScannerApp.modals.prompt({ field_type: "number", title: "Prompt title" });';
 
 ?>
 <tr class="settings_field_section <?php echo (isset($rootClass) && $rootClass) ? esc_attr($rootClass) : "" ?>">
@@ -81,8 +91,10 @@ use UkrSolution\BarcodeScanner\API\classes\BatchNumbersWebis;
                                     <?php if ($settingsHelper::is_plugin_active('product-expiry-for-woocommerce/product-expiry-for-woocommerce.php')) : ?>
                                         <option value="ExpiryDate" <?php echo $field["type"] == "ExpiryDate" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo  esc_html__("ExpiryDate", "us-barcode-scanner"); ?></option>
                                     <?php endif; ?>
+                                    <option value="action_button" <?php echo $field["type"] == "action_button" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo  esc_html__("JS Button", "us-barcode-scanner"); ?></option>
                                     <option value="white_space" <?php echo $field["type"] == "white_space" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo  esc_html__("White space", "us-barcode-scanner"); ?></option>
                                     <option value="categories" <?php echo $field["type"] == "categories" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo  esc_html__("Categories", "us-barcode-scanner"); ?></option>
+                                    <option value="taxonomy" <?php echo $field["type"] == "taxonomy" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo  esc_html__("Taxonomy", "us-barcode-scanner"); ?></option>
                                     <option value="tags" <?php echo $field["type"] == "tags" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo  esc_html__("Tags", "us-barcode-scanner"); ?></option>
                                     <option value="variation_attributes" <?php echo $field["type"] == "variation_attributes" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo  esc_html__("Variation attributes", "us-barcode-scanner"); ?></option>
                                     <option value="global_attribute" <?php echo $field["type"] == "global_attribute" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo  esc_html__("Global attribute", "us-barcode-scanner"); ?></option>
@@ -94,6 +106,9 @@ use UkrSolution\BarcodeScanner\API\classes\BatchNumbersWebis;
                                     <?php endif; ?>
                                     <?php if (BatchNumbersWebis::status()) : ?>
                                         <option value="usbs_webis" <?php echo $field["type"] == "usbs_webis" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo  esc_html__("Product Batch & Tracking", "us-barcode-scanner"); ?></option>
+                                    <?php endif; ?>
+                                    <?php if (YITHPointOfSale::status()) : ?>
+                                        <option value="_yith_pos_multistock" <?php echo $field["type"] == "_yith_pos_multistock" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo  esc_html__("YITH Point of Sale", "us-barcode-scanner"); ?></option>
                                     <?php endif; ?>
                                 </select>
                             </td>
@@ -131,6 +146,14 @@ use UkrSolution\BarcodeScanner\API\classes\BatchNumbersWebis;
                                 <div style="display: inline-block; position: relative; width: 1px;">
                                     <span class="cf_check_name_result"></span>
                                 </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td scope="row" style="text-align:left; padding: 0 10px 0 10px; width: 110px; box-sizing: border-box;">
+                                <?php echo esc_html__("Taxonomy", "us-barcode-scanner"); ?>
+                            </td>
+                            <td style="padding: 0;">
+                                <input type="text" class="usbs_taxonomy" name="fields[<?php echo esc_attr($field["id"]); ?>][field_name]" value="<?php echo esc_attr($field["field_name"]); ?>" style="width: 177px;" />
                             </td>
                         </tr>
                         <tr class="global_attribute">
@@ -179,6 +202,34 @@ use UkrSolution\BarcodeScanner\API\classes\BatchNumbersWebis;
                                     <option value="top" <?php echo $field["label_position"] == "top" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo  esc_html__("Top", "us-barcode-scanner"); ?></option>
                                     <option value="bottom" <?php echo $field["label_position"] == "bottom" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo  esc_html__("Bottom", "us-barcode-scanner"); ?></option>
                                 </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td scope="row" style="text-align:left; padding: 0 10px 0 10px; width: 110px; box-sizing: border-box;">
+                                <?php echo esc_html__("Button width", "us-barcode-scanner"); ?>
+                            </td>
+                            <td style="padding: 0;">
+                                <input class="button_width" style="width: 100px;" value="<?php echo esc_attr($field["button_width"]); ?>" name="fields[<?php echo esc_attr($field["id"]); ?>][button_width]" /> %
+                            </td>
+                        </tr>
+                        <tr>
+                            <td scope="row" style="text-align:left; padding: 0 10px 0 10px; width: 110px; box-sizing: border-box;">
+                                <?php echo esc_html__("Button's JS", "us-barcode-scanner"); ?>
+                            </td>
+                            <td style="padding: 0;">
+                                <button type="button" class="edit_java_script"><?php echo esc_html__("Edit JavaScript", "us-barcode-scanner"); ?></button>
+                                <?php
+                                $allowed_tags = wp_kses_allowed_html('post');
+                                $button_js = isset($field["button_js"]) && !empty($field["button_js"]) ? $field["button_js"] : '';
+                                ?>
+                                <div class="edit_java_script_modal" style="display: none;">
+                                    <div>
+                                        <textarea class="button_js" rows="10" cols="70" name="fields[<?php echo esc_attr($field["id"]); ?>][button_js]"><?php echo $button_js ? wp_kses($button_js, $allowed_tags) : wp_kses($button_js_default, $allowed_tags) ?></textarea>
+                                        <div style="display: flex; justify-content: flex-end;">
+                                            <button type="button" class="edit_java_script_modal_close"><?php echo esc_html__("Close", "us-barcode-scanner"); ?></button>
+                                        </div>
+                                    </div>
+                                </div>
                             </td>
                         </tr>
                         <tr>

@@ -41,6 +41,7 @@ function usbs_plugin_filter($plugins)
         "woo-advanced-shipment-tracking/woocommerce-advanced-shipment-tracking.php",
         "yith-woocommerce-order-tracking/init.php",
         "wt-woocommerce-sequential-order-numbers/wt-advanced-order-number.php",
+        "yith-point-of-sale-for-woocommerce-premium/init.php",
         "woocommerce-sequential-order-numbers-pro/woocommerce-sequential-order-numbers-pro.php",
         "stock-locations-for-woocommerce/stock-locations-for-woocommerce.php",
         "woocommerce-wholesale-pricing/woocommerce-wholesale-pricing.php",
@@ -71,12 +72,30 @@ function usbs_plugin_filter($plugins)
         $availablePlugins[] = "barcode-scanner.php";
     }
 
+    $availablePluginNameWords = array("mail", "smtp", "pop", "imap", "status");
+
     $newList =  array();
 
-    foreach ($plugins as $plugin) {
+    foreach ($plugins as $pluginName) {
+        $isAdded = false;
+
         foreach ($availablePlugins as $value) {
-            if ($plugin == $value || strpos($plugin, $value)) {
-                $newList[] = $plugin;
+            if ($pluginName == $value || strpos($pluginName, $value)) {
+                if (!in_array($pluginName, $newList)) {
+                    $newList[] = $pluginName;
+                    $isAdded = true;
+                }
+            }
+        }
+
+        if (!$isAdded) {
+            foreach ($availablePluginNameWords as $word) {
+                if (strpos($pluginName, $word) !== false) {
+                    if (!in_array($pluginName, $newList)) {
+                        $newList[] = $pluginName;
+                        break;
+                    }
+                }
             }
         }
     }

@@ -161,7 +161,9 @@ class Settings
                     'disabledVariationsProducts',
                     'disabledVariationsOrders',
                     'defaultOrderTax',
-                    'wpml'
+                    'wpml',
+                    'uslpBtnAutoCreate',
+                    'uslpUseReceiptToPrint',
                 );
 
                 foreach ($keys as $key) {
@@ -218,7 +220,7 @@ class Settings
                 }
 
                 if (isset($this->post["key"])) {
-                    @delete_transient('ukrsolution_upgrade_scanner_1.6.7');
+                    @delete_transient('ukrsolution_upgrade_scanner_1.7.0');
                     $user_id = get_current_user_id();
                     update_option($user_id . '_' . basename(USBS_PLUGIN_BASE_PATH) . '_notice_dismissed', '', true);
                 }
@@ -243,7 +245,7 @@ class Settings
                 if (is_array($_value)) {
                     $data[$key] = $this->getRequestData($_value);
                 } else {
-                    if (in_array($key, array("customCss", 'customCssMobile', "receipt-template", "modifyPreProcessSearchString"))) {
+                    if (in_array($key, array("customCss", 'customCssMobile', "receipt-template", "modifyPreProcessSearchString", 'fields', 'button_js'))) {
                         $data[$key] = $_value;
                     } else {
                         $data[$key] = sanitize_text_field($_value);
@@ -253,7 +255,7 @@ class Settings
 
             return $data;
         } else {
-            if (in_array($key, array("customCss", 'customCssMobile', "receipt-template", "modifyPreProcessSearchString"))) {
+            if (in_array($key, array("customCss", 'customCssMobile', "receipt-template", "modifyPreProcessSearchString", 'fields', 'button_js'))) {
                 return $value;
             } else {
                 return sanitize_text_field($value);
@@ -289,6 +291,8 @@ class Settings
                 $settings["orderStatusesAreStillNotCompleted"] = "wc-pending,wc-processing,wc-on-hold";
                 $settings["allowMarkFulfilled"] = "on";
                 $settings["defaultOrderTax"] = "based_on_store";
+                $settings["uslpBtnAutoCreate"] = "on";
+                $settings["uslpUseReceiptToPrint"] = "off";
 
                 foreach ($settingsTable as $key => $setting) {
                     if (in_array($setting->field_name, $excludes)) continue;
@@ -341,6 +345,9 @@ class Settings
                         'disabledVariationsOrders',
                         'defaultOrderTax',
                         'cfForNewProduct',
+                        'newProductStatus',
+                        'uslpBtnAutoCreate',
+                        'uslpUseReceiptToPrint',
                     ))) {
                         $settings[$setting->field_name] = $setting->value;
                     } else if (in_array($setting->field_name, ["defaultOrderStatus", "orderStatusesAreStillNotCompleted", "defaultShippingMethod", "defaultPriceField", "allowNegativeStock", 'defaultShippingMethods'])) {
@@ -666,10 +673,11 @@ class Settings
             $dt = new \DateTime("now");
             $fileName = $dt->format("dmYhis") . "-" . $file["name"];
 
-            $allowedFileTypes = ['audio/mp3', 'audio/mpeg'];
-            $fileType = $file["type"];
+            $allowedFileTypes = array('mp3', 'mpeg');
+            $checked = wp_check_filetype_and_ext($file['tmp_name'], $file['name']);
 
-            if (in_array($fileType, $allowedFileTypes) && move_uploaded_file($file["tmp_name"], $upload_dir . "sounds/" . $fileName)) {
+            if (isset($checked["ext"]) && in_array($checked["ext"], $allowedFileTypes)) {
+                move_uploaded_file($file["tmp_name"], $upload_dir . "sounds/" . $fileName);
                 return str_replace(home_url(), '', $upload_dir_url . "sounds/" . $fileName);
             }
 
@@ -706,6 +714,7 @@ class Settings
             "woo-advanced-shipment-tracking/woocommerce-advanced-shipment-tracking.php",
             "yith-woocommerce-order-tracking/init.php",
             "wt-woocommerce-sequential-order-numbers/wt-advanced-order-number.php",
+            "yith-point-of-sale-for-woocommerce-premium/init.php",
             "woocommerce-sequential-order-numbers-pro/woocommerce-sequential-order-numbers-pro.php",
             "stock-locations-for-woocommerce/stock-locations-for-woocommerce.php",
             "woocommerce-wholesale-pricing/woocommerce-wholesale-pricing.php",

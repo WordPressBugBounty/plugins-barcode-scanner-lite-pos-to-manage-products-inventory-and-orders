@@ -21,6 +21,9 @@ $userRole = $userId ? Users::getUserRole($userId) : '';
 ?>
 <title>Barcode Scanner mobile</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
+<div id="refreshIndicator" style="display: none; text-align: center; background: #fff; color: #434343; font-size: 16px; display: flex; align-items: center; justify-content: center; transition: 0.3s; overflow: hidden; height: 0;">
+    <?php echo esc_html__("Refreshing...", "us-barcode-scanner"); ?>
+</div>
 <a href="#barcode-scanner-mobile"></a>
 <div id="ukrsolution-barcode-scanner"></div>
 <div id="ukrsolution-barcode-scanner-mobile"></div>

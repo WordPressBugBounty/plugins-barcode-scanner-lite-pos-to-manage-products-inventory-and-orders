@@ -10,6 +10,11 @@ use WP_REST_Request;
 class BatchNumbers
 {
     static private $hook_update_batch_fields = 'usbs_batch_numbers_update_batch_fields';
+    static private $hook_after_update_batch_fields = 'usbs_batch_numbers_after_update_batch_fields';
+    static private $hook_before_delete_batch = 'usbs_batch_numbers_before_delete_batch';
+    static private $hook_after_delete_batch = 'usbs_batch_numbers_after_delete_batch';
+    static private $hook_before_create_batch = 'usbs_batch_numbers_before_create_batch';
+    static private $hook_after_created_batch = 'usbs_batch_numbers_after_created_batch';
 
     static public function status()
     {
@@ -30,7 +35,7 @@ class BatchNumbers
 
         if ($batchNumbers) {
             foreach ($batchNumbers as &$value) {
-                $value->editUrl = admin_url('edit.php?post_type=product&page=wpo-batch-numbers&tab=tools&batch=' . $value->id);
+                $value->editUrl = admin_url('edit.php?post_type=product&page=wpo-batch-numbers&tab=edit&batch=' . $value->id);
             }
         }
 
@@ -45,9 +50,13 @@ class BatchNumbers
         $postId = (int)$request->get_param("postId");
 
         if ($batchId && $postId) {
+            apply_filters(self::$hook_before_delete_batch, $postId, $batchId);
+
             $wpdb->delete("{$wpdb->prefix}wpo_wcpbn_batch_numbers", array("id" => $batchId));
 
             $wpdb->delete("{$wpdb->prefix}wpo_wcpbn_shared_products", array("batch_id" => $batchId, "product_id" => $postId));
+
+            apply_filters(self::$hook_after_delete_batch, $postId);
         }
 
         $managementActions = new ManagementActions();
@@ -64,6 +73,8 @@ class BatchNumbers
         $postId = (int)$request->get_param("postId");
 
         if ($postId) {
+            apply_filters(self::$hook_before_create_batch, $postId);
+
             $dt = new DateTime('now');
             $userId = Users::getUserId($request);
 
@@ -81,6 +92,8 @@ class BatchNumbers
                     "product_id" => $postId,
                 ));
             }
+
+            apply_filters(self::$hook_after_created_batch, $postId, $batchId);
         }
 
         $managementActions = new ManagementActions();
@@ -102,11 +115,20 @@ class BatchNumbers
 
         if ($batchId && $field) {
             $fields = array($field => $value);
-            if ($field === 'quantity') $fields['quantity_available'] = $value;
+
+            if ($field === 'quantity') {
+                $record = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}wpo_wcpbn_batch_numbers AS BN WHERE BN.id = %d;", $batchId));
+
+                if ($record && $record->quantity_available && (float)$record->quantity_available == 0) {
+                    $fields['quantity_available'] = $value;
+                }
+            }
 
             $fields = apply_filters(self::$hook_update_batch_fields, $fields, $batchId);
 
             $wpdb->update("{$wpdb->prefix}wpo_wcpbn_batch_numbers", $fields, array("id" => $batchId));
+
+            apply_filters(self::$hook_after_update_batch_fields, $fields, $batchId, $postId);
         }
 
         $managementActions = new ManagementActions();
@@ -116,7 +138,7 @@ class BatchNumbers
         return $managementActions->productSearch($productRequest, false, true);
     }
 
-    static public function updateBatches($batches)
+    static public function updateBatches($batches, $postId)
     {
         global $wpdb;
 
@@ -124,18 +146,29 @@ class BatchNumbers
 
         try {
             foreach ($batches as $key => $value) {
-                $data = array(
+                $fields = array(
                     'date_expiry' => $value['date_expiry'],
                     'batch_number' => $value['batch_number'],
                     'supplier' => $value['supplier'],
                     'quantity' => $value['quantity'],
-                    'quantity_available' => $value['quantity'],
+                    'quantity_available' => $value['quantity_available'],
                     'status' => $value['status'],
                 );
 
-                $fields = apply_filters(self::$hook_update_batch_fields, $data, $value['id']);
+                $record = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}wpo_wcpbn_batch_numbers AS BN WHERE BN.id = %d;", $value['id']));
 
-                $wpdb->update("{$wpdb->prefix}wpo_wcpbn_batch_numbers", $data, array("id" => $value['id']));
+                if (
+                    $record && $record->quantity && (float)$record->quantity == 0
+                    && $record->quantity_available && (float)$record->quantity_available == 0
+                ) {
+                    $fields['quantity_available'] = $value['quantity'];
+                }
+
+                $fields = apply_filters(self::$hook_update_batch_fields, $fields, $value['id']);
+
+                $wpdb->update("{$wpdb->prefix}wpo_wcpbn_batch_numbers", $fields, array("id" => $value['id']));
+
+                apply_filters(self::$hook_after_update_batch_fields, $fields, $value['id'], $postId);
             }
         } catch (\Throwable $th) {
             throw $th;

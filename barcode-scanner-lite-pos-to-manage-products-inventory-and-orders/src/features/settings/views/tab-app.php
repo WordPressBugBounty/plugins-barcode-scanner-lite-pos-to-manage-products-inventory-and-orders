@@ -1,3 +1,8 @@
+<?php
+
+use UkrSolution\BarcodeScanner\API\classes\Users;
+
+?>
 <div style="display: flex; flex-wrap: wrap; align-items: flex-start;">
     <form id="bs-settings-app-tab" method="POST" action="<?php echo esc_attr($actualLink); ?>">
         <input type="hidden" name="tab" value="app" />
@@ -53,6 +58,7 @@
                                             <td><?php echo esc_html__("ID", "us-barcode-scanner"); ?></td>
                                             <td><?php echo esc_html__("Name", "us-barcode-scanner"); ?></td>
                                             <td><?php echo esc_html__("Status", "us-barcode-scanner"); ?></td>
+                                            <td style='width: 90px;'><?php echo esc_html__("Last use", "us-barcode-scanner"); ?></td>
                                             <td style="display: none;"><?php echo esc_html__("Instructions", "us-barcode-scanner"); ?></td>
                                             <td><?php echo esc_html__("Actions", "us-barcode-scanner"); ?></td>
                                         </tr>
@@ -71,6 +77,7 @@
                                                     <input type="hidden" value="<?php echo esc_url($url); ?>" id="app-auth-link-<?php echo esc_attr($user->ID); ?>" />
                                                     <button type="button" data-id="<?php echo esc_attr($user->ID); ?>" class="button show-app-user-i"><?php echo esc_html__("App installation & Login instructions", "us-barcode-scanner"); ?></button>
                                                 </td>
+                                                <td></td>
                                                 <td>
                                                     <button type="button" data-id="<?php echo esc_attr($user->ID); ?>" class="button remove-app-user-p"><?php echo esc_html__("New password", "us-barcode-scanner"); ?></button>
                                                     <button type="button" data-id="<?php echo esc_attr($user->ID); ?>" class="button remove-app-user-p"><?php echo esc_html__("Remove", "us-barcode-scanner"); ?></button>
@@ -135,3 +142,15 @@
         </div>
     </div>
 </div>
+
+<?php
+$usersAppLastUsedData = Users::getUsersAppUsesTimeData();
+?>
+<script>
+    var usersAppLastUsedData = <?php echo json_encode($usersAppLastUsedData); ?>;
+</script>
+<style>
+    table.bs-settings-app-users td {
+        vertical-align: middle !important;
+    }
+</style>

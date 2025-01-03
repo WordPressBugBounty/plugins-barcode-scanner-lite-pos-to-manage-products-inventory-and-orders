@@ -119,7 +119,7 @@ class Post
             $types = "'shop_order', 'product', 'product_variation'";
             $ids = implode(",", array_column($postsSearchData, 'ID'));
 
-            $sql =  "SELECT P.* FROM {$wpdb->posts} AS P WHERE P.ID IN( {$ids} ) AND P.post_type IN( {$types} ) LIMIT {$this->limit}; ";
+            $sql =  "SELECT P.* FROM {$wpdb->posts} AS P WHERE P.ID IN( {$ids} ) AND P.post_type IN( {$types} ) ORDER BY P.post_date DESC LIMIT {$this->limit}; ";
             $posts = $wpdb->get_results($sql);
 
             Debug::addPoint("1. wpml status = " . (WPML::status() ? 1 : 0) . ', by id ' . ($onlyById ? 1 : 0));
@@ -527,6 +527,56 @@ class Post
             }
         }
 
+        if ($params["post_types"] && in_array('shop_order', $params["post_types"])) {
+            foreach ($params as $_key => $_fieldName) {
+                if (preg_match("/^order-custom-\d+$/", $_key, $m)) {
+                    $_status = isset($params[$m[0] . "-status"]) ? $params[$m[0] . "-status"] : 1;
+
+                    foreach ($tableColumns as $value) {
+                        if ($value->name === $_fieldName && $value->table == "postmeta") {
+                            $field = $value->column;
+                            $filterSql .= (strlen($filterSql)) ? " OR " : "";
+                            $_sql = $this->sqlComp($_status, $types, $query, "P.{$field}");
+
+                            $filterSql .= $_sql;
+                            $selectColumns[] = "{$_sql} AS '{$field}'";
+                            break;
+                        }
+                    }
+                } else if (preg_match("/^order-item-\d+$/", $_key, $m)) {
+                    foreach ($tableColumns as $value) {
+                        if ($value->name === $_fieldName && $value->table == "order-item") {
+                            $field = $value->column;
+                            $filterSql .= (strlen($filterSql)) ? " OR " : "";
+                            $_sql = $this->sqlComp(2, $types, $query, "P.{$field}");
+
+                            $filterSql .= $_sql;
+                            $selectColumns[] = "{$_sql} AS '{$field}'";
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        foreach ($params as $_key => $_fieldName) {
+            if (preg_match("/^attribute-\d+$/", $_key, $m)) {
+                $_status = isset($params[$m[0] . "-status"]) ? $params[$m[0] . "-status"] : 1;
+
+                foreach ($tableColumns as $value) {
+                    if ($value->name === $_fieldName) {
+                        $field = $value->column;
+                        $filterSql .= (strlen($filterSql)) ? " OR " : "";
+                        $_sql = $this->sqlComp($_status, $types, $query, "P.{$field}");
+
+                        $filterSql .= $_sql;
+                        $selectColumns[] = "{$_sql} AS '{$field}'";
+                        break;
+                    }
+                }
+            }
+        }
+
         if ($params["client_name"] != 0) {
             $filterSql .= (strlen($filterSql)) ? " OR " : "";
             $types = "'shop_order'";
@@ -547,7 +597,11 @@ class Post
 
         $sql .= ($filterSql) ? $filterSql : " 1 != 1 ";
 
-        $sql .= " ) GROUP BY P.ID LIMIT {$this->limit} ";
+        if (strpos($types, 'shop_order') !== false) {
+            $sql .= " ) GROUP BY P.ID ORDER BY P.post_date DESC LIMIT {$this->limit} ";
+        } else {
+            $sql .= " ) GROUP BY P.ID LIMIT {$this->limit} ";
+        }
 
         if ($selectColumns) {
             $sql = str_replace("%SELECT_COLUMNS%", ", " . implode(", ", $selectColumns), $sql);

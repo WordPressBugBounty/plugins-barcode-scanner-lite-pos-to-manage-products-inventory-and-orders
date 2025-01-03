@@ -17,13 +17,13 @@ class Locations
 
     public function __construct()
     {
-            add_action('init', function () {
-                $this->initFields();
+        add_action('init', function () {
+            $this->initFields();
 
-                add_action('save_post', [$this, 'save_post']);
-                add_action('woocommerce_variation_options_pricing', array($this, 'woocommerce_variation_options_pricing'), 10, 3);
-                add_action('woocommerce_save_product_variation', array($this, 'woocommerce_save_product_variation'), 15, 2);
-            });
+            add_action('save_post', [$this, 'save_post']);
+            add_action('woocommerce_variation_options_pricing', array($this, 'woocommerce_variation_options_pricing'), 10, 3);
+            add_action('woocommerce_save_product_variation', array($this, 'woocommerce_save_product_variation'), 15, 2);
+        });
     }
 
     public function initFields()

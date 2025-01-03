@@ -2,6 +2,8 @@
 
 namespace UkrSolution\BarcodeScanner\API\classes;
 
+use UkrSolution\BarcodeScanner\Database;
+
 class ProductsHelper
 {
     public static function sortProductsByCategories($products)
@@ -97,5 +99,61 @@ class ProductsHelper
         }
 
         return $sortedProducts;
+    }
+
+    public static function getPostName($post = null, $product = null)
+    {
+        global $wpdb;
+
+        $name = '';
+        $id = null;
+        $post_type = null;
+
+        if ($post) {
+            $name = $post->post_title;
+            $id = $post->ID;
+            $post_type = $post->post_type;
+        }
+        else if ($product) {
+            $name = $product->get_name();
+            $id = $product->get_id();
+            $post_type = $product->get_type();
+        }
+
+        if ($id && in_array($post_type, array('variation', 'product_variation'))) {
+            $posts = $wpdb->prefix . Database::$posts;
+
+            $row = $wpdb->get_row(
+                $wpdb->prepare("SELECT P.post_title FROM {$posts} AS P WHERE P.post_id = %d;", $id)
+            );
+
+            if ($row && $row->post_title) {
+                $name = $row->post_title;
+            }
+        }
+
+        return $name;
+    }
+
+    public static function getVariationAttributes($attributes)
+    {
+        foreach ($attributes as $attribute_name => &$attribute_values) {
+            foreach ($attribute_values as &$value) {
+                if (taxonomy_exists($attribute_name)) {
+                    $term = get_term_by('slug', $value, $attribute_name);
+
+                    if ($term && !is_wp_error($term)) {
+                        $value = $term->name;
+                    } else {
+                        $value;
+                    }
+                }
+                else {
+                    $value;
+                }
+            }
+        }
+
+        return $attributes;
     }
 }

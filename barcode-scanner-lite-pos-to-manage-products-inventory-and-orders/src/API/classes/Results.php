@@ -3,6 +3,8 @@
 namespace UkrSolution\BarcodeScanner\API\classes;
 
 use UkrSolution\BarcodeScanner\API\actions\CartScannerActions;
+use UkrSolution\BarcodeScanner\Database;
+use UkrSolution\BarcodeScanner\features\Debug\Debug;
 use UkrSolution\BarcodeScanner\features\interfaceData\InterfaceData;
 use UkrSolution\BarcodeScanner\features\locations\LocationsData;
 use UkrSolution\BarcodeScanner\features\settings\Settings;
@@ -76,7 +78,7 @@ class Results
 
         if (count($posts) > 1) {
             foreach ($posts as $post) {
-                $order = $this->formatOrder($post, $additionalFields, $page);
+                $order = $this->formatOrder($post, $additionalFields, 'orders_list');
 
                 if ($order) $orders[] = $order;
             }
@@ -102,9 +104,12 @@ class Results
                     if ($withVariation === 0) {
                         $postParent = get_post($post->post_parent);
 
+                        $post_title = ProductsHelper::getPostName($post);
+                        $post_title = strip_tags($post->post_title);
+
                         $postParent->ID = $post->ID;
                         $postParent->post_parent = $post->post_parent;
-                        $postParent->post_title = strip_tags($post->post_title);
+                        $postParent->post_title = $post_title;
                         $postParent->post_type = $post->post_type;
                         $postParent->variation_id = $post->ID;
                         $post = $postParent;
@@ -180,6 +185,7 @@ class Results
         }
 
         $linePrice = (float)$item->quantity ? (float)$item->price / $item->quantity : 0;
+        $use_custom_price = $customPrice != "" && $customPrice != (float)$item->price ? 1 : 0;
 
         $priceField = (new Results())->getFieldPrice($customerUserId);
 
@@ -230,6 +236,7 @@ class Results
             "line_price_c" => $linePriceC,
             "variation" => $attributes,
             "variationForPreview" => $this->prepareVariationPreview($product, $attributes),
+            "use_custom_price" => $use_custom_price,
         );
 
         if ($product) {
@@ -315,9 +322,11 @@ class Results
 
         $product_regular_price = strip_tags(wc_price($product->get_regular_price(), array("currency" => " ",)));
         $product_regular_price = trim(str_replace("&nbsp;", "", $product_regular_price));
+        $product_regular_price_c = html_entity_decode(strip_tags(wc_price($product_regular_price)), ENT_COMPAT | ENT_HTML5, 'UTF-8');
 
         $product_sale_price = strip_tags(wc_price($product->get_sale_price(), array("currency" => " ",)));
         $product_sale_price = trim(str_replace("&nbsp;", "", $product_sale_price));
+        $product_sale_price_c = html_entity_decode(strip_tags(wc_price($product_sale_price)), ENT_COMPAT | ENT_HTML5, 'UTF-8');
 
         $product_price = strip_tags(wc_price($product->get_price(), array("currency" => " ",)));
         $product_price = trim(str_replace("&nbsp;", "", $product_price));
@@ -325,16 +334,15 @@ class Results
 
         $attributes = $this->autoFill == false ? $product->get_attributes() : array();
 
-        $post_title = $product->get_name();
+        $post_title = ProductsHelper::getPostName(null, $product);
         $post_title = @htmlspecialchars_decode($post_title);
 
         $_stock = get_post_meta($post->ID, "_stock", true);
 
-        $categories = $post->post_parent ? get_the_terms($post->post_parent, 'product_cat') : get_the_terms($post->ID, 'product_cat');
-
         $tags = $post->post_parent ? get_the_terms($post->post_parent, 'product_tag') : get_the_terms($post->ID, 'product_tag');
 
         $variationAttributes = $parentProduct ? $parentProduct->get_variation_attributes() : null;
+        $variationAttributesNames = $variationAttributes ? ProductsHelper::getVariationAttributes($variationAttributes) : null;
 
         $locationsTree = LocationsData::getLocations();
 
@@ -364,7 +372,9 @@ class Results
             "_stock" => $_stock ? sprintf('%g', $_stock) : $_stock,
             "product_sku" => $product->get_sku(),
             "product_regular_price" => $product_regular_price, 
+            "product_regular_price_c" => $product_regular_price_c, 
             "product_sale_price" => $product_sale_price, 
+            "product_sale_price_c" => $product_sale_price_c, 
             "product_price" => $product_price, 
             "product_price_c" => $product_price_c,
             "product_thumbnail_url" => $product_thumbnail_url,
@@ -380,7 +390,6 @@ class Results
             "translationProductsIds" => $translationProductsIds,
             "foundCounter" => $this->autoFill == false ? \get_post_meta($post->ID, "usbs_found_counter", true) : "",
             "locations" => $this->autoFill == false ? $this->getLocations($post->ID) : array(),
-            "categories" => $categories,
             "tags" => $tags,
             "locationsTree" => $locationsTree,
             "taxClasses" => $taxClasses,
@@ -388,10 +397,13 @@ class Results
             "shippingClasses" => $shippingClasses,
             "attributes" => $attributes,
             "variationAttributes" => $variationAttributes,
+            "variationAttributesNames" => $variationAttributesNames,
             "attributesLabels" => $this->autoFill == false ? $this->getAttributesLabels($attributes, $product->get_type()) : array(),
             "requiredAttributes" => $this->autoFill == false ? $this->getRequiredProductAttributes($product) : array(),
             "linkedAttributes" => $product->get_parent_id() ? $this->getLinkedAttributes($product->get_parent_id()) : $this->getLinkedAttributes($post->ID),
         );
+
+        $props["categories"] = $post->post_parent ? get_the_terms($post->post_parent, 'product_cat') : get_the_terms($post->ID, 'product_cat');
 
         if (!$this->settings) {
             $this->settings = new Settings();
@@ -414,6 +426,23 @@ class Results
                     $filteredValue = apply_filters($filterName, $defaultValue, $value['field_name'], $props["ID"]);
                     $filteredValue = $value['field_name'] == "_stock" && $filteredValue ? sprintf('%g', $filteredValue) :  $filteredValue;
                     $props[$value['field_name']] = $filteredValue;
+                    $props['_yith_pos_multistock_enabled'] = \get_post_meta($post->ID, '_yith_pos_multistock_enabled', true);
+
+                    if ($value['field_name'] == "_yith_pos_multistock" && $filteredValue && is_array($filteredValue)) {
+                        $storesData = array();
+
+                        foreach ($filteredValue as $storeId => $storeQty) {
+                            $store = get_post($storeId);
+
+                            if ($store) {
+                                $storesData[$storeId] = array("name" => $store->post_title);
+                            }
+                        }
+
+                        $props[$value['field_name'] . "_stores"] = $storesData;
+                    } else if ($value['type'] == "taxonomy") {
+                        $props["taxonomy_" . $value['field_name']] = $post->post_parent ? get_the_terms($post->post_parent, $value['field_name']) : get_the_terms($post->ID, $value['field_name']);
+                    }
                 }
             } catch (\Throwable $th) {
             }
@@ -496,9 +525,11 @@ class Results
 
         $product_regular_price = strip_tags(wc_price($product->get_regular_price(), array("currency" => " ",)));
         $product_regular_price = trim(str_replace("&nbsp;", "", $product_regular_price));
+        $product_regular_price_c = html_entity_decode(strip_tags(wc_price($product_regular_price)), ENT_COMPAT | ENT_HTML5, 'UTF-8');
 
         $product_sale_price = strip_tags(wc_price($product->get_sale_price(), array("currency" => " ",)));
         $product_sale_price = trim(str_replace("&nbsp;", "", $product_sale_price));
+        $product_sale_price_c = html_entity_decode(strip_tags(wc_price($product_sale_price)), ENT_COMPAT | ENT_HTML5, 'UTF-8');
 
         $product_price = strip_tags(wc_price($product->get_price(), array("currency" => " ",)));
         $product_price = trim(str_replace("&nbsp;", "", $product_price));
@@ -506,7 +537,7 @@ class Results
 
         $attributes = $this->autoFill == false ? $product->get_attributes() : array();
 
-        $post_title = $product->get_name();
+        $post_title = ProductsHelper::getPostName(null, $product);
         $post_title = @htmlspecialchars_decode($post_title);
 
         $_stock = get_post_meta($post->ID, "_stock", true);
@@ -528,7 +559,9 @@ class Results
             "_stock" => $_stock ? sprintf('%g', $_stock) : $_stock,
             "product_sku" => $product->get_sku(),
             "product_regular_price" => $product_regular_price,
+            "product_regular_price_c" => $product_regular_price_c,
             "product_sale_price" => $product_sale_price,
+            "product_sale_price_c" => $product_sale_price_c,
             "product_price" => $product_price,
             "product_price_c" => $product_price_c,
             "product_thumbnail_url" => $product_thumbnail_url,
@@ -614,30 +647,27 @@ class Results
 
     public function getChildren($product)
     {
+        global $wpdb;
+
+        $table = $wpdb->prefix . Database::$posts;
         $result = array();
 
         if ($product->get_type() == "variable") {
-            $post = get_post($product->get_id());
-            $data = $this->formatProduct($post, array(), false);
-
-            if ($data) $result[] = $data;
+            $result = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT P.post_id, P.post_parent, P.post_title, P.attributes, P.post_type, P.postmeta__sku AS 'product_sku', P.post_id AS 'ID' FROM {$table} AS P WHERE P.post_id = %d OR P.post_parent = %d;",
+                    $product->get_id(),
+                    $product->get_id()
+                )
+            );
         } else if ($product->get_type() == "variation" && $product->get_parent_id()) {
-            $post = get_post($product->get_parent_id());
-            $data = $this->formatProduct($post, array(), false);
-            $product = \wc_get_product($post->ID);
-
-            if ($data) $result[] = $data;
-        }
-
-        $children = $product ? $product->get_children() : array();
-
-        foreach ($children as $id) {
-            $post = get_post($id);
-            $product = $this->formatProduct($post, array(), false);
-
-            if ($product) {
-                $result[] = $product;
-            }
+            $result = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT P.post_id, P.post_parent, P.post_title, P.attributes, P.post_type, P.postmeta__sku AS 'product_sku', P.post_id AS 'ID' FROM {$table} AS P WHERE P.post_id = %d OR P.post_parent = %d;",
+                    $product->get_parent_id(),
+                    $product->get_parent_id()
+                )
+            );
         }
 
         return $result;
@@ -904,6 +934,7 @@ class Results
                 "fulfillment_user_name" => $fulfillment_user_name,
                 "fulfillment_user_email" => $fulfillment_user_email,
                 "product_categories" => wp_get_post_terms($item->get_product_id(), 'product_cat'),
+                "refund_data" => OrdersHelper::getOrderItemRefundData($order, $item)
             );
 
             foreach (InterfaceData::getFields(true, "", false, Users::userRole()) as $value) {
@@ -926,12 +957,12 @@ class Results
 
                         if (isset($order_subtotal_taxes[$tax_rate_id])) {
                             $order_subtotal_taxes[$tax_rate_id]['cost'] += $tax_amount;
-                            $order_subtotal_taxes[$tax_rate_id]['cost_c'] = strip_tags(wc_price($order_subtotal_taxes[$tax_rate_id]['cost']));
+                            $order_subtotal_taxes[$tax_rate_id]['cost_c'] = ResultsHelper::getFormattedPrice(strip_tags(wc_price($order_subtotal_taxes[$tax_rate_id]['cost'])));
                         } else {
                             $order_subtotal_taxes[$tax_rate_id] = array(
                                 'label' => \WC_Tax::get_rate_label($tax_rate_id),
                                 'cost' => $tax_amount,
-                                'cost_c' => strip_tags(wc_price($tax_amount)),
+                                'cost_c' => ResultsHelper::getFormattedPrice(strip_tags(wc_price($tax_amount))),
                                 'rate_id' => $tax_rate_id,
                             );
                         }
@@ -1039,6 +1070,7 @@ class Results
                     'first_name' => $order->get_shipping_first_name(),
                     'last_name' => $order->get_shipping_last_name(),
                     'company' => $order->get_shipping_company(),
+                    'phone' => $order->get_shipping_phone(),
                     'address_1' => $order->get_shipping_address_1(),
                     'address_2' => $order->get_shipping_address_2(),
                     'postcode' => $order->get_shipping_postcode(),
@@ -1067,16 +1099,16 @@ class Results
             "order_subtotal_tax" => $order_subtotal_tax,
             "order_subtotal_tax_c" => strip_tags(wc_price($order_subtotal_tax)),
             "order_shipping" => $order_shipping,
-            "order_shipping_c" => strip_tags(wc_price($order_shipping)),
+            "order_shipping_c" => ResultsHelper::getFormattedPrice(strip_tags(wc_price($order_shipping))),
             "order_shipping_tax" => $order_shipping_tax,
-            "order_shipping_tax_c" => strip_tags(wc_price($order_shipping_tax)),
+            "order_shipping_tax_c" => ResultsHelper::getFormattedPrice(strip_tags(wc_price($order_shipping_tax))),
             "order_shipping_name" => $order_shipping_name,
             "order_shipping_title" => $order_shipping_title,
             "order_payment" => $order_payment,
             "order_payment_title" => $order_payment_title,
             "additionalTaxes" => $additionalTaxes,
             "order_total" => $order->get_total(),
-            "order_total_c" => strip_tags(wc_price($order->get_total())),
+            "order_total_c" => ResultsHelper::getFormattedPrice(strip_tags(wc_price($order->get_total()))),
             "customer_id" => $customerId,
             "customer_name" => trim($customerName),
             "author_name" => trim($authorName),
@@ -1097,6 +1129,7 @@ class Results
             "pickListTemplate" => !in_array($page, array('history', 'orders_list')) ? PickList::getTemplate($post, $order, $settings) : '',
             "customer_orders_count" => 0,
             "user_pending_orders_count" => ResultsHelper::get_user_pending_orders_count($customerId, $post->ID, $orderStatusesAreStillNotCompleted),
+            "refund_data" => OrdersHelper::getOrderRefundData($order),
         );
 
         if ($customerId) {
@@ -1176,6 +1209,20 @@ class Results
         $previewDateFormat = $orderDate->format("M j, Y");
         $previewDateFormat = SettingsHelper::dateTranslate($previewDateFormat);
 
+        $user = $order->get_user();
+        $userData = null;
+
+        if ($customerId && $user) {
+            $userData = $user->data;
+            $userData->avatar = @get_avatar_url($customerId);
+        }
+
+        $products = array();
+
+        foreach ($order->get_items("line_item") as $item) {
+            $products[] = array('item_id' => $item->get_id());
+        }
+
         $settings = new Settings();
 
         $fulfillmentField = $settings->getSettings("orderFulFillmentField");
@@ -1200,6 +1247,8 @@ class Results
             "total_products" => count($order->get_items("line_item")),
             "updated" => time(),
             "customer_orders_count" => 0,
+            "user" => $userData,
+            "products" => $products,
         );
 
         if ($fulfillmentField) {

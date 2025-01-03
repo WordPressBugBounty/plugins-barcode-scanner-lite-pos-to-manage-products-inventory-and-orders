@@ -19,6 +19,8 @@ try {
     $nonce = wp_create_nonce(USBS_PLUGIN_BASE_NAME . "-settings");
 } catch (\Throwable $th) {
 }
+
+$isProductLabelsPrinting = class_exists('UkrSolution\ProductLabelsPrinting\Helpers\Variables');
 ?>
 <a href="#barcode-scanner-settings"></a>
 <div id="bs-settings-page">
@@ -36,7 +38,10 @@ try {
             <a href="#permissions" class="nav-tab <?php echo ($tab === "permissions") ? esc_attr("nav-tab-active") : "" ?>" data-tab="permissions"><?php echo esc_html__("Permissions", "us-barcode-scanner"); ?></a>
             <a href="#general" class="nav-tab <?php echo ($tab === "general") ? esc_attr("nav-tab-active") : "" ?>" data-tab="general"><?php echo esc_html__("Front-end popup", "us-barcode-scanner"); ?></a>
             <a href="#receipt-printing" class="nav-tab <?php echo ($tab === "receipt-printing") ? esc_attr("nav-tab-active") : "" ?>" data-tab="receipt-printing"><?php echo esc_html__("Receipt printing", "us-barcode-scanner"); ?></a>
-            <a href="#plugins" class="nav-tab <?php echo ($tab === "plugins") ? esc_attr("nav-tab-active") : "" ?>" data-tab="plugins"><?php echo esc_html__("Direct DB requests", "us-barcode-scanner"); ?></a>
+            <a href="#plugins" class="nav-tab <?php echo ($tab === "plugins") ? esc_attr("nav-tab-active") : "" ?>" data-tab="plugins"><?php echo esc_html__('Hooks for "Direct DB" mode', "us-barcode-scanner"); ?></a>
+            <?php if ($isProductLabelsPrinting): ?>
+                <a href="#label-printing" class="nav-tab <?php echo ($tab === "label-printing") ? esc_attr("nav-tab-active") : "" ?>" data-tab="label-printing"><?php echo esc_html__("Label Printing plugin", "us-barcode-scanner"); ?></a>
+            <?php endif; ?>
             <a href="#css" class="nav-tab <?php echo ($tab === "css") ? esc_attr("nav-tab-active") : "" ?>" data-tab="css"><?php echo esc_html__("Other", "us-barcode-scanner"); ?></a>
             <a href="#license" class="nav-tab <?php echo ($tab === "license") ? esc_attr("nav-tab-active") : "" ?>" data-tab="license"><?php echo esc_html__("License", "us-barcode-scanner"); ?></a>
 
@@ -87,6 +92,12 @@ try {
             <div class="settings-tab license-tab" <?php echo ($tab !== "license") ? 'style="display: none;"' : "" ?>>
                 <?php require_once(__DIR__ . "/views/tab-license.php"); ?>
             </div>
+            <!-- label-printing -->
+            <?php if ($isProductLabelsPrinting): ?>
+                <div class="settings-tab label-printing-tab" <?php echo ($tab !== "label-printing") ? 'style="display: none;"' : "" ?>>
+                    <?php require_once(__DIR__ . "/views/tab-label-printing.php"); ?>
+                </div>
+            <?php endif; ?>
             <!-- app -->
             <div class="settings-tab app-tab" <?php echo ($tab !== "app") ? 'style="display: none;"' : "" ?>>
                 <?php require_once(__DIR__ . "/views/tab-app.php"); ?>

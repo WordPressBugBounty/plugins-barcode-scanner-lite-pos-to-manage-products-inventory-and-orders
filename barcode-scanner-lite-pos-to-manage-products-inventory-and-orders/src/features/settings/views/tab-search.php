@@ -156,7 +156,7 @@ use UkrSolution\BarcodeScanner\API\classes\WPML;
                     <?php
                     $link = '#barcode-scanner-search-filter';
                     ?>
-                    <a href="<?php echo esc_url($link); ?>" class="usbs-btn"><?php echo esc_html__("Open", "us-barcode-scanner"); ?></a>
+                    <a href="<?php echo esc_url($link); ?>" class="usbs-btn"><?php echo esc_html__("Setup fields", "us-barcode-scanner"); ?></a>
                     <i style="padding-left: 10px;"><?php echo esc_html__("Select which product/order fields should be used by the search to find the item.", "us-barcode-scanner"); ?></i>
                 </td>
             </tr>
@@ -310,7 +310,7 @@ use UkrSolution\BarcodeScanner\API\classes\WPML;
             </tr>
             <tr id="bs_direct_db_search">
                 <th scope="row">
-                    <?php echo esc_html__("Enable direct DB requests", "us-barcode-scanner"); ?>
+                    <?php echo esc_html__("Enable direct DB mode", "us-barcode-scanner"); ?>
                     <div style="font-weight: 400; padding-top: 5px;">
                         <a href="<?php echo esc_url(admin_url('/admin.php?page=barcode-scanner-settings&tab=plugins')); ?>"><?php echo esc_html__("Allow plugins", "us-barcode-scanner"); ?></a>
                         <?php echo esc_html__("which should interfere into \"Barcode Scanner\" plugin's work", "us-barcode-scanner"); ?>

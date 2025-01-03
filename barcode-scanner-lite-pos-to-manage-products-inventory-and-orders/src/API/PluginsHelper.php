@@ -4,6 +4,7 @@ namespace UkrSolution\BarcodeScanner\API;
 
 use UkrSolution\BarcodeScanner\API\classes\BatchNumbers;
 use UkrSolution\BarcodeScanner\API\classes\BatchNumbersWebis;
+use UkrSolution\BarcodeScanner\API\classes\YITHPointOfSale;
 use UkrSolution\BarcodeScanner\features\settings\Settings;
 
 class PluginsHelper
@@ -21,7 +22,7 @@ class PluginsHelper
         $hwp_gtin_text = (!empty($hwp_gtin_text) ? $hwp_gtin_text : 'GTIN');
 
         $plugins = array(
-            array('key' => 'us_print_labels', 'status' => class_exists('UkrSolution\ProductLabelsPrinting\Helpers\Variables'), 'label' => 'Barcode Printing'),
+            array('key' => 'us_print_labels', 'status' => class_exists('UkrSolution\ProductLabelsPrinting\Helpers\Variables'), 'label' => 'Barcode Printing', 'version' => self::getPrintingVersion()),
             "wc_appointments" => array('status' => self::is_plugin_active('woocommerce-appointments/woocommerce-appointments.php'), 'label' => 'WooCommerce Appointments'),
             array('key' => '_alg_ean', 'status' => function_exists('alg_wc_ean'), 'label' => 'EAN for WooCommerce', 'fieldLabel' => $alg_wc_ean_title . ' <sup>(EAN for WooCommerce)</sup>', 'title' => 'EAN for WooCommerce'),
             array('key' => '_wpm_gtin_code', 'status' => function_exists('wpm_product_gtin_wc'), 'label' => 'Product GTIN (EAN, UPC, ISBN) for WooCommerce', 'fieldLabel' => $wpm_pgw_label . ' <sup>(Product GTIN (EAN, UPC, ISBN) for WooCommerce)</sup>', 'title' => 'Product GTIN (EAN, UPC, ISBN)'),
@@ -42,6 +43,7 @@ class PluginsHelper
             array('key' => 'ywot_tracking_code', 'status' => self::is_plugin_active('yith-woocommerce-order-tracking/init.php'), 'label' => 'Order Tracking', 'fieldLabel' => 'Order Tracking', 'title' => 'YITH WooCommerce Order & Shipment Tracking'),
             array('key' => '_wc_shipment_tracking_items', 'status' => self::is_plugin_active('woo-advanced-shipment-tracking/woocommerce-advanced-shipment-tracking.php'), 'label' => 'Order Tracking', 'fieldLabel' => 'Order Tracking', 'title' => 'Advanced Shipment Tracking for WooCommerce'),
             array('key' => '_aftership_tracking_items', 'status' => self::is_plugin_active('aftership-woocommerce-tracking/aftership-woocommerce-tracking.php'), 'label' => 'Order Tracking', 'fieldLabel' => 'Order Tracking', 'title' => 'AfterShip Tracking – All-In-One WooCommerce Order Tracking'),
+            array('key' => '_yith_pos_multistock', 'status' => self::is_plugin_active('yith-point-of-sale-for-woocommerce-premium/init.php'), 'label' => 'YITH Point of Sale'),
         );
 
         $settings = new Settings();
@@ -62,6 +64,37 @@ class PluginsHelper
         }
 
         return $plugins;
+    }
+
+    public static function getPrintingVersion()
+    {
+        try {
+            $activePlugins = is_multisite() ? get_site_option('active_sitewide_plugins') : get_option('active_plugins');
+
+            if ($activePlugins) {
+                foreach ($activePlugins as $plugin) {
+                    if (preg_match("/^product-labels-printing-(.*?)$/", $plugin, $m)) {
+                        $plugin_full_path = WP_PLUGIN_DIR . '/' . $plugin;
+
+                        if (!file_exists($plugin_full_path)) {
+                            return '';
+                        }
+
+                        $plugin_data = get_file_data($plugin_full_path, [
+                            'Version' => 'Version',
+                        ]);
+
+                        if ($plugin_data && isset($plugin_data['Version'])) {
+                            return $plugin_data['Version'];
+                        }
+                    }
+                }
+            }
+        } catch (\Throwable $th) {
+            return '';
+        }
+
+        return '';
     }
 
     public static function customPluginFields()

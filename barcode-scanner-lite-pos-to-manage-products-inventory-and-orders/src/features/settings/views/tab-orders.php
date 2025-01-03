@@ -569,7 +569,8 @@
                     $defaultValue = $defaultValue === null ? "1" : $defaultValue->value;
                     ?>
                     <span>
-                        <input type="number" min="1" name="defaultProductQty" value="<?php echo ($defaultValue); ?>" placeholder="<?php echo esc_attr("1"); ?>" style="width: 70px; height: 30px;" />
+                        <input type="text" name="defaultProductQty" value="<?php echo ($defaultValue); ?>" placeholder="<?php echo esc_attr("1"); ?>" style="width: 70px; height: 30px;" />
+                        <span class="defaultProductQty_error_message"></span>
                         <div>
                             <i><?php echo esc_html__("Any added product (to the new order) will have the QTY equal to this setting by default.", "us-barcode-scanner"); ?></i>
                         </div>
@@ -692,3 +693,86 @@
         jQuery(".usbs_order_statuses_are_still_not_complected").val(defaultValue).trigger("chosen:updated");
     });
 </script>
+<script>
+    const priceValidator = (value, maxValue) => {
+        try {
+            if (value == "") {
+                return {
+                    status: true,
+                    message: ""
+                };
+            }
+
+            const pluginData = usbs;
+            let invalidMsg = "";
+
+            if (pluginData.priceDecimalSeparator == ",") invalidMsg = '<?php echo esc_html__('Use decimal separator comma "," and don\'t use thousand separators', "us-barcode-scanner"); ?>';
+            else if (pluginData.priceDecimalSeparator == ".") invalidMsg = '<?php echo esc_html__('Use decimal separator period "." and don\'t use thousand separators', "us-barcode-scanner"); ?>';
+            else invalidMsg = '<?php echo esc_html__('Use decimal separator and don\'t use thousand separators', "us-barcode-scanner"); ?>';
+
+
+            const incorrectMsg = '<?php echo esc_html__("Sale price should be smaller then Regular price.", "us-barcode-scanner"); ?>';
+            const parts = `${value}`.split(pluginData.priceDecimalSeparator);
+            let regChecker = false;
+
+            if (parts.length != 1 && parts.length != 2) regChecker = false;
+            else if (parts.length == 1) regChecker = new RegExp(/^\d+$/, 'gi').test(parts[0]);
+            else if (parts.length == 2) regChecker = new RegExp(/^\d+$/, 'gi').test(parts[0]) && (parts[1] == "" || new RegExp(/^\d+$/, 'gi').test(parts[1]));
+
+
+            if (!regChecker) return {
+                status: false,
+                message: invalidMsg
+            };
+            else if (maxValue) {
+                const value1 = parseFloat(value.replace(pluginData.priceDecimalSeparator, "."));
+                const value2 = parseFloat(maxValue.replace(pluginData.priceDecimalSeparator, "."));
+                if (maxValue && value1 >= value2) return {
+                    status: false,
+                    message: incorrectMsg
+                };
+            }
+
+            return {
+                status: true,
+                message: ""
+            };
+        } catch (error) {
+            return {
+                status: false,
+                message: error.message
+            };
+        }
+    }
+
+    jQuery(document).ready(function() {
+        const validDefaultProductQty = (event, params) => {
+            jQuery('.defaultProductQty_error_message').text("");
+
+            const validator = priceValidator(event.target.value, "");
+            if (!validator.status && validator.message) {
+                jQuery('.defaultProductQty_error_message').html(validator.message);
+                return;
+            }
+        };
+
+        const defaultProductQtyOnBlur = (event) => {
+            const validator = priceValidator(event.target.value, "");
+            if (!validator.status && validator.message) {
+                jQuery('.defaultProductQty_error_message').text("");
+                jQuery(event.target).val(1);
+            }
+        };
+
+        jQuery('input[name="defaultProductQty"]').on('change', validDefaultProductQty);
+        jQuery('input[name="defaultProductQty"]').on('keyup', validDefaultProductQty);
+        jQuery('input[name="defaultProductQty"]').on('blur', defaultProductQtyOnBlur);
+
+    });
+</script>
+<style>
+    .defaultProductQty_error_message {
+        color: red;
+        font-style: italic;
+    }
+</style>

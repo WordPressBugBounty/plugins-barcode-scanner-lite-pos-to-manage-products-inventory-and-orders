@@ -26,9 +26,6 @@ use UkrSolution\BarcodeScanner\features\sounds\Sounds;
                     <textarea name="customCssMobile" rows="6" cols="60"><?php echo $customCssMobile ? wp_kses_post(stripslashes($customCssMobile->value)) : ""; ?></textarea>
                 </td>
             </tr>
-
-            <?php
-            ?>
             <tr id="bs_debug">
                 <th scope="row">
                     <?php echo esc_html__("Sound effects", "us-barcode-scanner"); ?>
@@ -129,8 +126,6 @@ use UkrSolution\BarcodeScanner\features\sounds\Sounds;
 
                 </td>
             </tr>
-            <?php
-            ?>
             <?php if ($wpml) : ?>
                 <tr id="bs_wpml">
                     <th scope="row">

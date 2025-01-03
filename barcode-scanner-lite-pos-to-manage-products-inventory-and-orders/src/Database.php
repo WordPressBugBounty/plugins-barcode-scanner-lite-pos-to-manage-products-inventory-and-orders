@@ -5,6 +5,8 @@ namespace UkrSolution\BarcodeScanner;
 use Atum\Inc\Helpers;
 use UkrSolution\BarcodeScanner\API\actions\HPOS;
 use UkrSolution\BarcodeScanner\API\actions\ManagementActions;
+use UkrSolution\BarcodeScanner\API\classes\IntegrationsHelper;
+use UkrSolution\BarcodeScanner\API\classes\OrdersHelper;
 use UkrSolution\BarcodeScanner\API\classes\SearchFilter;
 use UkrSolution\BarcodeScanner\API\PluginsHelper;
 use UkrSolution\BarcodeScanner\features\Debug\Debug;
@@ -30,7 +32,6 @@ class Database
     public static $postsFields = array("post_excerpt" => "like", "post_title" => "like");
     private static $isTriggerTracked = null;
     private static $managementActions = null;
-    private static $indexedPostIds = array();
 
     public static function setupTables($network_wide)
     {
@@ -108,82 +109,8 @@ class Database
 
     public static function defaultData()
     {
-        global $wpdb;
-
-        $dt = new \DateTime("now");
-        $created = $dt->format("Y-m-d H:i:s");
         $settings = new Settings();
 
-        try {
-            $table = $wpdb->prefix . self::$interface;
-            $dt = new \DateTime("now");
-            $dt->modify("-5 second");
-            $created = $dt->format("Y-m-d H:i:s");
-
-            $oldPrice1 = $settings->getField("prices", "show_regular_price", "");
-            $status = (($settings->getField("prices", "show_price_1", "on") === "on" || $oldPrice1 === "on") && $oldPrice1 !== "off") ? 1 : 0;
-            $label = $settings->getField("prices", "price_1_label", "Regular price");
-            $field = $settings->getField("prices", "price_1_field", "_regular_price");
-            $wpdb->query(
-                $wpdb->prepare(
-                    "UPDATE {$table} SET `status` = %d, `field_name` = %s, `field_label` = %s, `created` = %s WHERE field_name = %s AND `created` = `updated`;",
-                    $status,
-                    $field,
-                    $label,
-                    $created,
-                    "_regular_price"
-                )
-            );
-
-
-            $oldPrice2 = $settings->getField("prices", "show_sale_price", "");
-            $status = (($settings->getField("prices", "show_price_2", "on") === "on" || $oldPrice2 === "on") && $oldPrice2 !== "off") ? 1 : 0;
-            $label = $settings->getField("prices", "price_2_label", "Sale price");
-            $field = $settings->getField("prices", "price_2_field", "_sale_price");
-            $wpdb->query(
-                $wpdb->prepare(
-                    "UPDATE {$table} SET `status` = %d, `field_name` = %s, `field_label` = %s, `created` = %s WHERE field_name = %s AND `created` = `updated`;",
-                    $status,
-                    $field,
-                    $label,
-                    $created,
-                    "_sale_price"
-                )
-            );
-
-            $oldPrice3 = $settings->getField("prices", "show_other_price", "");
-            $status = (($settings->getField("prices", "show_price_3", "off") === "on" || $oldPrice3 === "on") && $oldPrice3 !== "off") ? 1 : 0;
-            $label = $settings->getField("prices", "other_price_label", "");
-            if (!$label) $label = $settings->getField("prices", "price_3_label", "Purchase price");
-            $field = $settings->getField("prices", "other_price_field", "");
-            if (!$field) $field = $settings->getField("prices", "price_3_field", "_purchase_price");
-            $wpdb->query(
-                $wpdb->prepare(
-                    "UPDATE {$table} SET `status` = %d, `field_name` = %s, `field_label` = %s, `created` = %s WHERE field_name = %s AND `created` = `updated`;",
-                    $status,
-                    $field,
-                    $label,
-                    $created,
-                    "_purchase_price"
-                )
-            );
-
-            $allowNegativeStock = $settings->getField("general", "allowNegativeStock", "");
-            if ($settings->getSettings("allowNegativeStock") == null && $allowNegativeStock) {
-                $settings->updateSettings("allowNegativeStock", $allowNegativeStock, "text");
-            }
-
-            $searchCF = $settings->getField("general", "searchCF", "on");
-            if ($settings->getSettings("searchCF") == null) {
-                $settings->updateSettings("searchCF", $searchCF, "text");
-            }
-
-            $searchCFLabel = $settings->getField("general", "searchCFLabel", "");
-            if ($settings->getSettings("searchCFLabel") == null && $searchCFLabel) {
-                $settings->updateSettings("searchCFLabel", $searchCFLabel, "text");
-            }
-        } catch (\Throwable $th) {
-        }
 
         try {
             $interfaceData = new InterfaceData();
@@ -234,19 +161,28 @@ class Database
 
         if ($filterRecord && $filterRecord->value) {
             $fields = array();
+            $productAttributes = array();
 
             if (isset($filterRecord->value['products']) && $filterRecord->value['products']) {
                 foreach ($filterRecord->value['products'] as $key => $value) {
-                    if (preg_match("/^custom-\d+$/", $key, $m) || $key === 'custom') {
+                    if (preg_match("/^(custom)-\d+$/", $key, $m) || $key === 'custom') {
                         if (!in_array($value, $fields) && !key_exists($value, self::$postsFields)) $fields[] = trim($value);
+                    } else if (preg_match("/^(attribute)-\d+$/", $key, $m)) {
+                        $productAttributes[] = array("field" => trim($value), "table" => "attributes");
                     }
                 }
             }
 
+            $orderFields = array();
+
             if (isset($filterRecord->value['orders']) && $filterRecord->value['orders']) {
                 foreach ($filterRecord->value['orders'] as $key => $value) {
-                    if (preg_match("/^custom-\d+$/", $key, $m) || $key === 'custom') {
+                    if ($key === 'custom') {
                         if (!in_array($value, $fields) && !key_exists($value, self::$postsFields)) $fields[] = trim($value);
+                    } else if (preg_match("/^(order-custom)-\d+$/", $key, $m)) {
+                        $orderFields[] = array("field" => trim($value), "table" => "postmeta");
+                    } else if (preg_match("/^(order-item)-\d+$/", $key, $m)) {
+                        $orderFields[] = array("field" => trim($value), "table" => "order-item");
                     }
                 }
             }
@@ -265,6 +201,16 @@ class Database
                     $wpdb->insert($tableColumns, array("name" => $field, "column" => "column_{$maxId}", "table" => "postmeta"), array('%s', '%s', '%s'));
                     $maxId++;
                 }
+            }
+
+            foreach ($productAttributes as $field) {
+                $wpdb->insert($tableColumns, array("name" => $field["field"], "column" => "column_{$maxId}", "table" => $field["table"]), array('%s', '%s', '%s'));
+                $maxId++;
+            }
+
+            foreach ($orderFields as $field) {
+                $wpdb->insert($tableColumns, array("name" => $field["field"], "column" => "column_{$maxId}", "table" => $field["table"]), array('%s', '%s', '%s'));
+                $maxId++;
             }
         }
     }
@@ -359,6 +305,7 @@ class Database
             `post_parent_status` varchar(20) DEFAULT NULL,
             `post_parent` bigint(20) DEFAULT NULL,
             `post_author` bigint(20) DEFAULT NULL,
+            `attributes` text DEFAULT NULL,
             " . implode(" longtext DEFAULT NULL,\n", $postMetaFields) . " longtext DEFAULT NULL,
             `created` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
             `updated` datetime DEFAULT NULL,
@@ -510,6 +457,8 @@ class Database
             `field_height` int(10) DEFAULT NULL,
             `label_width` int(10) DEFAULT 50,
             `position` varchar(255) DEFAULT NULL,
+            `button_js` longtext DEFAULT NULL,
+            `button_width` int(10) DEFAULT 100,
             `type` varchar(255) DEFAULT NULL,
             `options` longtext DEFAULT NULL,
             `attribute_id` bigint(10) DEFAULT NULL,
@@ -549,8 +498,8 @@ class Database
             array("field_name" => "usbs_stock_location_level_3", "field_label" => "Shelf", "label_position" => "top", "label_width" => $widthRight, "position" => "product-left-sidebar", "type" => "text", "field_height" => 0, "status" => 1, "order" => 280),
         );
         $defaultFieldsForAll = array(
-            array("field_name" => "usbs_categories", "field_label" => "Categories", "label_position" => "left", "label_width" => $widthLeft, "position" => "product-middle-left", "type" => "categories", "field_height" => 0, "status" => 1, "order" => 400),
             array("field_name" => "usbs_variation_attributes", "field_label" => "Variation attributes", "label_position" => "top", "label_width" => $widthRight, "position" => "product-middle-right", "type" => "variation_attributes", "field_height" => 0, "status" => 1, "order" => 870),
+            array("field_name" => "product_cat", "field_label" => "Categories", "label_position" => "left", "label_width" => $widthLeft, "position" => "product-middle-left", "type" => "taxonomy", "field_height" => 0, "status" => 1, "order" => 400),
             array("field_name" => "_tax_class", "field_label" => "Tax class", "label_position" => "top", "label_width" => $widthRight, "position" => "product-middle-right", "type" => "select", "field_height" => 0, "status" => 0, "mobile_status" => 0, "order" => 850),
             array("field_name" => "_shipping_class", "field_label" => "Shipping class", "label_position" => "top", "label_width" => $widthRight, "position" => "product-middle-right", "type" => "select", "field_height" => 0, "status" => 0, "mobile_status" => 0, "order" => 860),
         );
@@ -729,7 +678,7 @@ class Database
         \dbDelta($sql);
     }
 
-    public static function addPostColumn($name)
+    public static function addPostColumn($name, $fieldTable = "postmeta")
     {
         global $wpdb;
 
@@ -737,7 +686,7 @@ class Database
         $tablePosts = $wpdb->prefix . self::$posts;
         $tableColumns = $wpdb->prefix . self::$columns;
 
-        $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$tableColumns} AS C WHERE C.name = %s;", $name));
+        $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$tableColumns} AS C WHERE C.name = %s AND C.table = %s;", $name, $fieldTable));
 
         $columnsMaxId = $wpdb->get_row("SELECT MAX(id) AS maxId FROM {$tableColumns} LIMIT 1;");
         $maxId = 1;
@@ -756,7 +705,7 @@ class Database
             }
 
             if ($alterTable) {
-                $wpdb->insert($tableColumns, array("name" => $name, "column" => "column_{$maxId}", "table" => "postmeta",), array('%s', '%s', '%s'));
+                $wpdb->insert($tableColumns, array("name" => $name, "column" => "column_{$maxId}", "table" => $fieldTable), array('%s', '%s', '%s'));
 
                 $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$tableColumns} AS C WHERE C.id = %d;", $wpdb->insert_id));
                 $result["isNew"] = true;
@@ -845,6 +794,7 @@ class Database
 
             if ($excludeOrderStatuses) {
                 $excludeOrderStatuses = implode("','", $excludeOrderStatuses);
+                $where .= " AND ( (SELECT _O.type FROM {$hposOrdersTable} AS _O WHERE _O.id = P.ID ) IS NULL OR (SELECT _O.type FROM {$hposOrdersTable} AS _O WHERE _O.id = P.ID ) = 'shop_order' ) ";
                 $where .= " AND ( (SELECT _O.status FROM {$hposOrdersTable} AS _O WHERE _O.id = P.ID ) NOT IN ('{$excludeOrderStatuses}') ";
                 $where .= " OR (SELECT _O.status FROM {$hposOrdersTable} AS _O WHERE _O.id = P.ID ) IS NULL ) ";
             }
@@ -867,7 +817,7 @@ class Database
         $additionalColumns = array();
 
         if ($total) {
-            $additionalColumns = $wpdb->get_results("SELECT C.name, C.column FROM {$tableColumns} AS C;", ARRAY_A);
+            $additionalColumns = $wpdb->get_results("SELECT C.name, C.column, C.table FROM {$tableColumns} AS C;", ARRAY_A);
         }
 
         if (!$isCheck) {
@@ -903,11 +853,6 @@ class Database
     {
         global $wpdb;
 
-        if (in_array($id, self::$indexedPostIds)) {
-            return;
-        } else {
-            self::$indexedPostIds[] = $id;
-        }
 
         Debug::addPoint("> updatePost " . $id);
 
@@ -953,7 +898,7 @@ class Database
             $hwp_product_gtin = get_post_meta($id, "hwp_product_gtin", true);
             $hwp_var_gtin = get_post_meta($id, "hwp_var_gtin", true);
 
-            $atum = self::getAtumInventoryManagementFieldValue($id);
+            $atum = IntegrationsHelper::getAtumInventoryManagementFieldValue($id);
 
             $clientName = get_post_meta($id, "_billing_first_name", true);
             $clientName .= " " . get_post_meta($id, "_billing_last_name", true);
@@ -994,11 +939,15 @@ class Database
             $ywot_tracking_code = get_post_meta($id, "ywot_tracking_code", true);
             $usbs_barcode_field = get_post_meta($id, "usbs_barcode_field", true);
             $_billing_email = get_post_meta($id, "_billing_email", true);
-            $post_title = htmlspecialchars_decode($post->post_title);
+
+            $post_title = $wpdb->get_row($wpdb->prepare("SELECT post_title FROM {$wpdb->posts} WHERE ID = %d", $id));
+            $post_title = $post_title ? $post_title->post_title : "";
+            $post_title = htmlspecialchars_decode($post_title);
+            $post_title = preg_replace('/<[^><]*>/', '', $post_title);
 
             $data = array(
-                'post_title' => strip_tags($post_title),
-                'post_excerpt' => self::removeEmoji($post->post_excerpt),
+                'post_title' => $post_title, 
+                'post_excerpt' => IntegrationsHelper::removeEmoji($post->post_excerpt),
                 'post_type' => $post->post_type,
                 'post_status' => $post->post_status,
                 'post_parent_status' => $parent ? $parent->post_status : null,
@@ -1031,13 +980,78 @@ class Database
                 "successful_update" => 1,
             );
 
+            $order = $post->post_type == "shop_order" ? new \WC_Order($id) : null;
+
             if (!$additionalColumns) {
-                $additionalColumns = $wpdb->get_results("SELECT C.name, C.column FROM {$tableColumns} AS C;", ARRAY_A);
+                $additionalColumns = $wpdb->get_results("SELECT C.name, C.column, C.table FROM {$tableColumns} AS C;", ARRAY_A);
             }
 
             foreach ($additionalColumns as $value) {
-                $column_value = get_post_meta($id, $value["name"], true);
-                $data["{$value["column"]}"] = $column_value ? trim($column_value) : $column_value;
+                $column_value = array();
+
+                if ($value['table'] == 'postmeta') {
+                    $_value = get_post_meta($id, $value["name"], true);
+                    if ($_value && trim($_value)) $column_value[] = trim($_value);
+                } else if ($value['table'] == 'attributes') {
+                    $product_attributes = get_post_meta($id, '_product_attributes', true);
+
+                    if (isset($product_attributes[$value["name"]]) && empty($product_attributes[$value["name"]]['is_taxonomy'])) {
+                        $_value = $product_attributes[$value["name"]]['value'];
+                        if ($_value && trim($_value)) $column_value[] = trim($_value);
+                    }
+                    else {
+                        $attribute_slug = "pa_" . $value["name"];
+                        $terms = wp_get_post_terms($id, $attribute_slug);
+
+                        if (!is_wp_error($terms) && !empty($terms)) {
+                            foreach ($terms as $term) {
+                                $column_value[] = trim($term->name);
+                            }
+                        }
+                    }
+                } else if ($value['table'] == 'order-item' && $order) {
+                    if ($order) {
+                        foreach ($order->get_items() as $_item) {
+                            $pid = $_item->get_variation_id() ? $_item->get_variation_id() : $_item->get_product_id();
+
+                            if ($pid && $value["name"]) {
+                                $item_value = get_post_meta($pid, $value["name"], true);
+                                if ($item_value) $column_value[] = $item_value;
+                            }
+                        }
+                    }
+                }
+
+                $data["{$value["column"]}"] = count($column_value) ? implode(",", $column_value) : "";
+            }
+
+            $parentPostTitle =  $parent ? $parent->post_title : null;
+
+            if ($data['post_type'] === "product_variation" && $parentPostTitle) {
+                $attributesValue = array();
+
+                $attributes =  wc_get_product_variation_attributes($id);
+
+                foreach ($attributes as $attribute_name => $attribute_value) {
+                    if (strpos($attribute_name, 'attribute_pa_') === 0) {
+                        $taxonomy = str_replace('attribute_', '', $attribute_name);
+                        $term = get_term_by('slug', $attribute_value, $taxonomy);
+                        if ($term && !is_wp_error($term)) {
+                            $attributesValue[] = $term->name;
+                        }
+                    } else {
+                        $attributesValue[] = $attribute_value;
+                    }
+                }
+
+                if (count($attributesValue)) {
+                    $data['post_title'] = $parentPostTitle . " - " . implode(", ", $attributesValue);
+                    $data['attributes'] = implode(", ", $attributesValue);
+                }
+                else {
+                    $data['post_title'] = $parentPostTitle;
+                    $data['attributes'] = "";
+                }
             }
 
             $wpdb->update($tablePosts, array("post_parent_status" => $data["post_status"]), array("post_parent" => $id));
@@ -1054,7 +1068,7 @@ class Database
             if ($order) {
                 $isUpdated = true;
 
-                $atum = self::getAtumInventoryManagementFieldValue($id);
+                $atum = IntegrationsHelper::getAtumInventoryManagementFieldValue($id);
 
                 $wcShipmentTrackingItems = $order->get_meta("_wc_shipment_tracking_items", true);
                 $_wc_shipment_tracking_items = "";
@@ -1076,7 +1090,7 @@ class Database
 
                 $data = array(
                     'post_title' => $post->post_title,
-                    'post_excerpt' => self::removeEmoji($post->post_excerpt),
+                    'post_excerpt' => IntegrationsHelper::removeEmoji($post->post_excerpt),
                     'post_type' => "shop_order",
                     'post_status' => $order->get_status(),
                     'post_parent' => $order->get_parent_id(),
@@ -1097,12 +1111,27 @@ class Database
                 );
 
                 if (!$additionalColumns) {
-                    $additionalColumns = $wpdb->get_results("SELECT C.name, C.column FROM {$tableColumns} AS C;", ARRAY_A);
+                    $additionalColumns = $wpdb->get_results("SELECT C.name, C.column, C.table FROM {$tableColumns} AS C;", ARRAY_A);
                 }
 
                 foreach ($additionalColumns as $value) {
-                    $column_value = $order->get_meta($value["name"], true);
-                    $data["{$value["column"]}"] = $column_value ? trim($column_value) : $column_value;
+                    if ($value['table'] == 'postmeta') {
+                        $column_value = $order->get_meta($value["name"], true);
+                        $data["{$value["column"]}"] = $column_value ? trim($column_value) : $column_value;
+                    } else if ($value['table'] == 'order-item') {
+                        $_items_velues = array();
+
+                        foreach ($order->get_items() as $_item) {
+                            $pid = $_item->get_variation_id() ? $_item->get_variation_id() : $_item->get_product_id();
+
+                            if ($pid && $value["name"]) {
+                                $item_value = get_post_meta($pid, $value["name"], true);
+                                if ($item_value) $_items_velues[] = $item_value;
+                            }
+                        }
+
+                        $data["{$value["column"]}"] = implode(", ", $_items_velues);
+                    }
                 }
             }
         }
@@ -1144,86 +1173,15 @@ class Database
 
         Debug::addPoint("> updatePost indexed");
 
-        self::checkOrderFulfillment($id);
+        OrdersHelper::checkOrderFulfillment($id);
         Debug::addPoint("> updatePost checkOrderFulfillment " . $id);
 
         $wpdb->show_errors(false);
-    }
-
-    private static function checkOrderFulfillment($orderId)
-    {
-        try {
-            if (self::$managementActions == null) {
-                self::$managementActions = new ManagementActions();
-            }
-            $empty = null;
-            $infoData = self::$managementActions->getFulfillmentOrderData($orderId, false);
-
-            if ($infoData) {
-                update_post_meta($orderId, "usbs_order_fulfillment_data", $infoData);
-            }
-        } catch (\Throwable $th) {
-        }
     }
 
     public static function countIndexItem($trigger)
     {
         $counter = \get_option("usbs_iic_" . $trigger, 0);
         \update_option("usbs_iic_" . $trigger, ++$counter);
-    }
-
-    public static function removeEmoji($string)
-    {
-        $regex_emoticons = '/[\x{1F600}-\x{1F64F}]/u';
-        $clear_string = preg_replace($regex_emoticons, '', $string);
-
-        $regex_symbols = '/[\x{1F300}-\x{1F5FF}]/u';
-        $clear_string = preg_replace($regex_symbols, '', $clear_string);
-
-        $regex_transport = '/[\x{1F680}-\x{1F6FF}]/u';
-        $clear_string = preg_replace($regex_transport, '', $clear_string);
-
-        $regex_misc = '/[\x{2600}-\x{26FF}]/u';
-        $clear_string = preg_replace($regex_misc, '', $clear_string);
-
-        $regex_dingbats = '/[\x{2700}-\x{27BF}]/u';
-        $clear_string = preg_replace($regex_dingbats, '', $clear_string);
-
-        $clear_string = preg_replace('/[\x00-\x1F\x7F]/u', '', $clear_string);
-        $clear_string = preg_replace('/[\x00-\x1F\x7F\xA0]/u', '', $clear_string);
-        $clear_string = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/u', '', $clear_string);
-
-        try {
-            $clear_string = filter_var($clear_string, FILTER_UNSAFE_RAW, FILTER_FLAG_STRIP_LOW | FILTER_FLAG_STRIP_HIGH);
-        } catch (\Throwable $th) {
-        }
-
-        return $clear_string;
-    }
-
-    private static function getAtumInventoryManagementFieldValue($id)
-    {
-        $fields = array(
-            "atum_supplier_sku" => '',
-            "atum_barcode" => '',
-            "atum_supplier_id" => ''
-        );
-
-        if (!is_plugin_active('atum-stock-manager-for-woocommerce/atum-stock-manager-for-woocommerce.php')) {
-            return $fields;
-        }
-
-        try {
-            $product = Helpers::get_atum_product($id);
-
-            if ($product) {
-                $fields['atum_barcode'] = $product->get_barcode();
-                $fields['atum_supplier_sku'] = $product->get_supplier_sku();
-                $fields['atum_supplier_id'] = $product->get_supplier_id();
-            }
-        } catch (\Throwable $th) {
-        }
-
-        return $fields;
     }
 }

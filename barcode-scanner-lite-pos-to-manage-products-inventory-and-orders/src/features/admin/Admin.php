@@ -33,7 +33,7 @@ class Admin
                 $icon = $icons . 'barcode-scanner-menu-logo.svg';
                 $args = array(
                     'id' => 'barcode-scanner-admin-bar',
-                    'title' => '<span class="ab-icon" aria-hidden="true" style="display: block; height: 18px !important; padding: 0 !important;"><img src="' . $icon . '" style="position: relative; vertical-align: top; opacity: 0.9; margin-right: 3px; width: 20px; height: 20px; display: inline-block;" /></span> <span class="ab-label">Barcode Scanner</span>',
+                    'title' => '<span class="ab-icon" aria-hidden="true"><img src="' . $icon . '" style="padding-top: 2px;" /></span> <span class="ab-label">Barcode Scanner</span>',
                     'href' => '#barcode-scanner-admin-bar',
                     'meta' => array(
                         'class' => 'barcode-scanner-admin-bar',

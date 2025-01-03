@@ -74,7 +74,7 @@ class PostsList
             $product_large_thumbnail_url = (new Results())->getThumbnailUrl($value->post_id, 'large');
 
             if ($product) {
-                $post_title = $product->get_name();
+                $post_title = ProductsHelper::getPostName(null, $product);
                 $post_title = @htmlspecialchars_decode($post_title);
 
                 $value->post_title = $post_title ? $post_title : $product->get_name();

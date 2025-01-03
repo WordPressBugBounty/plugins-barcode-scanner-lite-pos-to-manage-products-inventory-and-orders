@@ -24,8 +24,8 @@
         </td>
         <td style='padding-right: 1mm'>
           [order-product-qty] x
-          <div style="text-decoration: line-through">[item-regular-price]</div>
-          [item-price]
+          <!-- <div style="text-decoration: line-through">[item-regular-price]</div> -->
+          <div>[item-price]</div>
         </td>
         <td>[item-price-total]</td>
       </tr>
@@ -38,6 +38,14 @@
       <td style='text-align: right'>[payment-name]</td>
     </tr>-->
     <tr>
+      <td>Subtotal</td>
+      <td style='text-align: right'>[order-subtotal]</td>
+    </tr>
+    <tr>
+      <td>Discount</td>
+      <td style='text-align: right'>[order-discount]</td>
+    </tr>
+    <tr>
       <td>Shipping</td>
       <td style='text-align: right'>[order-shipping]</td>
     </tr>
@@ -46,17 +54,13 @@
       <td style='text-align: right'>[order-shipping-tax]</td>
     </tr>
     <tr>
-      <td>Subtotal</td>
-      <td style='text-align: right'>[order-subtotal]</td>
-    </tr>
-    <tr>
       <td>Subtotal tax</td>
       <td style='text-align: right'>[order-subtotal-tax]</td>
     </tr>
-    <tr>
+    <!--<tr>
       <td>Total tax</td>
       <td style='text-align: right'>[order-tax]</td>
-    </tr>
+    </tr>>-->
     <tr>
       <td style='font-weight:bold'>Total</td>
       <td style='text-align: right;font-weight:bold'>[order-total]</td>
@@ -64,5 +68,5 @@
   </table>
   <div style="display:none; font-size:10px; text-align:center">[customer-order-note]</div>
   <div style='border-top: 1px solid black;margin: 1mm 0'></div>
-  <div style='text-align: center;font-size:10px'>[order-date]</div>
+  <div style='text-align: center;font-size:10px'>[order-date format="DD.MM.YYYY HH:mm"]</div>
 </div>

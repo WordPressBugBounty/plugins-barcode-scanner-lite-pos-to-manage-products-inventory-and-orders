@@ -7,7 +7,7 @@ $filterUser = isset($_GET["user"]) ? sanitize_text_field($_GET["user"]) : "";
 $filterDatetimeFrom = isset($_GET["dt-from"]) ? sanitize_text_field($_GET["dt-from"]) : $dt->format("Y-m-d");
 $filterDatetimeTo = isset($_GET["dt-to"]) ? sanitize_text_field($_GET["dt-to"]) : $dt->format("Y-m-d");
 $filterPage = isset($_GET["p"]) ? (int)sanitize_text_field($_GET["p"]) : 1;
-$filterIPP = isset($_GET["ipp"]) ? (int)sanitize_text_field($_GET["ipp"]) : 10;
+$filterIPP = isset($_GET["ipp"]) ? (int)sanitize_text_field($_GET["ipp"]) : 50;
 $filterType = isset($_GET["type"]) ? sanitize_text_field($_GET["type"]) : "";
 $filterUp = isset($_GET["up"]) ? sanitize_text_field($_GET["up"]) : "";
 ?>

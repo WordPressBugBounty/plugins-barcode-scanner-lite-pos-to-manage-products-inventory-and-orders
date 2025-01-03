@@ -10,9 +10,7 @@ class SettingsHelper
 
     public static $excludeOrderStatuses = array("checkout-draft", "auto-draft");
 
-    public static function init()
-    {
-    }
+    public static function init() {}
 
     public static function is_plugin_active($plugin)
     {

@@ -12,6 +12,6 @@ class Roles
 
         $custom_capabilities = array();
 
-        add_role('barcode_scanner_front_end', __("Barcode Scanner (Front-End)", "us-barcode-scanner"), array_merge($capabilities, $custom_capabilities));
+        add_role('barcode_scanner_front_end', "Barcode Scanner (Front-End)", array_merge($capabilities, $custom_capabilities));
     }
 }

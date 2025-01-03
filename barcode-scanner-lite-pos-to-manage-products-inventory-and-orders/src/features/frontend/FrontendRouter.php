@@ -45,7 +45,7 @@ class FrontendRouter
 
                 if (!$key) return $result;
 
-                if (preg_match("/^\/?(barcode-scanner-front)(.*?)?$/", $key, $m)) {
+                if (preg_match("/\/?(barcode-scanner-front)(.*?)?$/", $key, $m)) {
                     if (count($m) >= 2) {
                         return array(
                             "route" => $m[1],

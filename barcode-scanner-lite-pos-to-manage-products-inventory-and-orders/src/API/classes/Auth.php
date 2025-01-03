@@ -197,7 +197,7 @@ class Auth
         global $wpdb;
         $settings = new Settings();
 
-        if ($userToken) {
+         if ($userToken) {
             $user = null;
             $userMeta = $wpdb->get_row("SELECT UM.meta_key, UM.meta_value, UM.user_id FROM {$wpdb->usermeta} AS UM WHERE UM.meta_key IN ('barcode_scanner_app_otp') AND UM.meta_value = '{$userToken}'");
 
@@ -206,9 +206,8 @@ class Auth
             }
 
             return $userMeta && $userMeta->user_id && $user ? $userMeta->user_id : null;
-
         } else if ($token && !in_array($token, array("web", "usersFind"))) {
-            $userMeta = $wpdb->get_row("SELECT UM.meta_key, UM.meta_value, UM.user_id FROM {$wpdb->usermeta} AS UM WHERE UM.meta_key IN ('barcode_scanner_app_otp') AND UM.meta_value = '{$token}'");
+            $userMeta = $wpdb->get_row("SELECT UM.meta_key, UM.meta_value, UM.user_id FROM {$wpdb->usermeta} AS UM WHERE UM.meta_key IN ('barcode_scanner_app_otp', 'barcode_scanner_web_otp') AND UM.meta_value = '{$token}'");
 
             if ($userMeta && $userMeta->user_id) {
                 return $userMeta->user_id;
@@ -218,7 +217,6 @@ class Auth
 
             if (preg_match('/([\d]+).*/', $data, $m)) {
                 $userId = count($m) === 2 && (int)$m[1] ? $m[1] : 0;
-
 
                 if ($userSession && (int)$userSession === (int)$userId) {
                     return $userId;
@@ -257,7 +255,7 @@ class Auth
                 "username" => $user->display_name ? $user->display_name : $user->user_nicename,
                 "website" => $domain,
                 "protocol" => $protocol,
-                "pluginVersion" => "1.6.7",
+                "pluginVersion" => "1.7.0",
                 "wpVersion" => $wp_version,
                 "wooVersion" => $this->getWooVersion(),
                 "phpVersion" => phpversion(),

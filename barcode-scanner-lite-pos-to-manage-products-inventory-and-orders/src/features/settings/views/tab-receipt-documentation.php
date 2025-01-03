@@ -53,8 +53,33 @@ $tabs = array(
             __('Order subtotal tax', "us-barcode-scanner") => '[order-subtotal-tax]',
             __('Order tax', "us-barcode-scanner") => '[order-tax]',
             __('Order total price', "us-barcode-scanner") => '[order-total]',
-            __('Order date', "us-barcode-scanner") => '[order-date]',
+            __('Order discount', "us-barcode-scanner") => '[order-discount before="Discount:" show-value="false"]',
+            __('Order date', "us-barcode-scanner") => '[order-date format="DD.MM.YYYY HH:mm"]',
             __('Pull data from the order custom/meta field', "us-barcode-scanner") => '[custom-field=XXXX]',
+            "<b>" . __('Billing:', 'us-barcode-scanner') . "</b>" => '',
+            __('Order billing first name', "us-barcode-scanner") => '[order-billing-first-name]',
+            __('Order billing last name', "us-barcode-scanner") => '[order-billing-last-name]',
+            __('Order billing country', "us-barcode-scanner") => '[order-billing-country]',
+            __('Order billing state', "us-barcode-scanner") => '[order-billing-state]',
+            __('Order billing city', "us-barcode-scanner") => '[order-billing-city]',
+            __('Order billing address 1', "us-barcode-scanner") => '[order-billing-address1]',
+            __('Order billing address 2', "us-barcode-scanner") => '[order-billing-address2]',
+            __('Order billing postal code', "us-barcode-scanner") => '[order-billing-postal-code]',
+            __('Order billing company', "us-barcode-scanner") => '[order-billing-company]',
+            __('Order billing phone', "us-barcode-scanner") => '[order-billing-phone]',
+            __('Order billing email', "us-barcode-scanner") => '[order-billing-email]',
+            "<b>" . __('Shipping:', 'us-barcode-scanner') . "</b>" => '',
+            __('Order shipping first name', "us-barcode-scanner") => '[order-shipping-first-name]',
+            __('Order shipping last name', "us-barcode-scanner") => '[order-shipping-last-name]',
+            __('Order shipping country', "us-barcode-scanner") => '[order-shipping-country]',
+            __('Order shipping state', "us-barcode-scanner") => '[order-shipping-state]',
+            __('Order shipping city', "us-barcode-scanner") => '[order-shipping-city]',
+            __('Order shipping address 1', "us-barcode-scanner") => '[order-shipping-address1]',
+            __('Order shipping address 2', "us-barcode-scanner") => '[order-shipping-address2]',
+            __('Order shipping postal code', "us-barcode-scanner") => '[order-shipping-postal-code]',
+            __('Order shipping company', "us-barcode-scanner") => '[order-shipping-company]',
+            __('Order shipping phone', "us-barcode-scanner") => '[order-shipping-phone]',
+            "<b>" . __('Taxes:', 'us-barcode-scanner') . "</b>" => '',
         ),
         'blocks' => array(
             array(
@@ -90,10 +115,10 @@ $tabs = array(
             </div>
             <div class="rdm-tabs-content">
                 <?php foreach ($tabs as $key => $tabValue) : ?>
-                    <div data-rdm-tab="<?php echo esc_attr($key); ?>" class="<?php echo $key === "store-tab" ? esc_html('active') : '' ?>">
+                    <div data-rdm-tab="<?php echo esc_attr($key); ?>" class="<?php echo $key === "store-tab" ? esc_html('active') : '' ?>" style="max-height: 500px; overflow-y: auto;">
                         <?php foreach ($tabValue['shortcodes'] as $shortcode => $label) : ?>
                             <div>
-                                <div><?php echo esc_html($shortcode) ?></div>
+                                <div><?php echo wp_kses_post($shortcode) ?></div>
                                 <div><?php echo esc_html($label) ?></div>
                             </div>
                         <?php endforeach; ?>
@@ -138,6 +163,10 @@ $tabs = array(
         width: 100%;
         min-width: 400px;
         max-width: 700px;
+    }
+
+    .receipt-documentation-modal .rdm-content * {
+        user-select: text;
     }
 
     .rdm-header {

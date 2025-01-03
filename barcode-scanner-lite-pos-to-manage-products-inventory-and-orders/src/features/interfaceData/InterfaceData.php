@@ -2,6 +2,7 @@
 
 namespace UkrSolution\BarcodeScanner\features\interfaceData;
 
+use UkrSolution\BarcodeScanner\API\classes\Users;
 use UkrSolution\BarcodeScanner\API\PluginsHelper;
 use UkrSolution\BarcodeScanner\Database;
 
@@ -110,6 +111,8 @@ class InterfaceData
                 "role" => !$role || $role == 'default'  ? null : $role,
                 "updated" => $created,
                 "attribute_id" => $value["attribute_id"] ? $value["attribute_id"] : null,
+                "button_js" => $value["button_js"] ? $value["button_js"] : null,
+                "button_width" => $value["button_width"] ? $value["button_width"] : null,
             );
 
             if (isset($value['status'])) $data['status'] = $value["status"];
@@ -207,6 +210,79 @@ class InterfaceData
         return $result;
     }
 
+    public static function getUserFormFields()
+    {
+        $result = array();
+
+        $result[] = array(
+            "id" => "first_name",
+            "label" => __("First name", "us-barcode-scanner"),
+            "name" => "first_name",
+            "position" => "user_section",
+            "type" => "text",
+            "required" => 0,
+            "default" => "",
+            "inputClass" => "addr-form-first_name",
+            "placeholder" => __("Enter first name", "us-barcode-scanner"),
+        );
+
+        $result[] = array(
+            "id" => "last_name",
+            "label" => __("Last name", "us-barcode-scanner"),
+            "name" => "last_name",
+            "position" => "user_section",
+            "type" => "text",
+            "required" => 0,
+            "default" => "",
+            "inputClass" => "addr-form-last_name",
+            "placeholder" => __("Enter last name", "us-barcode-scanner"),
+        );
+
+        $result[] = array(
+            "id" => "username",
+            "label" => "* " . __("Username", "us-barcode-scanner"),
+            "name" => "username",
+            "position" => "user_section",
+            "type" => "text",
+            "required" => 1,
+            "default" => "",
+            "inputClass" => "addr-form-username",
+            "placeholder" => __("Enter username", "us-barcode-scanner"),
+        );
+
+        $result[] = array(
+            "id" => "email",
+            "label" => __("Email", "us-barcode-scanner"),
+            "name" => "email",
+            "position" => "user_section",
+            "type" => "text",
+            "required" => 1,
+            "default" => "",
+            "inputClass" => "addr-form-email",
+            "placeholder" => __("Enter email", "us-barcode-scanner"),
+        );
+
+        $roles = Users::getNewUserRoles();
+        $result[] = array(
+            "id" => "user_role",
+            "label" => __("Role", "us-barcode-scanner"),
+            "name" => "role",
+            "position" => "user_section",
+            "type" => "select",
+            "required" => 1,
+            "default" => "customer",
+            "inputClass" => "user-role",
+            "placeholder" => __("Role", "us-barcode-scanner"),
+            "options" => array_map(function ($role, $roleData) {
+                return array("value" => $role, "label" => $roleData["name"]);
+            }, array_keys($roles), $roles),
+        );
+
+        $result = apply_filters('barcode_scanner_user_form_custom_fields', $result);
+
+        return $result;
+    }
+
     public static function getWooShippmentProviders()
     {
         global $wpdb;
@@ -238,7 +314,7 @@ class InterfaceData
     {
         $fields = self::getFields();
 
-        $excludesList = array('usbs_categories', 'usbs_product_status', '_stock_status', '_sale_price', '_regular_price', '_sku', '_stock', 'usbs_variation_attributes');
+        $excludesList = array('usbs_categories', 'usbs_taxonomy', 'usbs_product_status', '_stock_status', '_sale_price', '_regular_price', '_sku', '_stock', 'usbs_variation_attributes');
         $fieldsToExport = array();
 
         if ($fields) {

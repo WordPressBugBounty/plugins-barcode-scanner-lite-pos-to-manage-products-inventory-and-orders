@@ -134,9 +134,6 @@ use UkrSolution\BarcodeScanner\API\PluginsHelper;
                     </div>
                 </td>
             </tr>
-
-            <?php
-            ?>
             <!-- New product code field -->
             <tr id="field_for_new_product">
                 <th scope="row">
@@ -182,12 +179,10 @@ use UkrSolution\BarcodeScanner\API\PluginsHelper;
                     <br /><i><?php echo esc_html__("Meta name", "us-barcode-scanner"); ?></i>
                 </td>
             </tr>
-            <?php
-            ?>
             <!-- decimal_quantity -->
             <tr id="decimal_quantity">
                 <th scope="row">
-                    <?php echo esc_html__("Allow decimal quantity", "us-barcode-scanner"); ?>
+                    <?php echo esc_html__("Allow product qty with the floating point", "us-barcode-scanner"); ?>
                 </th>
                 <td>
                     <label>
@@ -205,6 +200,7 @@ use UkrSolution\BarcodeScanner\API\PluginsHelper;
                         <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> data-main="cartDecimalQuantity" onchange="WebbsSettingsCheckboxChange(`#decimal_quantity input[name='cartDecimalQuantity']`,this.checked ? 'on' : 'off')" />
                         <input type="hidden" name="cartDecimalQuantity" value="<?php echo esc_attr($checked ? "on" : "off"); ?>" />
                         <?php echo esc_html__("Enable", "us-barcode-scanner"); ?>
+                        <br /><i><?php echo esc_html__("Important: Enable only if your woocommerce already supports product quantity with the floating point.", "us-barcode-scanner"); ?></i>
                     </label>
                 </td>
             </tr>
