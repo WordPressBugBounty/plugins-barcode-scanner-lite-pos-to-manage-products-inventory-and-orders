@@ -46,6 +46,7 @@ return array(
     "increase_search_speed" => __("Increase search speed", 'us-barcode-scanner'),
     "cancel" => __("CANCEL", 'us-barcode-scanner'),
     "start" => __("START", 'us-barcode-scanner'),
+    "receipt" => __("receipt", 'us-barcode-scanner'),
 
     "err_close" => __("Close", 'us-barcode-scanner'),
     "err_check_again" => __("Check again", 'us-barcode-scanner'),
@@ -239,4 +240,12 @@ return array(
     "Do you want to mark this product as fulfilled/picked?" => __('Do you want to mark this product as fulfilled/picked?', 'us-barcode-scanner'),
     "Product type" => __('Product type', 'us-barcode-scanner'),
     'Ignore "stock disabled" items' => __('Ignore "stock disabled" items', 'us-barcode-scanner'),
+    'You have to select user for this order.\nCreate or select already existing user and proceed with order creation.' => __('You have to select user for this order.\nCreate or select already existing user and proceed with order creation.', 'us-barcode-scanner'),
+    'Shipping method is required.' => __('Shipping method is required.', 'us-barcode-scanner'),
+    'Payment method is required.' => __('Payment method is required.', 'us-barcode-scanner'),
+    'Preview order' => __('Preview order', 'us-barcode-scanner'),
+    'Recalculate all prices and cancel any manual changes' => __('Recalculate all prices and cancel any manual changes', 'us-barcode-scanner'),
+    'Re-calc' => __('Re-calc', 'us-barcode-scanner'),
+    'Back to original value' => __('Back to original value', 'us-barcode-scanner'),
+    'Enter product SKU' => __('Enter product SKU', 'us-barcode-scanner'),
 );

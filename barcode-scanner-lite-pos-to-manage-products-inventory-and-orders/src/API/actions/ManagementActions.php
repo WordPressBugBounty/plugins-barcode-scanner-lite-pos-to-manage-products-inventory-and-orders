@@ -1888,6 +1888,8 @@ class ManagementActions
         if ($isOrderFulfillmentObjectsReset) {
             update_post_meta($orderId, "usbs_fulfillment_objects", "");
             update_post_meta($orderId, "usbs_order_fulfillment_data", "");
+
+            OrdersHelper::checkOrderFulfillment($orderId);
         }
 
         $updatedItems = array();

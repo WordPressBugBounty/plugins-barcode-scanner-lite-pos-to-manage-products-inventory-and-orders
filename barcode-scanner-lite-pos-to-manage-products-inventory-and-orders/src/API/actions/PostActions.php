@@ -72,7 +72,7 @@ class PostActions
         }
 
         if (!$field) {
-            return rest_ensure_response(array("error" => "Field is empty"));
+            return rest_ensure_response(array("error" => __("Field is empty", "us-barcode-scanner")));
         }
 
         $productsCustomField = $wpdb->get_row(
@@ -83,7 +83,7 @@ class PostActions
         if ($total) {
             return rest_ensure_response(array("success" => sprintf("Custom field found for %s product%s.", $total, $total > 1 ? "s" : "")));
         } else {
-            return rest_ensure_response(array("error" => "Field not found"));
+            return rest_ensure_response(array("error" => __("Field not found", "us-barcode-scanner")));
         }
     }
 
@@ -105,7 +105,7 @@ class PostActions
         }
 
         if (!$field) {
-            return rest_ensure_response(array("error" => "Field is empty"));
+            return rest_ensure_response(array("error" => __("Field is empty", "us-barcode-scanner")));
         }
 
         $productsCustomField = $wpdb->get_row(
@@ -116,7 +116,7 @@ class PostActions
         if ($total) {
             return rest_ensure_response(array("success" => sprintf("Custom field found for %s product%s.", $total, $total > 1 ? "s" : "")));
         } else {
-            return rest_ensure_response(array("error" => "Field not found"));
+            return rest_ensure_response(array("error" => __("Field not found", "us-barcode-scanner")));
         }
     }
 }

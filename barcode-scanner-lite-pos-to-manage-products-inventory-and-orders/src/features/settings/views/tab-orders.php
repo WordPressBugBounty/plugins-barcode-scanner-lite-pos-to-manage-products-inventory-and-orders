@@ -70,6 +70,7 @@
                     $field = $settings->getSettings("orderStatusesAreStillNotCompleted");
                     $orderStatusesAreStillNotCompletedValue = $field === null ? "wc-pending,wc-processing,wc-on-hold" : $field->value;
                     ?>
+                    <input type="hidden" name="orderStatusesAreStillNotCompleted" value="" />
                     <select name="orderStatusesAreStillNotCompleted[]" class="usbs_order_statuses_are_still_not_complected" multiple="true" style="width:300px;">
                         <?php foreach ($settings->getOrderStatuses() as $key => $value) : ?>
                             <option value="<?php echo esc_attr($key); ?>"><?php echo esc_html($value); ?></option>

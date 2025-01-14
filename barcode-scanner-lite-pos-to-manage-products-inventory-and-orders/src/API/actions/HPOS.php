@@ -721,8 +721,8 @@ class HPOS
         Debug::addPoint(" - formatOrder customer orders");
 
         if ($fulfillmentField) {
-            $props[$fulfillmentField] = get_post_meta($post->ID, $fulfillmentField, true);
-            $props[$fulfillmentField . "-filled"] = get_post_meta($post->ID, $fulfillmentField . "-filled", true);
+            $props[$fulfillmentField] = $order->get_meta($fulfillmentField, true); 
+            $props[$fulfillmentField . "-filled"] = $order->get_meta($fulfillmentField . "-filled", true); 
         }
 
         $props["_order_number"] = $order->get_meta("_order_number", true);
@@ -827,8 +827,8 @@ class HPOS
         );
 
         if ($fulfillmentField) {
-            $props[$fulfillmentField] = get_post_meta($post->ID, $fulfillmentField, true);
-            $props[$fulfillmentField . "-filled"] = get_post_meta($post->ID, $fulfillmentField . "-filled", true);
+            $props[$fulfillmentField] = $order->get_meta($fulfillmentField, true); 
+            $props[$fulfillmentField . "-filled"] = $order->get_meta($fulfillmentField . "-filled", true); 
         }
 
         $props["_order_number"] = $order->get_meta("_order_number", true);

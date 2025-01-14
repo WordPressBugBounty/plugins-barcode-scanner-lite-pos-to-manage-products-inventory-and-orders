@@ -14,7 +14,7 @@ $button_js_default = '// Get product details
 // const value = await window.BarcodeScannerApp.modals.prompt({ field_type: "number", title: "Prompt title" });';
 
 ?>
-<tr class="settings_field_section <?php echo (isset($rootClass) && $rootClass) ? esc_attr($rootClass) : "" ?>">
+<tr class="settings_field_section field_<?php echo esc_attr($field["field_name"]); ?> <?php echo (isset($rootClass) && $rootClass) ? esc_attr($rootClass) : "" ?>">
     <td style="padding: 0;">
         <div style="padding: 14px 10px 10px; background: #fff; margin-bottom: 10px; position: relative; width: 360px; box-shadow: 0 0 8px 1px #c7c7c7; border-radius: 4px;">
             <input type="hidden" class="usbs_field_order" name="fields[<?php echo esc_attr($field["id"]); ?>][<?php echo esc_attr($orderField); ?>]" value="<?php echo esc_attr($field[$orderField]); ?>" />
@@ -153,7 +153,7 @@ $button_js_default = '// Get product details
                                 <?php echo esc_html__("Taxonomy", "us-barcode-scanner"); ?>
                             </td>
                             <td style="padding: 0;">
-                                <input type="text" class="usbs_taxonomy" name="fields[<?php echo esc_attr($field["id"]); ?>][field_name]" value="<?php echo esc_attr($field["field_name"]); ?>" style="width: 177px;" />
+                                <input type="text" class="usbs_taxonomy" name="fields[<?php echo esc_attr($field["id"]); ?>][taxonomy_field_name]" value="<?php echo esc_attr($field["field_name"]); ?>" style="width: 177px;" />
                             </td>
                         </tr>
                         <tr class="global_attribute">

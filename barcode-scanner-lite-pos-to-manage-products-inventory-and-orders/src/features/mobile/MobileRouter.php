@@ -139,7 +139,7 @@ class MobileRouter
 
         echo "<";
         esc_html_e($this->tn, 'us-barcode-scanner');
-        echo " src='" . esc_url(USBS_PLUGIN_BASE_URL) . "src/features/mobile/assets/js/index.js?v=1.7.0&t=1735910498986' ";
+        echo " src='" . esc_url(USBS_PLUGIN_BASE_URL) . "src/features/mobile/assets/js/index.js?v=1.7.2&t=1736779588418' "; // 1.7.2
         echo ">";
         echo "<";
         echo "/";
@@ -148,7 +148,7 @@ class MobileRouter
 
         echo "<";
         esc_html_e($this->tn, 'us-barcode-scanner');
-        echo " src='" . esc_url(USBS_PLUGIN_BASE_URL) . "src/features/mobile/assets/js/loader.js?v=1.7.0&t=1735910498986' ";
+        echo " src='" . esc_url(USBS_PLUGIN_BASE_URL) . "src/features/mobile/assets/js/loader.js?v=1.7.2&t=1736779588418' ";
         echo ">";
         echo "<";
         echo "/";

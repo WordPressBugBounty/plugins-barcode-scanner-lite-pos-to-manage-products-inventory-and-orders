@@ -64,6 +64,12 @@ class AjaxRoutes
                 Users::setUserId($tokenUserId);
                 Users::setUserRole($userRole);
 
+                $platform = $this->getParam($get, "platform", "");
+
+                if($platform == "android" || $platform == "ios") {
+                    wp_set_current_user($tokenUserId);
+                }
+
                 Users::updateAppUsesTime($tokenUserId);
             }
 

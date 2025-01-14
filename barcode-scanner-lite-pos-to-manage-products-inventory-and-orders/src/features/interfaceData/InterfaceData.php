@@ -100,7 +100,7 @@ class InterfaceData
         foreach ($fields as $id => $value) {
             $data = array(
                 "field_label" => $value["field_label"],
-                "field_name" => $value["field_name"],
+                "field_name" => $value["type"] == "taxonomy" ? $value["taxonomy_field_name"] : $value["field_name"],
                 "type" => $value["type"],
                 "label_position" => $value["label_position"],
                 "field_height" => $value["field_height"],

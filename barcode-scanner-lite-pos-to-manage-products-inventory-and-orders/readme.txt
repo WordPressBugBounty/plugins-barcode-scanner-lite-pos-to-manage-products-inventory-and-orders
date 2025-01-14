@@ -1,4 +1,4 @@
-=== Barcode Scanner and Inventory manager. POS (Point of Sale) - scan barcodes & create orders with barcode reader.
+=== Barcode Scanner (+Mobile App) - Inventory manager, Order fulfillment system, POS (Point of Sale)
 Contributors: UkrSolution <https://profiles.wordpress.org/ukrsolution>
 Tags: barcode, scanner, inventory, POS, Point Of Sale
 Requires at least: 4.0.1 
@@ -16,7 +16,7 @@ Manage and sell (POS) your inventory. It reads barcodes & finds woocommerce prod
 **✔ Manage product stock, prices and other product data**
 **✔ Point of Sale (POS) - create orders by scanning barcodes**
 
-https://youtu.be/MkGuoVlDgIs
+https://youtu.be/PG0nneI8wKI
 
 This plugin for WooCommerce allows you to scan barcodes and manage your inventory/orders more efficiently. After barcode is scanned, plugin starts to search item automatically and displays product/order you were looking for. Also this plugin provides Point Of Sale (POS) functionality, so you can create WooCommerce orders right from the work place or checkout counter.
 
