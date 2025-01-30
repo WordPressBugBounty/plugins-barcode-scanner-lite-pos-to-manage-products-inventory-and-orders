@@ -5,6 +5,7 @@ namespace UkrSolution\BarcodeScanner\API;
 use UkrSolution\BarcodeScanner\API\actions\CartScannerActions;
 use UkrSolution\BarcodeScanner\API\actions\DbActions;
 use UkrSolution\BarcodeScanner\API\actions\ManagementActions;
+use UkrSolution\BarcodeScanner\API\actions\OrdersActions;
 use UkrSolution\BarcodeScanner\API\actions\PostActions;
 use UkrSolution\BarcodeScanner\API\actions\UsersActions;
 use UkrSolution\BarcodeScanner\API\classes\BatchNumbers;
@@ -42,6 +43,7 @@ class AjaxRoutes
             $settings = new Settings($this->coreInstance);
             $postActions = new PostActions();
             $managementActions = new ManagementActions();
+            $ordersActions = new OrdersActions();
             $usersActions = new UsersActions();
             $dbActions = new DbActions();
             $cartActions = new CartScannerActions();
@@ -66,7 +68,7 @@ class AjaxRoutes
 
                 $platform = $this->getParam($get, "platform", "");
 
-                if($platform == "android" || $platform == "ios") {
+                if ($platform == "android" || $platform == "ios") {
                     wp_set_current_user($tokenUserId);
                 }
 
@@ -165,6 +167,7 @@ class AjaxRoutes
                 "customAction",
                 "userAction",
                 "bsInstanceFrontendStatus",
+                "confirmationLeftFulfillment",
                 "isCheck",
                 "isAddToList",
                 "modifyAction",
@@ -415,6 +418,18 @@ class AjaxRoutes
                 case 'removeFulfillmentObject':
                     PermissionsHelper::onePermRequired(['orders']);
                     $response = $managementActions->removeFulfillmentObject($request);
+                    break;
+                case 'ff2Search':
+                    PermissionsHelper::onePermRequired(['orders']);
+                    $response = $ordersActions->ff2Search($request);
+                    break;
+                case 'ff2PickItem':
+                    PermissionsHelper::onePermRequired(['orders']);
+                    $response = $ordersActions->ff2PickItem($request);
+                    break;
+                case 'ff2RepickItem':
+                    PermissionsHelper::onePermRequired(['orders']);
+                    $response = $ordersActions->ff2RepickItem($request);
                     break;
                 case 'update_wc_shipment_tracking_item':
                     PermissionsHelper::onePermRequired(['orders']);

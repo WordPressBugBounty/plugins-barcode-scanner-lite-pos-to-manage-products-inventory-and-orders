@@ -906,7 +906,7 @@ class Results
                 "post_type" => $_post->post_type,
                 "name" => strip_tags($item->get_name()),
                 "quantity" => (float)$quantity,
-                "price_c" => strip_tags(wc_price($item->get_total() / $quantity)),
+                "price_c" => $quantity ? strip_tags(wc_price($item->get_total() / $quantity)) : strip_tags(wc_price($item->get_total())),
                 "subtotal" => $this->clearPrice($item->get_subtotal(), $args),
                 "subtotal_c" => strip_tags(wc_price($item->get_subtotal())),
                 "total" => $this->clearPrice($item->get_total(), $args),
@@ -1132,6 +1132,8 @@ class Results
             "refund_data" => OrdersHelper::getOrderRefundData($order),
         );
 
+        OrdersHelper::addOrderData($order->get_id(), $props);
+
         if ($customerId) {
             $customerOrders = $wpdb->get_row($wpdb->prepare(
                 "SELECT COUNT(P.ID) AS 'count' FROM {$wpdb->prefix}posts AS P, {$wpdb->prefix}postmeta AS PM WHERE P.ID = PM.post_id AND P.post_type = 'shop_order' AND PM.meta_key = '_customer_user' AND PM.meta_value = %d;",
@@ -1250,6 +1252,8 @@ class Results
             "user" => $userData,
             "products" => $products,
         );
+
+        OrdersHelper::addOrderData($order->get_id(), $props);
 
         if ($fulfillmentField) {
             $props[$fulfillmentField] = get_post_meta($post->ID, $fulfillmentField, true);

@@ -103,4 +103,17 @@ class OrdersHelper
         } catch (\Throwable $th) {
         }
     }
+
+    public static function addOrderData($orderId, &$data)
+    {
+        global $wpdb;
+
+        if ($orderId) {
+            $indexedOrderData = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}barcode_scanner_posts AS P WHERE post_id = %d", $orderId));
+
+            if ($indexedOrderData) {
+                $data["hook_order_number"] = $indexedOrderData->hook_order_number;
+            }
+        }
+    }
 }

@@ -3,17 +3,17 @@
  * Plugin Name: Barcode Scanner with Inventory & Order Manager - (business)
  * Description: Scan barcodes to find & manage inventory and orders.
  * Text Domain: us-barcode-scanner
- * Version: 1.7.2
- * Build: 1736779589581
+ * Version: 1.8.0
+ * Build: 1738162470266
  * Author: UkrSolution
  * Plugin URI: https://www.ukrsolution.com/Wordpress/WooCommerce-Barcode-QRCode-Scanner-Reader
  * Author URI: http://www.ukrsolution.com
  * License: GPL2
  * WC requires at least: 2.0.0
- * -WC tested up to: 9.5.*
+ * -WC tested up to: 9.6.*
  */
 
-use UkrSolution\BarcodeScanner\Database; // 1.7.2
+use UkrSolution\BarcodeScanner\Database;
 use UkrSolution\BarcodeScanner\features\mobile\MobileRouter;
 use UkrSolution\BarcodeScanner\features\settings\Settings;
 

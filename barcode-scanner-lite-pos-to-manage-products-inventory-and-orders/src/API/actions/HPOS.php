@@ -43,6 +43,7 @@ class HPOS
         $field = $settings->getSettings("searchResultsLimit");
         $searchResultsLimit = $field === null ? 20 : (int)$field->value;
         $searchResultsLimit = $searchResultsLimit ? $searchResultsLimit : 20;
+        $searchResultsLimit = $searchResultsLimit > 999 ? 999 : $searchResultsLimit;
 
         $query = apply_filters(self::$filter_search_query, trim($query));
 
@@ -80,6 +81,7 @@ class HPOS
         $sql = self::sqlBuilder($query, $filterWithoutTitle, $excludeStatuses);
 
         $orders = $wpdb->get_results($sql);
+        $total = $wpdb->get_row("SELECT FOUND_ROWS() as `total`");
 
         Debug::addPoint("1. sql");
         Debug::addPoint($sql);
@@ -87,6 +89,8 @@ class HPOS
 
         if (count($orders)) {
             return array(
+                "total" => $total ? $total->total : 0,
+                "limit" => $searchResultsLimit,
                 "posts" => $orders,
                 "filter" => (new Post())->getFilterParams($filterWithoutTitle),
                 "findByTitle" => $findByTitle,
@@ -95,6 +99,8 @@ class HPOS
         }
 
         return array(
+            "total" => $total ? $total->total : 0,
+            "limit" => $searchResultsLimit,
             "posts" => null,
             "findByTitle" => null,
             "query" => $query
@@ -155,7 +161,7 @@ class HPOS
         $params = (new Post())->getFilterParams($filter);
         $isNumeric = (preg_match('/^[0-9]{0,20}$/', trim($query), $m)) ? true : false;
 
-        $sql = "SELECT O.* %SELECT_COLUMNS% FROM {$posts} AS P, {$wpdb->prefix}wc_orders AS O 
+        $sql = "SELECT SQL_CALC_FOUND_ROWS O.* %SELECT_COLUMNS% FROM {$posts} AS P, {$wpdb->prefix}wc_orders AS O 
                 WHERE O.id = P.post_id AND ( P.post_status NOT IN('{$statuses}') OR P.post_status IS NULL ) 
                     AND ( P.post_parent = 0 OR P.post_parent IS NULL OR P.post_parent_status IS NUll OR P.post_parent_status NOT IN('{$statuses}')  ) 
                     AND ( ";
@@ -493,7 +499,7 @@ class HPOS
                 "post_type_tooltip" => $_post->post_type == "product_variation" ? "variation" : "product", 
                 "name" => strip_tags($item->get_name()),
                 "quantity" => (float)$quantity,
-                "price_c" => strip_tags(wc_price($item->get_total() / $quantity)),
+                "price_c" => $quantity ? strip_tags(wc_price($item->get_total() / $quantity)) : strip_tags(wc_price($item->get_total())),
                 "subtotal" => self::clearPrice($item->get_subtotal(), $args),
                 "subtotal_c" => strip_tags(wc_price($item->get_subtotal())),
                 "total" => self::clearPrice($item->get_total(), $args),
@@ -707,6 +713,8 @@ class HPOS
             "refund_data" => OrdersHelper::getOrderRefundData($order),
         );
 
+        OrdersHelper::addOrderData($order->get_id(), $props);
+
         Debug::addPoint(" - formatOrder order props");
 
         if ($customerId) {
@@ -825,6 +833,8 @@ class HPOS
             "user" => $userData,
             "products" => $products,
         );
+
+        OrdersHelper::addOrderData($order->get_id(), $props);
 
         if ($fulfillmentField) {
             $props[$fulfillmentField] = $order->get_meta($fulfillmentField, true); 

@@ -282,7 +282,7 @@ use UkrSolution\BarcodeScanner\API\classes\WPML;
                         $value = $field === null ? 20 : (int)$field->value;
                         $value = $value ? $value : 20;
                         ?>
-                        <input type="number" name="searchResultsLimit" value="<?php echo esc_html($value); ?>" placeholder="20" min="1" max="200" />
+                        <input type="number" name="searchResultsLimit" value="<?php echo esc_html($value); ?>" placeholder="20" min="1" max="999" />
                     </label>
                     <br />
                     <i><?php echo esc_html__("Specify how much maximum search result you would like to see in search suggestion dropdown.", "us-barcode-scanner"); ?></i>

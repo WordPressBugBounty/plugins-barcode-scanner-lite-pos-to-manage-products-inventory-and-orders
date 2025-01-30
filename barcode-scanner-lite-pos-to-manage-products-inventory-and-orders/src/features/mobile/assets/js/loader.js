@@ -14,7 +14,19 @@ var WebBarcodeScannerOpen = function (event) {
 var WebBarcodeScannerScripts = function () {
   try {
     
-    var appJs = document.createElement("script"); appJs.type = "text/javascript"; appJs.src = window.usbsMobile.appJsPath;
+    var appJs = document.createElement("script"); 
+    appJs.type = "text/javascript"; 
+    appJs.src = window.usbsMobile.appJsPath;
+    appJs.async = true;
+    appJs.onload = () => { console.log("Loader: " + window.usbsMobile.appJsPath + " loaded"); };
+    appJs.onerror = () => { 
+      console.error("Loader: " + window.usbsMobile.appJsPath + " not loaded"); 
+      window.parent.postMessage({
+        message: "mobile.postMessage", method: "CMD_ALERT", options: {
+            title: "JS Error", message: "Loader: " + window.usbsMobile.appJsPath + " not loaded", hideSystemInfo: false, restart: true, require: true, logout: false
+        }
+      }, "*");
+    };
     document.body.appendChild(appJs);
     
   } catch (error) {

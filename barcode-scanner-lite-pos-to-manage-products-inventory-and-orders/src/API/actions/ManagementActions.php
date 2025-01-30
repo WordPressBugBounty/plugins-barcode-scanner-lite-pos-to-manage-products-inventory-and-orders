@@ -96,6 +96,10 @@ class ManagementActions
         Debug::addPoint("end Post()->find");
 
         $postsCount = $data && isset($data["posts"]) ? count($data["posts"]) : 0;
+        $total =  $data && isset($data["total"]) ? $data["total"] : 0;
+        $limit =  $data && isset($data["limit"]) ? $data["limit"] : 0;
+
+        $result["total"] = $total >= $limit ? $total : 0;
 
         if ($fulfillmentOrderId && !$autoFill && $postsCount == 1) {
             $_post = $data && isset($data["posts"]) && count($data["posts"]) > 0 ? $data["posts"][0] : null;
@@ -147,8 +151,8 @@ class ManagementActions
                 "useAction" => $postAutoAction && $postAutoAction != "empty" ? $postAutoField : false,
                 "isAddToList" => $isAddToList,
                 "modifyAction" => $modifyAction,
-                "isAutoFill" => $autoFill,
-            ),
+                "isAutoFill" => $autoFill
+            )
         );
         Debug::addPoint("end Results()->productsPrepare");
 
@@ -257,7 +261,7 @@ class ManagementActions
         return rest_ensure_response($result);
     }
 
-    private function applyFulfillment(WP_REST_Request $request, $orderId, $product)
+    public function applyFulfillment(WP_REST_Request $request, $orderId, $product, $orderItemId = null)
     {
         $order = new \WC_Order($orderId);
         $result = false;
@@ -268,13 +272,17 @@ class ManagementActions
 
         $itemIdToFulfillment = null;
         $alreadyFulfillment = false;
+        $infoData = array();
 
         foreach ($order->get_items() as $itemId => $value) {
             $pid = $value->get_variation_id() ? $value->get_variation_id() : $value->get_product_id();
 
             if (!isset($infoData[$pid])) $infoData[$pid] = array();
 
-            if ($pid == $product["ID"] && ($value->get_variation_id() == $product["variation_id"] || $value->get_variation_id() == 0)) {
+            $isItemFound = $pid == $product["ID"] && ($value->get_variation_id() == $product["variation_id"] || $value->get_variation_id() == 0);
+            $isItemFound = !$isItemFound ? $orderItemId == $itemId : $isItemFound;
+
+            if ($isItemFound) {
                 $qty = (float)\wc_get_order_item_meta($itemId, '_qty', true);
 
                 $refund_data = OrdersHelper::getOrderItemRefundData($order, $value);
@@ -304,6 +312,8 @@ class ManagementActions
 
     public function getFulfillmentOrderData($orderId, $isCheckFulfilledStatus = true)
     {
+        $settings = new Settings();
+
         $order = wc_get_order($orderId);
         $items = $order->get_items("line_item");
         $products = array();
@@ -342,6 +352,16 @@ class ManagementActions
                 ),
             ),
         );
+
+
+
+        $fulfillmentField = $settings->getSettings("orderFulFillmentField");
+        $fulfillmentField = $fulfillmentField === null ? "" : $fulfillmentField->value;
+
+        if ($fulfillmentField) {
+            $orderData[$fulfillmentField] = $order->get_meta($fulfillmentField, true);
+            $orderData[$fulfillmentField . "-filled"] = $order->get_meta($fulfillmentField . "-filled", true);
+        }
 
         $orders = apply_filters($this->filter_search_result, array($orderData), array());
         $orderData = $orders && count($orders) ? $orders[0] : $orderData;
@@ -1413,6 +1433,11 @@ class ManagementActions
             $data = HPOS::findOrders($query, $filter, $onlyById, $autoFill, $filterExcludes);
             Debug::addPoint("end HPOS()->findOrders");
 
+            $total = $data && isset($data["total"]) ? $data["total"] : 0;
+            $limit = $data && isset($data["limit"]) ? $data["limit"] : 0;
+
+            $result["total"] = $total && $limit && $total >= $limit ? $total : 0;
+
             if ($filterResult && $data && isset($filterResult["postId"]) && is_array($data["posts"]) && count($data["posts"]) > 1) {
                 $data["posts"] = array_values(array_filter(
                     $data["posts"],
@@ -1449,6 +1474,11 @@ class ManagementActions
             Debug::addPoint("start Post()->find");
             $data = (new Post())->find($query, $filter, $onlyById, $autoFill, null, "order", $filterExcludes);
             Debug::addPoint("end Post()->find");
+
+            $total = $data && isset($data["total"]) ? $data["total"] : 0;
+            $limit = $data && isset($data["limit"]) ? $data["limit"] : 0;
+
+            $result["total"] = $total && $limit && $total >= $limit ? $total : 0;
 
             if ($filterResult && $data && isset($filterResult["postId"]) && is_array($data["posts"]) && count($data["posts"]) > 1) {
                 $data["posts"] = array_values(array_filter(
@@ -1895,9 +1925,9 @@ class ManagementActions
         $updatedItems = array();
 
         foreach ($items as $key => $item) {
-            $usbs_check_product_scanned = \wc_get_order_item_meta($itemId, 'usbs_check_product_scanned', true);
+            $usbs_check_product_scanned = \wc_get_order_item_meta($key, 'usbs_check_product_scanned', true);
             $usbs_check_product_scanned = $usbs_check_product_scanned == "" ? 0 : $usbs_check_product_scanned;
-            $qty = (float)\wc_get_order_item_meta($itemId, '_qty', true);
+            $qty = (float)\wc_get_order_item_meta($key, '_qty', true);
 
             $updatedItems[] = array(
                 "item_id" => $key,
@@ -1929,8 +1959,9 @@ class ManagementActions
 
         $orderId = $orderId ? $orderId : $request->get_param("orderId");
         $itemId = $itemId ? $itemId : $request->get_param("itemId");
-        $fields = $fields ? $fields :  $request->get_param("fields");
+        $fields = $fields ? $fields : $request->get_param("fields");
         $customFilter = $request->get_param("customFilter");
+        $confirmationLeftFulfillment = $request->get_param("confirmationLeftFulfillment");
 
         if (!$orderId || !$itemId || !$fields) {
             return array("error" => "Incorrect data.", "fulfillment" => 1);
@@ -2005,6 +2036,10 @@ class ManagementActions
 
                             $scanned = (float)\wc_get_order_item_meta($itemId, 'usbs_check_product_scanned', true);
 
+                            if ($confirmationLeftFulfillment) {
+                                $step = $qty - $scanned;
+                            }
+
                             if ($qty && $scanned + $step < $qty) {
                                 \wc_update_order_item_meta($itemId, "usbs_check_product_scanned", $scanned + $step);
                                 $isFulfillmentChanged = true;
@@ -2020,7 +2055,9 @@ class ManagementActions
                                 return array(
                                     "error" => __("You cannot add more quantity than in the order", "us-barcode-scanner"),
                                     "htmlMessageClass" => "ff_cannot_add_more_quantity",
-                                    "fulfillment" => 1
+                                    "fulfillment" => 1,
+                                    "items_left" => $qty - $scanned,
+                                    "fulfillmentStep" => $step
                                 );
                             }
                             else if ($qty && $scanned < $qty) {
@@ -2041,6 +2078,13 @@ class ManagementActions
                             $scanned = \wc_get_order_item_meta($itemId, 'usbs_check_product', true);
 
                             if (!$scanned) {
+                                $qty = (float)\wc_get_order_item_meta($itemId, '_qty', true);
+
+                                $refund_data = OrdersHelper::getOrderItemRefundData($order, $item);
+                                $_qty += $refund_data["_qty"];
+
+                                \wc_update_order_item_meta($itemId, "usbs_check_product_scanned", $qty);
+
                                 $logId = LogActions::add($pid, LogActions::$actions["update_order_item_meta"], $field["key"], $field["value"] ? 1 : 0, "", "order_item", $request, "", $orderId);
                                 \wc_update_order_item_meta($itemId, $field["key"], $field["value"] ? $logId : "");
                                 $isFulfillmentChanged = true;

@@ -94,6 +94,6 @@ $userRole = $userId ? Users::getUserRole($userId) : '';
 <script src="<?php echo esc_url(home_url()); ?>/wp-includes/js/jquery/jquery.min.js"></script>
 <script src="<?php echo esc_url(home_url()); ?>/wp-includes/js/jquery/jquery-migrate.min.js"></script>
 
-<script src="<?php echo esc_url($path); ?>assets/js/index-business-1.7.2-1736779588418.js"></script> <!-- 1.7.2 -->
+<script src="<?php echo esc_url($path); ?>assets/js/index-business-1.8.0-1738162468894.js"></script>
 
 <?php

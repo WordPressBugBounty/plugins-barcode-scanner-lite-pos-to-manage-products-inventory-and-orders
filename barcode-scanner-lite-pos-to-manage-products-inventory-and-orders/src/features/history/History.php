@@ -3,6 +3,7 @@
 namespace UkrSolution\BarcodeScanner\features\history;
 
 use UkrSolution\BarcodeScanner\API\actions\HPOS;
+use UkrSolution\BarcodeScanner\API\classes\OrdersHelper;
 use UkrSolution\BarcodeScanner\API\classes\ProductsHelper;
 use UkrSolution\BarcodeScanner\API\classes\Results;
 use UkrSolution\BarcodeScanner\Database;
@@ -171,6 +172,8 @@ class History
                                 "products" => array(),
                             );
 
+                            OrdersHelper::addOrderData($order->get_id(), $orderHistoryData);
+
                             $list[] = $orderHistoryData;
                         }
                     }
@@ -217,6 +220,8 @@ class History
                             "_source" => "history",
                             "products" => array(),
                         );
+
+                        OrdersHelper::addOrderData($post->ID, $orderHistoryData);
 
                         if ($value->items_count) {
                             for ($i = 0; $i < $value->items_count; $i++) {

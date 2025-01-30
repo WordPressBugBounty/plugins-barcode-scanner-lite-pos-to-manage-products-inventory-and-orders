@@ -34,6 +34,7 @@ class Post
         $field = $settings->getSettings("searchResultsLimit");
         $searchResultsLimit = $field === null ? 20 : (int)$field->value;
         $searchResultsLimit = $searchResultsLimit ? $searchResultsLimit : 20;
+        $searchResultsLimit = $searchResultsLimit > 999 ? 999 : $searchResultsLimit;
 
         $isDisabledVariations = false;
 
@@ -110,6 +111,7 @@ class Post
         );
 
         $postsSearchData = $wpdb->get_results($sql);
+        $total = $wpdb->get_row("SELECT FOUND_ROWS() as `total`");
 
         Debug::addPoint("1. sql");
         Debug::addPoint($sql);
@@ -132,6 +134,8 @@ class Post
             Debug::addPoint("1. after wpml posts = " . $count);
 
             return array(
+                "total" => $total ? $total->total : 0,
+                "limit" => $searchResultsLimit,
                 "posts" => $posts,
                 "postsSearchData" => $postsSearchData,
                 "filter" => $this->getFilterParams($filterWithoutTitle),
@@ -152,6 +156,8 @@ class Post
             Debug::addPoint("2. after wpml posts = " . $count);
 
             return array(
+                "total" => $total ? $total->total : 0,
+                "limit" => $searchResultsLimit,
                 "posts" => $posts,
                 "postsSearchData" => $postsSearchData,
                 "filter" => $this->getFilterParams($filterWithoutTitle),
@@ -161,6 +167,8 @@ class Post
         }
 
         return array(
+            "total" => $total ? $total->total : 0,
+            "limit" => $searchResultsLimit,
             "posts" => null,
             "findByTitle" => null,
             "query" => stripslashes($query)
@@ -195,7 +203,7 @@ class Post
         $params = $this->getFilterParams($filter);
         $isNumeric = (preg_match('/^[0-9]{0,20}$/', trim($query), $m)) ? true : false;
 
-        $sql = "SELECT P.post_id AS ID %SELECT_COLUMNS% FROM {$posts} AS P "
+        $sql = "SELECT SQL_CALC_FOUND_ROWS P.post_id AS ID %SELECT_COLUMNS% FROM {$posts} AS P "
             . " WHERE "
             . " ( P.post_status NOT IN('" . implode("','", $statuses) . "') OR P.post_status IS NULL )";
 

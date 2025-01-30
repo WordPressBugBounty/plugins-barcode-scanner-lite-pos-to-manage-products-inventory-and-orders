@@ -284,6 +284,7 @@ class Database
             "`{$prefixMF}_wc_shipment_tracking_items`",
             "`{$prefixMF}_aftership_tracking_items`",
             "`{$prefixMF}ywot_tracking_code`",
+            "`hook_order_number`",
             "`usbs_barcode_field`",
             "`atum_supplier_sku`",
             "`atum_barcode`",
@@ -982,6 +983,10 @@ class Database
 
             $order = $post->post_type == "shop_order" ? new \WC_Order($id) : null;
 
+            if ($order) {
+                $data["hook_order_number"] = $order->get_order_number();
+            }
+
             if (!$additionalColumns) {
                 $additionalColumns = $wpdb->get_results("SELECT C.name, C.column, C.table FROM {$tableColumns} AS C;", ARRAY_A);
             }
@@ -1109,6 +1114,8 @@ class Database
                     "client_email" => $order->get_billing_email(),
                     "successful_update" => 1,
                 );
+
+                $data["hook_order_number"] = $order->get_order_number();
 
                 if (!$additionalColumns) {
                     $additionalColumns = $wpdb->get_results("SELECT C.name, C.column, C.table FROM {$tableColumns} AS C;", ARRAY_A);

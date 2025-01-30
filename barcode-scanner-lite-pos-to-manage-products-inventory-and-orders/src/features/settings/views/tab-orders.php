@@ -6,179 +6,6 @@
         <tbody>
             <tr class="usbs-section-label">
                 <td>
-                    <h2><?php echo esc_html__("Order Status", "us-barcode-scanner"); ?></h2>
-                </td>
-            </tr>
-            <!-- Default order status -->
-            <tr>
-                <th scope="row" style="width: 240px;">
-                    <?php echo esc_html__("Default order status", "us-barcode-scanner"); ?>
-                </th>
-                <td>
-                    <?php
-                    $defaultValue = $settings->getSettings("defaultOrderStatus");
-                    $defaultValue = $defaultValue === null ? $settings->getField("general", "defaultOrderStatus", "wc-processing") : $defaultValue->value;
-                    ?>
-                    <select name="defaultOrderStatus">
-                        <?php
-                        foreach ($settings->getOrderStatuses() as $key => $value) {
-                            $selected = "";
-                            if ($defaultValue === $key) {
-                                $selected = ' selected=selected ';
-                            }
-                        ?>
-                            <option value="<?php esc_html_e($key, 'us-barcode-scanner'); ?>" <?php esc_html_e($selected, 'us-barcode-scanner'); ?>><?php esc_html_e($value, 'us-barcode-scanner'); ?></option>
-                            <?php
-                        }
-                        ?>
-                    </select>
-                </td>
-            </tr>
-            <!-- Change order status automatically if all items picked/fulfilled. -->
-            <tr>
-                <th scope="row" style="width: 240px;">
-                    <?php echo esc_html__("Change order status automatically if all items picked/fulfilled.", "us-barcode-scanner"); ?>
-                </th>
-                <td>
-                    <?php
-                    $defaultValue = $settings->getSettings("autoStatusFulfilled");
-                    $defaultValue = $defaultValue === null ? "" : $defaultValue->value;
-                    ?>
-                    <select name="autoStatusFulfilled">
-                        <option value=""><?php echo esc_html__('Not selected', 'us-barcode-scanner'); ?></option>
-                        <?php
-                        foreach ($settings->getOrderStatuses() as $key => $value) {
-                            $selected = "";
-                            if ($defaultValue === $key) {
-                                $selected = ' selected=selected ';
-                            }
-                        ?>
-                            <option value="<?php esc_html_e($key, 'us-barcode-scanner'); ?>" <?php esc_html_e($selected, 'us-barcode-scanner'); ?>><?php esc_html_e($value, 'us-barcode-scanner'); ?></option>
-                            <?php
-                        }
-                        ?>
-                    </select>
-                </td>
-            </tr>
-            <!-- List of order statuses which considered as still not completed -->
-            <tr>
-                <th scope="row" style="width: 240px;">
-                    <?php echo esc_html__("List of order statuses which considered as still not completed", "us-barcode-scanner"); ?>
-                </th>
-                <td class="statuses_still_not_completed">
-                    <?php
-                    $field = $settings->getSettings("orderStatusesAreStillNotCompleted");
-                    $orderStatusesAreStillNotCompletedValue = $field === null ? "wc-pending,wc-processing,wc-on-hold" : $field->value;
-                    ?>
-                    <input type="hidden" name="orderStatusesAreStillNotCompleted" value="" />
-                    <select name="orderStatusesAreStillNotCompleted[]" class="usbs_order_statuses_are_still_not_complected" multiple="true" style="width:300px;">
-                        <?php foreach ($settings->getOrderStatuses() as $key => $value) : ?>
-                            <option value="<?php echo esc_attr($key); ?>"><?php echo esc_html($value); ?></option>
-                        <?php endforeach; ?>
-                        <option value="trash"><?php echo esc_html__("Trash", "us-barcode-scanner"); ?></option>
-                    </select>
-                    <br />
-                    <i><?php echo esc_html__("These statuses are used to determine how much orders are not completed for the same customer", "us-barcode-scanner"); ?></i>
-                </td>
-            </tr>
-            <tr class="usbs-section-label">
-                <td>
-                    <h2><?php echo esc_html__("Payment method", "us-barcode-scanner"); ?></h2>
-                </td>
-            </tr>
-            <!-- Default payment method -->
-            <tr>
-                <th scope="row" style="width: 240px;">
-                    <?php echo esc_html__("Default payment method", "us-barcode-scanner"); ?>
-                </th>
-                <td class="payment-methods">
-                    <?php
-                    $defaultValue = $settings->getSettings("defaultPaymentMethod");
-                    $defaultValue = $defaultValue === null ? $settings->getField("general", "defaultPaymentMethod", "wc-processing") : $defaultValue->value;
-                    ?>
-                    <select name="defaultPaymentMethod">
-                        <option value=""><?php echo esc_html__('Not selected', 'us-barcode-scanner'); ?></option>
-                        <?php foreach ($cart->getPaymentMethods() as $value) : ?>
-                            <?php $selected = $defaultValue === $value['id'] ? ' selected=selected ' : ""; ?>
-                            <option value="<?php esc_html_e($value['id'], 'us-barcode-scanner'); ?>" <?php esc_html_e($selected, 'us-barcode-scanner'); ?>><?php esc_html_e($value['title'], 'us-barcode-scanner'); ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </td>
-            </tr>
-            <!-- Require Payment Method -->
-            <tr id="bs_payment_required">
-                <th scope="row">
-                    <?php echo esc_html__("Payment method is required", "us-barcode-scanner"); ?>
-                </th>
-                <td>
-                    <?php
-                    $defaultValue = $settings->getSettings("paymentRequired");
-                    $defaultValue = $defaultValue === null ? 'off' : $defaultValue->value;
-                    ?>
-                    <label>
-                        <?php $checked = $defaultValue !== "off" ? ' checked=checked ' : ''; ?>
-                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> onchange="WebbsSettingsCheckboxChange(`#bs_payment_required input[name='paymentRequired']`,this.checked ? 'on' : 'off')" />
-                        <input type="hidden" name="paymentRequired" value="<?php echo $checked ? "on" : "off"; ?>" />
-                        <?php echo esc_html__("Enable", "us-barcode-scanner"); ?>
-                    </label>
-                </td>
-            </tr>
-            <tr class="usbs-section-label">
-                <td>
-                    <h2><?php echo esc_html__("Shipping method", "us-barcode-scanner"); ?></h2>
-                </td>
-            </tr>
-            <!-- Default shipping method -->
-            <tr>
-                <th scope="row" style="width: 240px;">
-                    <?php echo esc_html__("Default shipping method", "us-barcode-scanner"); ?>
-                </th>
-                <td class="shipping-methods">
-                    <?php
-                    $shippingsMethods = $settings->getAllShippingMethod();
-
-                    $field = $settings->getSettings("defaultShippingMethods");
-                    $shippingMethodsValue = $field === null ? "" : $field->value;
-                    $shippingMethodsValueArr = $shippingMethodsValue ? explode(",", $shippingMethodsValue) : array();
-
-                    usort($shippingsMethods, function ($a, $b) use ($shippingMethodsValueArr) {
-                        $aIndex = array_search($a['id'], $shippingMethodsValueArr);
-                        $bIndex = array_search($b['id'], $shippingMethodsValueArr);
-
-                        $aIndex = ($aIndex === false) ? PHP_INT_MAX : $aIndex;
-                        $bIndex = ($bIndex === false) ? PHP_INT_MAX : $bIndex;
-
-                        return $aIndex - $bIndex;
-                    });
-                    ?>
-                    <input type="hidden" name='defaultShippingMethods[]' value="<?php echo esc_attr($shippingMethodsValue); ?>" />
-                    <select multiple data-placeholder='Choose a shipping...' multiple class='chosen-select-shipping-methods' style="width:300px;">
-                        <?php foreach ($shippingsMethods as $method) : ?>
-                            <option value="<?php echo esc_attr($method['id']); ?>"><?php echo esc_html($method['title']); ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </td>
-            </tr>
-            <!-- Shipping method is required -->
-            <tr id="bs_shipping_required">
-                <th scope="row">
-                    <?php echo esc_html__("Shipping method is required", "us-barcode-scanner"); ?>
-                </th>
-                <td>
-                    <?php
-                    $defaultValue = $settings->getSettings("shippingRequired");
-                    $defaultValue = $defaultValue === null ? 'off' : $defaultValue->value;
-                    ?>
-                    <label>
-                        <?php $checked = $defaultValue !== "off" ? ' checked=checked ' : ''; ?>
-                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> onchange="WebbsSettingsCheckboxChange(`#bs_shipping_required input[name='shippingRequired']`,this.checked ? 'on' : 'off')" />
-                        <input type="hidden" name="shippingRequired" value="<?php echo esc_attr($checked ? "on" : "off"); ?>" />
-                        <?php echo esc_html__("Enable", "us-barcode-scanner"); ?>
-                    </label>
-                </td>
-            </tr>
-            <tr class="usbs-section-label">
-                <td>
                     <h2><?php echo esc_html__("Order fulfillment", "us-barcode-scanner"); ?></h2>
                 </td>
             </tr>
@@ -236,6 +63,32 @@
                         <?php echo esc_html__("Enable", "us-barcode-scanner"); ?>
                     </label><br />
                     <i><?php echo esc_html__("In order fulfillment mode, this option will take into account amount of the purchased items (qty). So, order item will be  fulfilled (marked with green arrow) as soon as product is scanned in the same amount as was purchased. E.g. if 10 the same items were purchased - you will have to scan the barcode 10 times.", "us-barcode-scanner"); ?></i>
+                </td>
+            </tr>
+            <!-- Change order status automatically if all items picked/fulfilled. -->
+            <tr>
+                <th scope="row" style="width: 240px;">
+                    <?php echo esc_html__("Change order status automatically if all items picked/fulfilled.", "us-barcode-scanner"); ?>
+                </th>
+                <td>
+                    <?php
+                    $defaultValue = $settings->getSettings("autoStatusFulfilled");
+                    $defaultValue = $defaultValue === null ? "" : $defaultValue->value;
+                    ?>
+                    <select name="autoStatusFulfilled">
+                        <option value=""><?php echo esc_html__('Not selected', 'us-barcode-scanner'); ?></option>
+                        <?php
+                        foreach ($settings->getOrderStatuses() as $key => $value) {
+                            $selected = "";
+                            if ($defaultValue === $key) {
+                                $selected = ' selected=selected ';
+                            }
+                        ?>
+                            <option value="<?php esc_html_e($key, 'us-barcode-scanner'); ?>" <?php esc_html_e($selected, 'us-barcode-scanner'); ?>><?php esc_html_e($value, 'us-barcode-scanner'); ?></option>
+                            <?php
+                        }
+                        ?>
+                    </select>
                 </td>
             </tr>
             <!-- Order fulfillment -->
@@ -384,47 +237,7 @@
                     </label>
                 </td>
             </tr>
-            <tr class="usbs-section-label">
-                <td>
-                    <h2><?php echo esc_html__("Email notifications", "us-barcode-scanner"); ?></h2>
-                </td>
-            </tr>
-            <!-- Send new order email to admin - Disable by default -->
-            <tr id="bs_send_email_for_created_order">
-                <th scope="row">
-                    <?php echo esc_html__("Send new order email to admin", "us-barcode-scanner"); ?>
-                </th>
-                <td>
-                    <?php
-                    $defaultValue = $settings->getSettings("sendAdminEmailCreatedOrder");
-                    $defaultValue = $defaultValue === null ? 'off' : $defaultValue->value;
-                    ?>
-                    <label>
-                        <?php $checked = $defaultValue !== "off" ? ' checked=checked ' : ''; ?>
-                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> onchange="WebbsSettingsCheckboxChange(`#bs_send_email_for_created_order input[name='sendAdminEmailCreatedOrder']`,this.checked ? 'on' : 'off')" />
-                        <input type="hidden" name="sendAdminEmailCreatedOrder" value="<?php echo $checked ? "on" : "off"; ?>" />
-                        <?php echo esc_html__("Enable", "us-barcode-scanner"); ?>
-                    </label>
-                </td>
-            </tr>
-            <!-- Send new order email to client - Enable by default -->
-            <tr id="bs_send_email_for_created_order">
-                <th scope="row">
-                    <?php echo esc_html__("Send new order email to client", "us-barcode-scanner"); ?>
-                </th>
-                <td>
-                    <?php
-                    $defaultValue = $settings->getSettings("sendClientEmailCreatedOrder");
-                    $defaultValue = $defaultValue === null ? 'on' : $defaultValue->value;
-                    ?>
-                    <label>
-                        <?php $checked = $defaultValue !== "off" ? ' checked=checked ' : ''; ?>
-                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> onchange="WebbsSettingsCheckboxChange(`#bs_send_email_for_created_order input[name='sendClientEmailCreatedOrder']`,this.checked ? 'on' : 'off')" />
-                        <input type="hidden" name="sendClientEmailCreatedOrder" value="<?php echo $checked ? "on" : "off"; ?>" />
-                        <?php echo esc_html__("Enable", "us-barcode-scanner"); ?>
-                    </label>
-                </td>
-            </tr>
+
             <tr class="usbs-section-label">
                 <td>
                     <h2><?php echo esc_html__("Display / hide fields", "us-barcode-scanner"); ?></h2>
@@ -486,7 +299,58 @@
             </tr>
             <tr class="usbs-section-label">
                 <td>
+                    <h2><?php echo esc_html__("Existing Orders", "us-barcode-scanner"); ?></h2>
+                </td>
+            </tr>
+            <!-- List of order statuses which considered as still not completed -->
+            <tr>
+                <th scope="row" style="width: 240px;">
+                    <?php echo esc_html__("List of order statuses which considered as still not completed", "us-barcode-scanner"); ?>
+                </th>
+                <td class="statuses_still_not_completed">
+                    <?php
+                    $field = $settings->getSettings("orderStatusesAreStillNotCompleted");
+                    $orderStatusesAreStillNotCompletedValue = $field === null ? "wc-pending,wc-processing,wc-on-hold" : $field->value;
+                    ?>
+                    <input type="hidden" name="orderStatusesAreStillNotCompleted" value="" />
+                    <select name="orderStatusesAreStillNotCompleted[]" class="usbs_order_statuses_are_still_not_complected" multiple="true" style="width:300px;">
+                        <?php foreach ($settings->getOrderStatuses() as $key => $value) : ?>
+                            <option value="<?php echo esc_attr($key); ?>"><?php echo esc_html($value); ?></option>
+                        <?php endforeach; ?>
+                        <option value="trash"><?php echo esc_html__("Trash", "us-barcode-scanner"); ?></option>
+                    </select>
+                    <br />
+                    <i><?php echo esc_html__("These statuses are used to determine how much orders are not completed for the same customer", "us-barcode-scanner"); ?></i>
+                </td>
+            </tr>
+            <tr class="usbs-section-label">
+                <td>
                     <h2><?php echo esc_html__("New order", "us-barcode-scanner"); ?></h2>
+                </td>
+            </tr>
+            <!-- Default order status -->
+            <tr>
+                <th scope="row" style="width: 240px;">
+                    <?php echo esc_html__("Default order status", "us-barcode-scanner"); ?>
+                </th>
+                <td>
+                    <?php
+                    $defaultValue = $settings->getSettings("defaultOrderStatus");
+                    $defaultValue = $defaultValue === null ? $settings->getField("general", "defaultOrderStatus", "wc-processing") : $defaultValue->value;
+                    ?>
+                    <select name="defaultOrderStatus">
+                        <?php
+                        foreach ($settings->getOrderStatuses() as $key => $value) {
+                            $selected = "";
+                            if ($defaultValue === $key) {
+                                $selected = ' selected=selected ';
+                            }
+                        ?>
+                            <option value="<?php esc_html_e($key, 'us-barcode-scanner'); ?>" <?php esc_html_e($selected, 'us-barcode-scanner'); ?>><?php esc_html_e($value, 'us-barcode-scanner'); ?></option>
+                            <?php
+                        }
+                        ?>
+                    </select>
                 </td>
             </tr>
             <!-- New order default user -->
@@ -578,6 +442,24 @@
                     </span>
                 </td>
             </tr>
+
+            <!-- Cart product qty step -->
+            <tr>
+                <th scope="row">
+                    <?php echo esc_html__("Cart product qty step", "us-barcode-scanner"); ?>
+                </th>
+                <td>
+                    <?php
+                    $defaultValue = $settings->getSettings("cartQtyStep");
+                    $defaultValue = $defaultValue === null ? "" : $defaultValue->value;
+                    ?>
+                    <span>
+                        <input type="text" name="cartQtyStep" value="<?php esc_html_e($defaultValue); ?>" placeholder="<?php echo esc_html__("Product custom meta field", "us-barcode-scanner"); ?>" />
+                    </span>
+                    <br />
+                    <i><?php echo esc_html__('Take into account "qty step" field of the product. It may be helpful if you sell items in boxes (e.g. products 10 per box) and you want to scan the barcode and to increase/decrease item by 10 in cart. Specify here the product meta field where "qty step"/"amount in the box" is specified.', "us-barcode-scanner"); ?></i>
+                </td>
+            </tr>
             <!-- Use price to create order -->
             <tr>
                 <th scope="row" style="width: 240px;">
@@ -627,6 +509,129 @@
                     </td>
                 </tr>
             <?php endif; ?>
+            <!-- Default payment method -->
+            <tr>
+                <th scope="row" style="width: 240px; padding-top: 10px;">
+                    <?php echo esc_html__("Default payment method", "us-barcode-scanner"); ?>
+                </th>
+                <td class="payment-methods" style="padding-top: 10px;">
+                    <?php
+                    $defaultValue = $settings->getSettings("defaultPaymentMethod");
+                    $defaultValue = $defaultValue === null ? $settings->getField("general", "defaultPaymentMethod", "wc-processing") : $defaultValue->value;
+                    ?>
+                    <select name="defaultPaymentMethod">
+                        <option value=""><?php echo esc_html__('Not selected', 'us-barcode-scanner'); ?></option>
+                        <?php foreach ($cart->getPaymentMethods() as $value) : ?>
+                            <?php $selected = $defaultValue === $value['id'] ? ' selected=selected ' : ""; ?>
+                            <option value="<?php esc_html_e($value['id'], 'us-barcode-scanner'); ?>" <?php esc_html_e($selected, 'us-barcode-scanner'); ?>><?php esc_html_e($value['title'], 'us-barcode-scanner'); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </td>
+            </tr>
+            <!-- Require Payment Method -->
+            <tr id="bs_payment_required">
+                <th scope="row">
+                    <?php echo esc_html__("Payment method is required", "us-barcode-scanner"); ?>
+                </th>
+                <td>
+                    <?php
+                    $defaultValue = $settings->getSettings("paymentRequired");
+                    $defaultValue = $defaultValue === null ? 'off' : $defaultValue->value;
+                    ?>
+                    <label>
+                        <?php $checked = $defaultValue !== "off" ? ' checked=checked ' : ''; ?>
+                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> onchange="WebbsSettingsCheckboxChange(`#bs_payment_required input[name='paymentRequired']`,this.checked ? 'on' : 'off')" />
+                        <input type="hidden" name="paymentRequired" value="<?php echo $checked ? "on" : "off"; ?>" />
+                        <?php echo esc_html__("Enable", "us-barcode-scanner"); ?>
+                    </label>
+                </td>
+            </tr>
+            <!-- Default shipping method -->
+            <tr>
+                <th scope="row" style="width: 240px; padding-top: 10px;">
+                    <?php echo esc_html__("Default shipping method", "us-barcode-scanner"); ?>
+                </th>
+                <td class="shipping-methods" style="padding-top: 10px;">
+                    <?php
+                    $shippingsMethods = $settings->getAllShippingMethod();
+
+                    $field = $settings->getSettings("defaultShippingMethods");
+                    $shippingMethodsValue = $field === null ? "" : $field->value;
+                    $shippingMethodsValueArr = $shippingMethodsValue ? explode(",", $shippingMethodsValue) : array();
+
+                    usort($shippingsMethods, function ($a, $b) use ($shippingMethodsValueArr) {
+                        $aIndex = array_search($a['id'], $shippingMethodsValueArr);
+                        $bIndex = array_search($b['id'], $shippingMethodsValueArr);
+
+                        $aIndex = ($aIndex === false) ? PHP_INT_MAX : $aIndex;
+                        $bIndex = ($bIndex === false) ? PHP_INT_MAX : $bIndex;
+
+                        return $aIndex - $bIndex;
+                    });
+                    ?>
+                    <input type="hidden" name='defaultShippingMethods[]' value="<?php echo esc_attr($shippingMethodsValue); ?>" />
+                    <select multiple data-placeholder='Choose a shipping...' multiple class='chosen-select-shipping-methods' style="width:300px;">
+                        <?php foreach ($shippingsMethods as $method) : ?>
+                            <option value="<?php echo esc_attr($method['id']); ?>"><?php echo esc_html($method['title']); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </td>
+            </tr>
+            <!-- Shipping method is required -->
+            <tr id="bs_shipping_required">
+                <th scope="row">
+                    <?php echo esc_html__("Shipping method is required", "us-barcode-scanner"); ?>
+                </th>
+                <td>
+                    <?php
+                    $defaultValue = $settings->getSettings("shippingRequired");
+                    $defaultValue = $defaultValue === null ? 'off' : $defaultValue->value;
+                    ?>
+                    <label>
+                        <?php $checked = $defaultValue !== "off" ? ' checked=checked ' : ''; ?>
+                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> onchange="WebbsSettingsCheckboxChange(`#bs_shipping_required input[name='shippingRequired']`,this.checked ? 'on' : 'off')" />
+                        <input type="hidden" name="shippingRequired" value="<?php echo esc_attr($checked ? "on" : "off"); ?>" />
+                        <?php echo esc_html__("Enable", "us-barcode-scanner"); ?>
+                    </label>
+                </td>
+            </tr>
+            <!-- Send new order email to admin - Disable by default -->
+            <tr id="bs_send_email_for_created_order">
+                <th scope="row">
+                    <?php echo esc_html__("Send new order email to admin", "us-barcode-scanner"); ?>
+                </th>
+                <td>
+                    <?php
+                    $defaultValue = $settings->getSettings("sendAdminEmailCreatedOrder");
+                    $defaultValue = $defaultValue === null ? 'off' : $defaultValue->value;
+                    ?>
+                    <label>
+                        <?php $checked = $defaultValue !== "off" ? ' checked=checked ' : ''; ?>
+                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> onchange="WebbsSettingsCheckboxChange(`#bs_send_email_for_created_order input[name='sendAdminEmailCreatedOrder']`,this.checked ? 'on' : 'off')" />
+                        <input type="hidden" name="sendAdminEmailCreatedOrder" value="<?php echo $checked ? "on" : "off"; ?>" />
+                        <?php echo esc_html__("Enable", "us-barcode-scanner"); ?>
+                    </label>
+                </td>
+            </tr>
+            <!-- Send new order email to client - Enable by default -->
+            <tr id="bs_send_email_for_created_order">
+                <th scope="row">
+                    <?php echo esc_html__("Send new order email to client", "us-barcode-scanner"); ?>
+                </th>
+                <td>
+                    <?php
+                    $defaultValue = $settings->getSettings("sendClientEmailCreatedOrder");
+                    $defaultValue = $defaultValue === null ? 'on' : $defaultValue->value;
+                    ?>
+                    <label>
+                        <?php $checked = $defaultValue !== "off" ? ' checked=checked ' : ''; ?>
+                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> onchange="WebbsSettingsCheckboxChange(`#bs_send_email_for_created_order input[name='sendClientEmailCreatedOrder']`,this.checked ? 'on' : 'off')" />
+                        <input type="hidden" name="sendClientEmailCreatedOrder" value="<?php echo $checked ? "on" : "off"; ?>" />
+                        <?php echo esc_html__("Enable", "us-barcode-scanner"); ?>
+                    </label>
+                </td>
+            </tr>
+
             <?php  ?>
         </tbody>
     </table>

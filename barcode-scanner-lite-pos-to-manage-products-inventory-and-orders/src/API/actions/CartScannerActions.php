@@ -48,6 +48,7 @@ class CartScannerActions
         $searchResult = (new ManagementActions())->productSearch($request, false, $byId, "", false, "cart");
         $products = $searchResult->data["products"];
         $findByTitle = $searchResult->data["findByTitle"];
+        $totalFoundProducts = $searchResult->data["total"];
 
         $managementActions = new ManagementActions();
         $products = apply_filters($managementActions->filter_search_result, $products, array("searchQuery" => $query, 'tab' => 'cart'));
@@ -134,6 +135,7 @@ class CartScannerActions
             "cartItems" => $this->getCartItems($request),
             "cartDetails" => $this->getCartDetails($request),
             "foundProducts" => $products,
+            "total" => $totalFoundProducts,
             "findByTitle" => $findByTitle,
             'findByWords' => explode(" ", $query),
             "cartErrors" => $this->getWcErrors(),

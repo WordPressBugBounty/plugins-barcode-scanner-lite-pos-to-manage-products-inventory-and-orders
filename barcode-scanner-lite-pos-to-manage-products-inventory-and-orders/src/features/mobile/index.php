@@ -11,6 +11,7 @@ $usbsCustomCss = $jsData && isset($jsData['usbsCustomCss']) ? $jsData['usbsCusto
 $usbsHistory = $jsData && isset($jsData['usbsHistory']) ? $jsData['usbsHistory'] : array();
 $usbsUserCF = $jsData && isset($jsData['usbsUserCF']) ? $jsData['usbsUserCF'] : array();
 $usbsOrderCF = $jsData && isset($jsData['usbsOrderCF']) ? $jsData['usbsOrderCF'] : array();
+$userFormCF = $jsData && isset($jsData['userFormCF']) ? $jsData['userFormCF'] : array();
 $usbsWooShippmentProviders = $jsData && isset($jsData['usbsWooShippmentProviders']) ? $jsData['usbsWooShippmentProviders'] : array();
 $usbsLangs = $jsData && isset($jsData['usbsLangs']) ? $jsData['usbsLangs'] : array();
 $usbsInterface = $jsData && isset($jsData['usbsInterface']) ? $jsData['usbsInterface'] : array();
@@ -54,6 +55,9 @@ $userRole = $userId ? Users::getUserRole($userId) : '';
 </script>
 <script>
     window.usbsOrderCF = <?php echo json_encode($usbsOrderCF); ?>;
+</script>
+<script>
+    window.userFormCF = <?php echo json_encode($userFormCF); ?>;
 </script>
 <script>
     window.usbsWooShippmentProviders = <?php echo json_encode($usbsWooShippmentProviders); ?>;

@@ -26,8 +26,35 @@ class Integrations
             add_action('init', array($this, "userAcfFields"));
 
             add_action('init', array($this, "fulfillmentStep"));
+
+            add_action('init', array($this, "cartQtyStep"));
         } catch (\Throwable $th) {
         }
+    }
+
+    public function cartQtyStep()
+    {
+        add_filter('scanner_search_result', function ($items, $customFilter) {
+            $settings = new Settings();
+            $field = $settings->getSettings("cartQtyStep");
+            $field = $field === null ? "" : $field->value;
+
+            if ($field) {
+                foreach ($items as &$item) {
+                    if ($item['post_type'] === 'product' || $item['post_type'] === 'product_variation') {
+                        if (is_array($customFilter) && isset($customFilter['tab']) && $customFilter['tab'] == 'cart') {
+                            $cartQtyStep = get_post_meta($item['ID'], $field, true);
+
+                            if ($cartQtyStep && (int)$cartQtyStep) {
+                                $item['number_field_step'] = $cartQtyStep;
+                            }
+                        }
+                    }
+                }
+            }
+
+            return $items;
+        }, 10, 2);
     }
 
     public function woocommerceWholesalePricing()
