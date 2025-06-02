@@ -137,8 +137,8 @@ class History
 
                             $wpFormat = get_option("date_format", "F j, Y") . " " . get_option("time_format", "g:i a");
                             $orderDate = new \DateTime($order->get_date_created());
-                            $date_format = $orderDate->format($wpFormat);
-                            $date_format = SettingsHelper::dateTranslate($date_format);
+                            $date_format = $order->get_date_created();
+                            $date_format = $date_format->format("Y-m-d H:i:s");
 
                             $previewDateFormat = $orderDate->format("M j, Y");
                             $previewDateFormat = SettingsHelper::dateTranslate($previewDateFormat);
@@ -186,8 +186,8 @@ class History
 
                         $wpFormat = get_option("date_format", "F j, Y") . " " . get_option("time_format", "g:i a");
                         $orderDate = new \DateTime($order->get_date_created());
-                        $date_format = $orderDate->format($wpFormat);
-                        $date_format = SettingsHelper::dateTranslate($date_format);
+                        $date_format = $order->get_date_created();
+                        $date_format = $date_format->format("Y-m-d H:i:s");
 
                         $previewDateFormat = $orderDate->format("M j, Y");
                         $previewDateFormat = SettingsHelper::dateTranslate($previewDateFormat);

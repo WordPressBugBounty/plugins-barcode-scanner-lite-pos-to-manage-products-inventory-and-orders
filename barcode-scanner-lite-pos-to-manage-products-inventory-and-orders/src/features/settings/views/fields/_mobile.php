@@ -44,7 +44,7 @@
                 "mobile_status" => "0",
                 "show_in_create_order" => "0",
                 "show_in_products_list" => "0",
-                "disabled_field" => "0",
+                "read_only" => "0",
                 "use_for_auto_action" => "0",
                 "attribute_id" => "",
                 "button_width" => "",

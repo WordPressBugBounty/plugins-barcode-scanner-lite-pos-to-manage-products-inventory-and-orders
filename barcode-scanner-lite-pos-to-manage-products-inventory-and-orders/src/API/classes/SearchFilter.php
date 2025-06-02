@@ -29,6 +29,7 @@ class SearchFilter
             "post_excerpt" => "0",
             "atum_supplier_sku" => "1",
             "atum_barcode" => "1",
+            "uegen_code" => "1",
         ),
         "orders" => array(
             "ID" => "1",

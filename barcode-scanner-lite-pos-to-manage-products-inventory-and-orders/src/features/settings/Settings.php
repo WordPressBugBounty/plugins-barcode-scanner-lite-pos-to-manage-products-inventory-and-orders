@@ -165,6 +165,9 @@ class Settings
                     'wpml',
                     'uslpBtnAutoCreate',
                     'uslpUseReceiptToPrint',
+                    'fulfillmentFrontendSearch',
+                    'appLoginMethods',
+                    'defaultLoginMethod',
                 );
 
                 foreach ($keys as $key) {
@@ -221,7 +224,7 @@ class Settings
                 }
 
                 if (isset($this->post["key"])) {
-                    @delete_transient('ukrsolution_upgrade_scanner_1.8.0');
+                    @delete_transient('ukrsolution_upgrade_scanner_1.9.1');
                     $user_id = get_current_user_id();
                     update_option($user_id . '_' . basename(USBS_PLUGIN_BASE_PATH) . '_notice_dismissed', '', true);
                 }
@@ -292,8 +295,14 @@ class Settings
                 $settings["orderStatusesAreStillNotCompleted"] = "wc-pending,wc-processing,wc-on-hold";
                 $settings["allowMarkFulfilled"] = "on";
                 $settings["defaultOrderTax"] = "based_on_store";
-                $settings["uslpBtnAutoCreate"] = "on";
+                $settings["uslpBtnAutoCreate"] = "off";
+                $settings["allowNegativeStock"] = "on";
                 $settings["uslpUseReceiptToPrint"] = "off";
+
+                                if (!isset($setting['sortOrderItemsByCategories'])) $settings["fulfillmentFrontendSearch"] = "on";
+
+                if (!isset($setting['appLoginMethods'])) $settings["appLoginMethods"] = "both";
+                if (!isset($setting['defaultLoginMethod'])) $settings["defaultLoginMethod"] = "login_pass";
 
                 foreach ($settingsTable as $key => $setting) {
                     if (in_array($setting->field_name, $excludes)) continue;
@@ -349,6 +358,9 @@ class Settings
                         'newProductStatus',
                         'uslpBtnAutoCreate',
                         'uslpUseReceiptToPrint',
+                        'fulfillmentFrontendSearch',
+                        'appLoginMethods',
+                        'defaultLoginMethod',
                     ))) {
                         $settings[$setting->field_name] = $setting->value;
                     } else if (in_array($setting->field_name, ["defaultOrderStatus", "orderStatusesAreStillNotCompleted", "defaultShippingMethod", "defaultPriceField", "allowNegativeStock", 'defaultShippingMethods'])) {
@@ -622,7 +634,7 @@ class Settings
                 return;
             }
 
-            foreach ($this->post as $key => $value) {
+              foreach ($this->post as $key => $value) {
                 if (!in_array($key, array("tab", "storage", "locations"))) {
                     if (in_array($key, array("customCss", 'customCssMobile', "modifyPreProcessSearchString"))) {
                         $this->updateSettings($key, stripslashes($value), "text");
@@ -651,6 +663,11 @@ class Settings
             if (isset($_FILES["failFile"]) && isset($_FILES["failFile"]["name"]) && $_FILES["failFile"]["name"]) {
                 $url = $this->uploadFile($_FILES["failFile"]);
                 $this->updateSettings("sound_fail", $url, "text");
+            }
+
+            if (isset($_FILES["ffEndFile"]) && isset($_FILES["ffEndFile"]["name"]) && $_FILES["ffEndFile"]["name"]) {
+                $url = $this->uploadFile($_FILES["ffEndFile"]);
+                $this->updateSettings("sound_ffEnd", $url, "text");
             }
         } catch (\Throwable $th) {
             throw $th;
@@ -755,6 +772,12 @@ class Settings
                 if (!isset($value["show_prices"])) {
                     $value["show_prices"] = in_array($key, $defaultAccess) || in_array($key, $defaultFrontAccess) ? 1 : 0;
                 }
+                if (!isset($value["edit_prices"])) {
+                    $value["edit_prices"] = in_array($key, $defaultAccess) ? 1 : 0;
+                }
+                if (!isset($value["order_edit_address"])) {
+                    $value["order_edit_address"] = in_array($key, $defaultAccess) || in_array($key, $defaultFrontAccess) ? 1 : 0;
+                }
             }
         }
 
@@ -768,11 +791,18 @@ class Settings
                     "orders" => in_array($key, $defaultAccess) || in_array($key, $defaultFrontAccess) ? 1 : 0,
                     "onlymy" => 0,
                     "show_prices" => in_array($key, $defaultAccess) || in_array($key, $defaultFrontAccess) ? 1 : 0,
+                    "order_edit_address" => in_array($key, $defaultAccess) || in_array($key, $defaultFrontAccess) ? 1 : 0,
+                    "edit_prices" => in_array($key, $defaultAccess) ? 1 : 0,
                     "cart" => in_array($key, $defaultAccess) || in_array($key, $defaultFrontAccess) ? 1 : 0,
                     "linkcustomer" => in_array($key, $defaultAccess) || in_array($key, $defaultFrontAccess) ? 1 : 0,
                     "frontend" => in_array($key,  $defaultAccess) || in_array($key, $defaultFrontAccess) ? 1 : 0,
                     "plugin_settings" => in_array($key,  $defaultAccess) ? 1 : 0,
-                    "plugin_logs" => in_array($key,  $defaultAccess) ? 1 : 0
+                    "plugin_logs" => in_array($key,  $defaultAccess) ? 1 : 0,
+                    "app_qty_plus" => in_array($key,  $defaultAccess) || in_array($key, $defaultFrontAccess) ? 1 : 0,
+                    "app_qty_minus" => in_array($key,  $defaultAccess) || in_array($key, $defaultFrontAccess) ? 1 : 0,
+                    "app_save_list" => in_array($key,  $defaultAccess) || in_array($key, $defaultFrontAccess) ? 1 : 0,
+                    "prod_search_action" => in_array($key,  $defaultAccess) || in_array($key, $defaultFrontAccess) ? 1 : 0,
+                    "order_search_action" => in_array($key,  $defaultAccess) || in_array($key, $defaultFrontAccess) ? 1 : 0
                 );
             }
         }
@@ -784,11 +814,18 @@ class Settings
                 "orders" => 1,
                 "onlymy" => 0,
                 "show_prices" => 0,
+                "order_edit_address" => 0,
+                "edit_prices" => 0,
                 "cart" => 1,
                 "linkcustomer" => 1,
                 "frontend" => 1,
                 "plugin_settings" => 0,
-                "plugin_logs" => 0
+                "plugin_logs" => 0,
+                "app_qty_plus" => 1,
+                "app_qty_minus" => 1,
+                "app_save_list" => 1,
+                "prod_search_action" => 1,
+                "order_search_action" => 1
             );
         }
 
@@ -811,7 +848,25 @@ class Settings
 
     public function getUserRolePermissions($userId = null)
     {
-        $result = array("inventory" => 0, "newprod" => 0, "orders" => 0, "onlymy" => 0, "show_prices" => 0, "cart" => 0, "linkcustomer" => 0, "frontend" => 0, "plugin_settings" => 0, "plugin_logs" => 0);
+        $result = array(
+            "inventory" => 0, 
+            "newprod" => 0, 
+            "orders" => 0, 
+            "onlymy" => 0, 
+            "show_prices" => 0, 
+            "order_edit_address" => 0, 
+            "edit_prices" => 0, 
+            "cart" => 0, 
+            "linkcustomer" => 0, 
+            "frontend" => 0, 
+            "plugin_settings" => 0, 
+            "plugin_logs" => 0,
+            "app_qty_plus" => 0,
+            "app_qty_minus" => 0,
+            "app_save_list" => 0,
+            "prod_search_action" => 0,
+            "order_search_action" => 0
+        );
 
         if (!$userId) {
             $userId = get_current_user_id();

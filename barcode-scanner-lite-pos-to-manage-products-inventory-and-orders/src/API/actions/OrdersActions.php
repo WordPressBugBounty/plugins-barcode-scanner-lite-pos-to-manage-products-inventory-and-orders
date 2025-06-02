@@ -20,7 +20,6 @@ class OrdersActions
 
         $orderId = $request->get_param("orderId");
         $query = RequestHelper::getQuery($request, "product");
-        $query = "5201010144660";
         $filter = SearchFilter::get();
         $result = array("products" => array(), "order_item_pick_info" => array());
 
@@ -47,6 +46,7 @@ class OrdersActions
                     $orderItem = $this->findProductInOrder($order, $product);
 
                     if ($orderItem) {
+
                         $id = $orderItem->get_variation_id();
                         $id = !$id ? $orderItem->get_product_id() : $id;
                         $quantity_scanned = \wc_get_order_item_meta($orderItem->get_id(), 'usbs_check_product_scanned', true);
@@ -107,8 +107,8 @@ class OrdersActions
 
         $managementActions = new ManagementActions();
 
-        foreach ($order->get_items() as $itemId => $value) {
-            if ($itemId == $itemId) {
+        foreach ($order->get_items() as $orderItemId => $value) {
+            if ($itemId == $orderItemId) {
                 $pid = $value->get_variation_id() ? $value->get_variation_id() : $value->get_product_id();
                 $productData  = array(
                     "ID" => $value->get_product_id(),

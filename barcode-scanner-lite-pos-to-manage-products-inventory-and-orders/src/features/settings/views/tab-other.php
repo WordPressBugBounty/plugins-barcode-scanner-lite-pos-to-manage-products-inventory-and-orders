@@ -84,7 +84,47 @@ use UkrSolution\BarcodeScanner\features\sounds\Sounds;
                             <b><?php echo esc_html__("Upload new", "us-barcode-scanner"); ?></b> &nbsp;
                             <input type="file" accept=".mp3" name="failFile" />
                         </div>
+                    </div><br />
+
+                    <!-- FF End -->
+                    <div class="sound-block">
+                        <!-- preview -->
+                        <div style="display: flex; align-items: center;">
+                            <b><?php echo esc_html__("Order fulfilled", "us-barcode-scanner"); ?></b>
+                            <audio controls>
+                                <source src="<?php echo wp_kses_post($list["ffEnd"]); ?>" type="audio/mpeg">
+                                <?php echo esc_html__("Your browser does not support the audio element.", "us-barcode-scanner"); ?>
+                            </audio>
+                        </div>
+                        <!-- upload -->
+                        <div style="display: flex; align-items: center;">
+                            <b><?php echo esc_html__("Upload new", "us-barcode-scanner"); ?></b> &nbsp;
+                            <input type="file" accept=".mp3" name="ffEndFile" />
+                        </div>
                     </div>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2">&nbsp;</td>
+            </tr>
+            <tr>
+                <th scope="row">
+                    <?php echo esc_html__("Update history", "us-barcode-scanner"); ?>
+                </th>
+                <td>
+                    <?php
+                    $field = $settings->getSettings("updateHistory");
+                    $value = $field === null ? "" : $field->value;
+                    $value = $value ? explode(",", $value) : [];
+
+                    if (empty($value)) {
+                        echo "-";
+                    } else {
+                        foreach ($value as $item) {
+                            ?><div><?php echo esc_html($item); ?></div><?php
+                        }
+                    }
+                    ?>
                 </td>
             </tr>
             <tr class="usbs-section-label">

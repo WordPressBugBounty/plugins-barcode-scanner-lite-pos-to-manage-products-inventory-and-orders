@@ -289,6 +289,7 @@ class Database
             "`atum_supplier_sku`",
             "`atum_barcode`",
             "`atum_supplier_id`",
+            "`uegen_code`",
             "`client_email`",
             "`client_name`",
         );
@@ -304,6 +305,7 @@ class Database
             `post_type` varchar(20) DEFAULT NULL,
             `post_status` varchar(20) DEFAULT NULL,
             `post_parent_status` varchar(20) DEFAULT NULL,
+            `product_type` varchar(20) DEFAULT NULL,
             `post_parent` bigint(20) DEFAULT NULL,
             `post_author` bigint(20) DEFAULT NULL,
             `attributes` text DEFAULT NULL,
@@ -311,6 +313,7 @@ class Database
             `created` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
             `updated` datetime DEFAULT NULL,
             `post_date` datetime DEFAULT NULL,
+            `post_modified` datetime DEFAULT NULL,
             PRIMARY KEY (`id`),
             {$uniqueIndex}
             INDEX `post_parent` (`post_parent`)
@@ -480,6 +483,7 @@ class Database
         \dbDelta($sql);
 
         $_stock_statuses = array("instock" => "Instock", "outofstock" => "Out of stock", "onbackorder" => "On backorder");
+        $_backorders = array("no" => "Do not allow", "notify" => "Allow, but notify customer", "yes" => "Allow");
         $product_statuses = array("publish" => "Publish", "pending" => "Pending", "private" => "Private", "draft" => "Draft");
         $widthLeft = 40;
         $widthRight = 50;
@@ -503,6 +507,10 @@ class Database
             array("field_name" => "product_cat", "field_label" => "Categories", "label_position" => "left", "label_width" => $widthLeft, "position" => "product-middle-left", "type" => "taxonomy", "field_height" => 0, "status" => 1, "order" => 400),
             array("field_name" => "_tax_class", "field_label" => "Tax class", "label_position" => "top", "label_width" => $widthRight, "position" => "product-middle-right", "type" => "select", "field_height" => 0, "status" => 0, "mobile_status" => 0, "order" => 850),
             array("field_name" => "_shipping_class", "field_label" => "Shipping class", "label_position" => "top", "label_width" => $widthRight, "position" => "product-middle-right", "type" => "select", "field_height" => 0, "status" => 0, "mobile_status" => 0, "order" => 860),
+            array("field_name" => "_dokan_vendor", "field_label" => "Dokan vendor", "label_position" => "top", "label_width" => $widthRight, "position" => "product-middle-right", "type" => "select", "field_height" => 0, "status" => 1, "mobile_status" => 1, "order" => 860),
+
+            array("field_name" => "_backorders", "field_label" => "Allow backorders?", "label_position" => "top", "label_width" => $widthRight, "position" => "product-middle-right", "type" => "select", "field_height" => 0, "status" => 0, "options" => json_encode($_backorders), "order" => 920),
+            array("field_name" => "_switch_status", "field_label" => "Checkbox", "label_position" => "top", "label_width" => $widthRight, "position" => "product-middle-right", "type" => "checkbox", "field_height" => 0, "status" => 0, "mobile_status" => 0, "order" => 920),
         );
 
 
@@ -771,7 +779,7 @@ class Database
             $types[] = 'us_empty_records';
         }
 
-        $sql = " SELECT P.ID, P.post_title, P.post_excerpt, P.post_type, P.post_status, P.post_parent, P.post_author, P.post_date FROM {$wpdb->posts} AS P ";
+        $sql = " SELECT P.ID, P.post_title, P.post_excerpt, P.post_type, P.post_status, P.post_parent, P.post_author, P.post_date, P.post_modified FROM {$wpdb->posts} AS P ";
         $sqlCount = " SELECT COUNT(P.ID) AS 'count' FROM {$wpdb->posts} AS P ";
         $where = " WHERE P.post_type IN('" . implode("','", $types) . "') ";
         $order = " ORDER BY P.ID DESC ";
@@ -901,6 +909,8 @@ class Database
 
             $atum = IntegrationsHelper::getAtumInventoryManagementFieldValue($id);
 
+            $uegenCode = IntegrationsHelper::getUegenPostValue($id);
+
             $clientName = get_post_meta($id, "_billing_first_name", true);
             $clientName .= " " . get_post_meta($id, "_billing_last_name", true);
 
@@ -946,6 +956,16 @@ class Database
             $post_title = htmlspecialchars_decode($post_title);
             $post_title = preg_replace('/<[^><]*>/', '', $post_title);
 
+            if ($post->post_type == "product") {
+                $product = \wc_get_product($id);
+                $productType = $product->get_type();
+            } else if ($post->post_type == "product_variation") {
+                $product = \wc_get_product($id);
+                $productType = "variation";
+            } else {
+                $productType = "";
+            }
+
             $data = array(
                 'post_title' => $post_title, 
                 'post_excerpt' => IntegrationsHelper::removeEmoji($post->post_excerpt),
@@ -955,6 +975,7 @@ class Database
                 'post_parent' => $post->post_parent,
                 'post_author' => $post->post_author,
                 'post_date' => $post->post_date,
+                'post_modified' => $post->post_modified,
                 "{$prefix}_sku" => $_sku ? trim($_sku) : $_sku,
                 "{$prefix}_variation_description" => $_variation_description ? trim($_variation_description) : $_variation_description,
                 "{$prefix}_customer_user" => $_customer_user ? trim($_customer_user) : $_customer_user,
@@ -976,6 +997,8 @@ class Database
                 "atum_supplier_sku" => $atum["atum_supplier_sku"],
                 "atum_barcode" => $atum["atum_barcode"],
                 "atum_supplier_id" => $atum["atum_supplier_id"],
+                "uegen_code" => $uegenCode,
+                "product_type" => $productType,
                 "client_name" => $clientName ? trim($clientName) : $clientName,
                 "client_email" => $_billing_email ? trim($_billing_email) : $_billing_email,
                 "successful_update" => 1,
@@ -1075,6 +1098,8 @@ class Database
 
                 $atum = IntegrationsHelper::getAtumInventoryManagementFieldValue($id);
 
+                $uegenCode = IntegrationsHelper::getUegenPostValue($id);
+
                 $wcShipmentTrackingItems = $order->get_meta("_wc_shipment_tracking_items", true);
                 $_wc_shipment_tracking_items = "";
 
@@ -1093,6 +1118,8 @@ class Database
                     }
                 }
 
+                                $date_modified = $order->get_date_modified();
+
                 $data = array(
                     'post_title' => $post->post_title,
                     'post_excerpt' => IntegrationsHelper::removeEmoji($post->post_excerpt),
@@ -1101,6 +1128,7 @@ class Database
                     'post_parent' => $order->get_parent_id(),
                     'post_author' => $post->post_author,
                     'post_date' => $post->post_date,
+                    'post_modified' => $date_modified ? $date_modified->date("Y-m-d H:i:s") : null,
                     "{$prefix}_order_number" => $order->get_meta("_order_number", true),
                     "{$prefix}_billing_address_index" => str_replace("<br/>", ", ", $order->get_formatted_billing_address()),
                     "{$prefix}_shipping_address_index" => str_replace("<br/>", ", ", $order->get_formatted_shipping_address()),
@@ -1110,6 +1138,7 @@ class Database
                     "atum_supplier_sku" => $atum["atum_supplier_sku"],
                     "atum_barcode" => $atum["atum_barcode"],
                     "atum_supplier_id" => $atum["atum_supplier_id"],
+                    "uegen_code" => $uegenCode,
                     "client_name" => $order->get_formatted_billing_full_name(),
                     "client_email" => $order->get_billing_email(),
                     "successful_update" => 1,
@@ -1190,5 +1219,63 @@ class Database
     {
         $counter = \get_option("usbs_iic_" . $trigger, 0);
         \update_option("usbs_iic_" . $trigger, ++$counter);
+    }
+
+    public static function pluginUpdateHistory()
+    {
+        global $wpdb;
+
+        ob_start();
+
+        $settings = new Settings();
+
+        $rootFile = dirname(__FILE__, 2) . "/barcode-scanner.php";
+
+        $lastVersion = $settings->getSettings("web_active-barcode-scanner-version");
+        $lastVersion = $lastVersion !== null ? $lastVersion->value : "";
+
+                $pluginData = \get_plugin_data(dirname($rootFile) . "/barcode-scanner.php");
+
+        $fileData = get_file_data(dirname($rootFile) . "/barcode-scanner.php",  array('Version' => 'Version', 'Build' => 'Build'));
+
+        $lastBuild = $settings->getSettings("web_active-barcode-scanner-build");
+        $lastBuild = $lastBuild !== null ? $lastBuild->value : "";
+
+        $build = $fileData && isset($fileData['Build']) ? $fileData['Build'] : null;
+
+        if ($pluginData && isset($pluginData["Version"]) && $lastVersion !== $pluginData["Version"]) {
+            try {
+                Database::setupTables(null);
+                $table = $wpdb->prefix . Database::$posts;
+                $wpdb->query("UPDATE {$table} SET `updated` = '0000-00-00 00:00:00';");
+
+                $settings->updateSettings("web_active-barcode-scanner-version", $pluginData["Version"], "text");
+
+                $updateHistory = $wpdb->get_row("SELECT `value` FROM {$wpdb->prefix}barcode_scanner_settings WHERE `field_name` = 'updateHistory';");
+
+                if (!$updateHistory) {
+                    $wpdb->insert("{$wpdb->prefix}barcode_scanner_settings", array("field_name" => "updateHistory", "value" => ""));
+                    $updateHistory = array();
+                } else {
+                    $updateHistory = $updateHistory->value ? explode(",", $updateHistory->value) : array();
+                }
+
+                $dt = new \DateTime("now");
+                $updateHistory[] = $lastVersion . " -> " . $pluginData["Version"] . " - " . $dt->format("Y-m-d H:i:s");
+
+                $wpdb->update("{$wpdb->prefix}barcode_scanner_settings", array("value" => implode(",", $updateHistory)), array("field_name" => "updateHistory"));
+
+                            } catch (\Throwable $th) {
+            }
+        } elseif ($build && $lastBuild != $build) {
+            try {
+                Database::setupTables(null);
+
+                $settings->updateSettings("web_active-barcode-scanner-build", $build, "text");
+            } catch (\Throwable $th) {
+            }
+        }
+
+        $output = ob_get_clean();
     }
 }

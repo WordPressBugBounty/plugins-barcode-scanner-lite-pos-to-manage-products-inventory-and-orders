@@ -8,6 +8,7 @@ use UkrSolution\BarcodeScanner\API\classes\Emails;
 use UkrSolution\BarcodeScanner\API\classes\OrdersHelper;
 use UkrSolution\BarcodeScanner\API\classes\Post;
 use UkrSolution\BarcodeScanner\API\classes\PostsList;
+use UkrSolution\BarcodeScanner\API\classes\ProductsHelper;
 use UkrSolution\BarcodeScanner\API\classes\Results;
 use UkrSolution\BarcodeScanner\API\classes\Request;
 use UkrSolution\BarcodeScanner\API\classes\SearchFilter;
@@ -27,7 +28,9 @@ class ManagementActions
 {
     private $postAutoAction = array(
         "AUTO_INCREASING" => "AUTO_INCREASING",
-        "AUTO_DECREASING" => "AUTO_DECREASING"
+        "AUTO_INCREASING_X" => "AUTO_INCREASING_X",
+        "AUTO_DECREASING" => "AUTO_DECREASING",
+        "AUTO_DECREASING_Y" => "AUTO_DECREASING_Y",
     );
     private $orderAutoAction = array(
         "ORDER_STATUS" => "ORDER_STATUS"
@@ -43,6 +46,7 @@ class ManagementActions
     public $filter_auto_action_step = 'scanner_auto_action_step';
     public $scanner_created_product = 'scanner_created_product';
     public $filter_fulfillment_step = 'scanner_fulfillment_step';
+    public $filter_order_ff_data = 'scanner_order_ff_data';
 
     public function productSearch(WP_REST_Request $request, $actions = true, $findById = false, $actionError = "", $withoutStatuses = false, $tab = "products")
     {
@@ -53,6 +57,8 @@ class ManagementActions
         $filterExcludes = $request->get_param("filterExcludes");
         $query = RequestHelper::getQuery($request, "product");
         $postAutoAction = $request->get_param("postAutoAction");
+        $postAutoActionQtyStep = $request->get_param("postAutoActionQtyStep");
+        if (!$postAutoActionQtyStep) $postAutoActionQtyStep = 1;
         $platform = $request->get_param("platform");
         $limit = null;
 
@@ -185,6 +191,12 @@ class ManagementActions
             }
 
             if ($actions) {
+                if ($postAutoActionQtyStep && is_numeric($postAutoActionQtyStep)) {
+                    add_action($this->filter_auto_action_step, function ($step) use ($postAutoActionQtyStep) {
+                        return $postAutoActionQtyStep;
+                    }, 10, 1);
+                }
+
                 $actionResult = $this->checkPostAutoAction($request, $postAutoAction, $products, $data["findByTitle"]);
 
                 if ($actionResult !== false) {
@@ -330,7 +342,8 @@ class ManagementActions
             $products[] = array(
                 "ID" => $id,
                 "quantity" => $qty,
-                "usbs_check_product_scanned" => $usbs_check_product_scanned == "" ? 0 : $usbs_check_product_scanned
+                "usbs_check_product_scanned" => $usbs_check_product_scanned == "" ? 0 : $usbs_check_product_scanned,
+                "item_id" => $item->get_id()
             );
         }
 
@@ -367,6 +380,8 @@ class ManagementActions
         $orderData = $orders && count($orders) ? $orders[0] : $orderData;
 
         $infoData = $this->isOrderFulfillment($orderData);
+
+        $infoData = apply_filters($this->filter_order_ff_data, $infoData, $orderId);
 
         if ($infoData) {
             update_post_meta($orderId, "usbs_order_fulfillment_data", $infoData);
@@ -420,8 +435,9 @@ class ManagementActions
 
         foreach ($order["products"] as $value) {
             $qty = isset($value["quantity"]) ? $value["quantity"] : 1;
+            $qty = apply_filters('scanner_order_ff_get_item_qty', $qty, $value["item_id"], $order["ID"]);
             $scanned = isset($value["usbs_check_product_scanned"]) ? $value["usbs_check_product_scanned"] : 1;
-            $data["items"][$value["ID"]] = array("qty" => $qty, "scanned" => $scanned);
+            $data["items"][$value["ID"]] = array("qty" => $qty, "scanned" => $scanned, "item_id" => $value["item_id"]);
 
             $data["totalQty"] += $qty;
             $data["totalScanned"] += $scanned;
@@ -487,7 +503,15 @@ class ManagementActions
                         $valueB = $this->findValueByField($postsSearchData, $b);
                     }
 
-                    return levenshtein($_q, $valueA) - levenshtein($_q, $valueB);
+                    $levDiff = levenshtein($_q, $valueA) - levenshtein($_q, $valueB);
+
+                    if ($levDiff === 0 && isset($a["post_modified"]) && isset($b["post_modified"])) {
+                        $timeA = strtotime($a["post_modified"]);
+                        $timeB = strtotime($b["post_modified"]);
+                        return $timeB - $timeA; 
+                    }
+
+                    return $levDiff;
                 });
 
                 foreach ($items as $key => $value) {
@@ -525,7 +549,18 @@ class ManagementActions
                         }
                     }
 
-                    array_multisort(array_column($items, 'rs'), SORT_DESC, $items);
+                    usort($items, function($a, $b) {
+                        $rsA = isset($a["rs"]) ? $a["rs"] : 0;
+                        $rsB = isset($b["rs"]) ? $b["rs"] : 0;
+
+                                                if ($rsA === $rsB && isset($a["post_modified"]) && isset($b["post_modified"])) {
+                            $timeA = strtotime($a["post_modified"]);
+                            $timeB = strtotime($b["post_modified"]);
+                            return $timeB - $timeA; 
+                        }
+
+                                                return $rsB - $rsA;
+                    });
                 }
             }
         } catch (\Throwable $th) {
@@ -570,8 +605,6 @@ class ManagementActions
             return false;
         }
 
-        $ignoreStockDisabled = $request ? $request->get_param("ignoreStockDisabled") : true;
-
         $product = &$products[0];
 
         if (!in_array($product["post_type"], array("product", "product_variation"))) {
@@ -582,7 +615,7 @@ class ManagementActions
             return false;
         }
 
-        if (!$product['product_manage_stock'] && $ignoreStockDisabled == true) {
+        if (!$product['product_manage_stock']) {
             return false;
         }
 
@@ -591,62 +624,61 @@ class ManagementActions
         $field = $request->get_param("postAutoField");
         $fieldName = $field ? $field : "_stock";
 
-        switch ($action) {
-            case $this->postAutoAction["AUTO_INCREASING"]:
-                if ($fieldName == "_stock") {
-                    if (isset($product["product_manage_stock"]) && isset($product["post_parent"]) && $product["product_manage_stock"] === "parent" && $product["post_parent"]) {
-                        $ms = get_post_meta($product["post_parent"], "_manage_stock", true);
-                        if ($ms == "yes" || true) $this->productUpdateQuantityPlus($request, $product["post_parent"]);
-                        else $actionError = $this->postAutoAction["AUTO_INCREASING"];
-                    } else {
-                        $ms = get_post_meta($product["ID"], "_manage_stock", true);
-                        if ($ms == "yes" || true) $this->productUpdateQuantityPlus($request, $product["ID"]);
-                        else $actionError = $this->postAutoAction["AUTO_INCREASING"];
-                    }
+        if ($action == $this->postAutoAction["AUTO_INCREASING"] || $action == $this->postAutoAction["AUTO_INCREASING_X"]) {
+            if ($fieldName == "_stock") {
+                if (isset($product["product_manage_stock"]) && isset($product["post_parent"]) && $product["product_manage_stock"] === "parent" && $product["post_parent"]) {
+                    $ms = get_post_meta($product["post_parent"], "_manage_stock", true);
+                    if ($ms == "yes" || true) $this->productUpdateQuantityPlus($request, $product["post_parent"]);
+                    else $actionError = $this->postAutoAction["AUTO_INCREASING"];
+                } else {
+                    $ms = get_post_meta($product["ID"], "_manage_stock", true);
+                    if ($ms == "yes" || true) $this->productUpdateQuantityPlus($request, $product["ID"]);
+                    else $actionError = $this->postAutoAction["AUTO_INCREASING"];
                 }
-                else {
-                    $value = get_post_meta($product["ID"], $fieldName, true);
-                    $value = $value && is_numeric($value) ? $value : 0;
-                    update_post_meta($product["ID"], $fieldName, $value + 1);
+            }
+            else {
+                $value = get_post_meta($product["ID"], $fieldName, true);
+                $value = $value && is_numeric($value) ? $value : 0;
+                update_post_meta($product["ID"], $fieldName, $value + 1);
+
+                $filterName = str_replace("%field", $fieldName, $this->filter_set_after);
+                apply_filters($filterName, $value + 1, $fieldName, $product["ID"]);
+
+                LogActions::add($product["ID"], LogActions::$actions["quantity_plus"], $fieldName, $value + 1, $value, "product", $request);
+            }
+
+            return $this->productSearch($request, false, false, $actionError);
+        } else if ($action == $this->postAutoAction["AUTO_DECREASING"] || $action == $this->postAutoAction["AUTO_DECREASING_Y"]) {
+            if ($fieldName == "_stock") {
+                if (isset($product["product_manage_stock"]) && isset($product["post_parent"]) && $product["product_manage_stock"] === "parent" && $product["post_parent"]) {
+                    $ms = get_post_meta($product["post_parent"], "_manage_stock", true);
+                    if ($ms == "yes") $this->productUpdateQuantityMinus($request, $product["post_parent"]);
+                    else $actionError = $this->postAutoAction["AUTO_DECREASING"];
+                } else {
+                    $ms = get_post_meta($product["ID"], "_manage_stock", true);
+                    if ($ms == "yes") $this->productUpdateQuantityMinus($request, $product["ID"]);
+                    else $actionError = $this->postAutoAction["AUTO_DECREASING"];
+                }
+            }
+            else {
+                $settings = new Settings();
+                $allowNegativeStock = $settings->getSettings("allowNegativeStock");
+                $allowNegativeStock = $allowNegativeStock ? $allowNegativeStock->value : "";
+
+                $value = get_post_meta($product["ID"], $fieldName, true);
+                $value = $value && is_numeric($value) ? $value : 0;
+
+                if ($value > 0 || $allowNegativeStock == "on") {
+                    update_post_meta($product["ID"], $fieldName, $value - 1);
 
                     $filterName = str_replace("%field", $fieldName, $this->filter_set_after);
-                    apply_filters($filterName, $value + 1, $fieldName, $product["ID"]);
+                    apply_filters($filterName, $value - 1, $fieldName, $product["ID"]);
 
-                    LogActions::add($product["ID"], LogActions::$actions["quantity_plus"], $fieldName, $value + 1, $value, "product", $request);
+                    LogActions::add($product["ID"], LogActions::$actions["quantity_minus"], $fieldName, $value - 1, $value, "product", $request);
                 }
+            }
 
-                return $this->productSearch($request, false, false, $actionError);
-            case $this->postAutoAction["AUTO_DECREASING"]:
-                if ($fieldName == "_stock") {
-                    if (isset($product["product_manage_stock"]) && isset($product["post_parent"]) && $product["product_manage_stock"] === "parent" && $product["post_parent"]) {
-                        $ms = get_post_meta($product["post_parent"], "_manage_stock", true);
-                        if ($ms == "yes") $this->productUpdateQuantityMinus($request, $product["post_parent"]);
-                        else $actionError = $this->postAutoAction["AUTO_DECREASING"];
-                    } else {
-                        $ms = get_post_meta($product["ID"], "_manage_stock", true);
-                        if ($ms == "yes") $this->productUpdateQuantityMinus($request, $product["ID"]);
-                        else $actionError = $this->postAutoAction["AUTO_DECREASING"];
-                    }
-                }
-                else {
-                    $settings = new Settings();
-                    $allowNegativeStock = $settings->getSettings("allowNegativeStock");
-                    $allowNegativeStock = $allowNegativeStock ? $allowNegativeStock->value : "";
-
-                    $value = get_post_meta($product["ID"], $fieldName, true);
-                    $value = $value && is_numeric($value) ? $value : 0;
-
-                    if ($value > 0 || $allowNegativeStock == "on") {
-                        update_post_meta($product["ID"], $fieldName, $value - 1);
-
-                        $filterName = str_replace("%field", $fieldName, $this->filter_set_after);
-                        apply_filters($filterName, $value - 1, $fieldName, $product["ID"]);
-
-                        LogActions::add($product["ID"], LogActions::$actions["quantity_minus"], $fieldName, $value - 1, $value, "product", $request);
-                    }
-                }
-
-                return $this->productSearch($request, false, false, $actionError);
+            return $this->productSearch($request, false, false, $actionError);
         }
 
         return false;
@@ -910,11 +942,13 @@ class ManagementActions
                         $result = $this->setQuantityPlus($request, $id, $curQuantity, $step);
                     }
                 } else if ($productId) {
+                    $this->qtyBeforeUpdate[$productId] = (float)get_post_meta($productId, "_stock", true);
                     $result = $this->setQuantityPlus($request, $productId);
                 }
             } catch (\Throwable $th) {
             }
         } else if ($filteredData !== null) {
+            $this->qtyBeforeUpdate[$productId] = (float)get_post_meta($productId, "_stock", true);
             $result = $this->setQuantityPlus($request, $productId);
         }
 
@@ -1016,18 +1050,20 @@ class ManagementActions
                             } else {
                                 $curQuantity = (float)get_post_meta($productId, "_stock", true);
                             }
-                        }
+                        }                        
 
                         $this->qtyBeforeUpdate[$productId] = $curQuantity;
 
                         $result = $this->setQuantityMinus($request, $id, $curQuantity, $step);
                     }
                 } else if ($productId) {
+                    $this->qtyBeforeUpdate[$productId] = (float)get_post_meta($productId, "_stock", true);
                     $result = $this->setQuantityMinus($request, $productId);
                 }
             } catch (\Throwable $th) {
             }
         } else if ($filteredData !== null) {
+            $this->qtyBeforeUpdate[$productId] = (float)get_post_meta($productId, "_stock", true);
             $result = $this->setQuantityMinus($request, $productId);
         }
 
@@ -1044,7 +1080,7 @@ class ManagementActions
 
         $settings = new Settings();
         $allowNegativeStock = $settings->getSettings("allowNegativeStock");
-        $allowNegativeStock = $allowNegativeStock ? $allowNegativeStock->value : "";
+        $allowNegativeStock = $allowNegativeStock ? $allowNegativeStock->value : "on";
         $product = \wc_get_product($productId);
 
         if ($product) {
@@ -1250,7 +1286,7 @@ class ManagementActions
 
                     if ($key === "_sku") {
                         $oldValue = \get_post_meta($id, "_sku", true);
-                        $result = $this->setSKU($id, $filteredValue);
+                        $result = ProductsHelper::setSKU($id, $filteredValue);
                         LogActions::add($id, LogActions::$actions["sku"], "_sku", $filteredValue, $oldValue, "product", $request);
                     } else if ($key === "_stock") {
                         if ($filteredValue === "") {
@@ -1284,29 +1320,6 @@ class ManagementActions
         }
     }
 
-    private function setSKU($productId, $sku)
-    {
-        try {
-            $product = \wc_get_product($productId);
-
-            if ($product) {
-                $product->set_sku($sku);
-                $product->save();
-
-
-                return true;
-            } else {
-                return rest_ensure_response(array(
-                    "errors" => array("Product not found")
-                ));
-            }
-        } catch (\Throwable $th) {
-            return rest_ensure_response(array(
-                "errors" => array($th->getMessage())
-            ));
-        }
-    }
-
     public function productUpdateStatus(WP_REST_Request $request, $postId = null, $status = null)
     {
         try {
@@ -1317,10 +1330,18 @@ class ManagementActions
                 return rest_ensure_response(array("errors" => array("Something wrong")));
             }
             $oldValue = get_post_status($postId);
-            wp_update_post(array('ID' => $postId, 'post_status' => $status));
-            $this->productIndexation($postId, "productUpdateStatus");
 
-            LogActions::add($postId, LogActions::$actions["update_product_status"], "post_status", $status, $oldValue, "product", $request);
+            $product = \wc_get_product($postId);
+
+            if ($product) {
+                $product->set_status($status);
+                $product->save();
+
+                $this->productIndexation($postId, "productUpdateStatus");
+
+                LogActions::add($postId, LogActions::$actions["update_product_status"], "post_status", $status, $oldValue, "product", $request);
+            }
+
 
             return $this->productSearch($request, false, true);
         } catch (\Throwable $th) {
@@ -1739,7 +1760,7 @@ class ManagementActions
                     'first_name' => $order->get_shipping_first_name(),
                     'last_name' => $order->get_shipping_last_name(),
                     'company' => $order->get_shipping_company(),
-                    'phone' => $order->get_shipping_phone(),
+                    'phone' => method_exists($order, 'get_shipping_phone') ? $order->get_shipping_phone() : "",
                     'address_1' => $order->get_shipping_address_1(),
                     'address_2' => $order->get_shipping_address_2(),
                     'postcode' => $order->get_shipping_postcode(),
@@ -1752,6 +1773,7 @@ class ManagementActions
                 "customer_note" => (new Results())->getNotes($order),
                 "total_tax" => $order->get_total_tax(),
                 "status" => $order->get_status(),
+                "status_name" => wc_get_order_status_name($order->get_status()),
                 "customFields" => (new Results())->getOrderCustomFields($order->get_id())
             ),
         );
@@ -1858,7 +1880,7 @@ class ManagementActions
                     'first_name' => $order->get_shipping_first_name(),
                     'last_name' => $order->get_shipping_last_name(),
                     'company' => $order->get_shipping_company(),
-                    'phone' => $order->get_shipping_phone(),
+                    'phone' => method_exists($order, 'get_shipping_phone') ? $order->get_shipping_phone() : "",
                     'address_1' => $order->get_shipping_address_1(),
                     'address_2' => $order->get_shipping_address_2(),
                     'postcode' => $order->get_shipping_postcode(),
@@ -1871,6 +1893,7 @@ class ManagementActions
                 "customer_note" => (new Results())->getNotes($order),
                 "total_tax" => $order->get_total_tax(),
                 "status" => $order->get_status(),
+                "status_name" => wc_get_order_status_name($order->get_status()),
                 "customFields" => (new Results())->getOrderCustomFields($order->get_id())
             ),
         );
@@ -1998,6 +2021,7 @@ class ManagementActions
 
                 $usbs_qty_step = ($product && isset($product["number_field_step"])) ? $product["number_field_step"] : 0;
 
+
                 if ($usbs_qty_step && is_numeric($usbs_qty_step)) {
                     $step = (float)$usbs_qty_step;
                 }
@@ -2006,6 +2030,8 @@ class ManagementActions
 
                 foreach ($fields as $key => $field) {
                     if ($field["key"] == "usbs_check_product") {
+                        $step = isset($field["step"]) ? $field["step"] : $step;
+
                         if ($field["value"] == "") {
                             if (!$isOrderFulfillmentReset) {
                                 \wc_update_order_item_meta($itemId, "usbs_check_product_scanned", "");
@@ -2017,6 +2043,7 @@ class ManagementActions
                         }
                         else if ($field["value"] == "max") {
                             $_qty = \wc_get_order_item_meta($itemId, '_qty', true);
+                            $_qty = apply_filters('scanner_order_ff_get_item_qty', $_qty, $itemId, $orderId);
 
                             $refund_data = OrdersHelper::getOrderItemRefundData($order, $item);
                             $_qty += $refund_data["_qty"];
@@ -2030,6 +2057,7 @@ class ManagementActions
                         }
                         else if ($fulfillmentScanItemQty) {
                             $qty = (float)\wc_get_order_item_meta($itemId, '_qty', true);
+                            $qty = apply_filters('scanner_order_ff_get_item_qty', $qty, $itemId, $orderId);
 
                             $refund_data = OrdersHelper::getOrderItemRefundData($order, $item);
                             $qty += $refund_data["_qty"];
@@ -2038,6 +2066,10 @@ class ManagementActions
 
                             if ($confirmationLeftFulfillment) {
                                 $step = $qty - $scanned;
+                            }
+
+                            if (!$step) {
+                                $step = 1;
                             }
 
                             if ($qty && $scanned + $step < $qty) {
@@ -2079,6 +2111,7 @@ class ManagementActions
 
                             if (!$scanned) {
                                 $qty = (float)\wc_get_order_item_meta($itemId, '_qty', true);
+                                $qty = apply_filters('scanner_order_ff_get_item_qty', $qty, $itemId, $orderId);
 
                                 $refund_data = OrdersHelper::getOrderItemRefundData($order, $item);
                                 $_qty += $refund_data["_qty"];
@@ -2107,7 +2140,8 @@ class ManagementActions
         Debug::addPoint(" - orderUpdateItemMeta items");
 
         $checker = $this->getFulfillmentOrderData($orderId);
-        Debug::addPoint(" - orderUpdateItemMeta checker");
+
+           Debug::addPoint(" - orderUpdateItemMeta checker");
 
         if ($checker && $checker["totalQty"] == $checker["totalScanned"]) {
             $logId = LogActions::add($orderId, LogActions::$actions["update_order_fulfillment"], "", 1, "", "order", $request);
@@ -2125,6 +2159,7 @@ class ManagementActions
             $usbs_check_product_scanned = \wc_get_order_item_meta($itemId, 'usbs_check_product_scanned', true);
             $usbs_check_product_scanned = $usbs_check_product_scanned == "" ? 0 : $usbs_check_product_scanned;
             $qty = (float)\wc_get_order_item_meta($itemId, '_qty', true);
+            $qty = apply_filters('scanner_order_ff_get_item_qty', $qty, $itemId, $orderId);
 
             if ($isFulfillmentChanged) {
                 $updatedItems[] = array(
@@ -2171,6 +2206,7 @@ class ManagementActions
             "fulfillment" => 1,
             "error" => $error,
             "htmlMessageClass" => $htmlMessageClass,
+            "checkOrderFulfilledSound" => $isFulfillmentChanged ? true : false,
             "debug" => Debug::getResult(true)
         );
 
@@ -2338,7 +2374,7 @@ class ManagementActions
             }
 
             if ($meta && isset($meta["_manage_stock"])) {
-                $this->setManageStock($product->id);
+                $this->setManageStock($product->get_id());
             }
 
             apply_filters($this->scanner_created_product, $variation, $product);
@@ -2358,28 +2394,28 @@ class ManagementActions
             $product = \wc_get_product($post_id);
             $product->save();
 
-            if ($product->id) {
-                $productId = $product->id;
+            if ($product->get_id()) {
+                $productId = $product->get_id();
 
                 if ($query) {
                     $this->productUpdateMeta($request, $productId, $fieldNameValue, $query);
                 }
 
                 if ($qty !== "" && (int)$qty) {
-                    $this->setQuantity($product->id, $qty, null, true);
+                    $this->setQuantity($product->get_id(), $qty, null, true);
                 } else {
-                    $this->setQuantity($product->id, 0, null, true);
+                    $this->setQuantity($product->get_id(), 0, null, true);
                 }
 
                 if ($meta && isset($meta["_manage_stock"])) {
-                    $this->setManageStock($product->id);
+                    $this->setManageStock($product->get_id());
                 }
 
                 apply_filters($this->scanner_created_product, $product, null);
 
-                $this->productIndexation($product->id, "productCreateNew");
+                $this->productIndexation($product->get_id(), "productCreateNew");
 
-                LogActions::add($product->id, LogActions::$actions["create_product"], "", "", "", "product", $request);
+                LogActions::add($product->get_id(), LogActions::$actions["create_product"], "", "", "", "product", $request);
             }
         }
 
@@ -3340,6 +3376,8 @@ class ManagementActions
         $page = isset($filter["page"]) ? (int)$filter["page"] : "";
         $perPage = isset($filter["perPage"]) ? (int)$filter["perPage"] : 10;
         $customerId = isset($filter["customerId"]) ? (int)$filter["customerId"] : "";
+        $customerName = isset($filter["customerName"]) ? $filter["customerName"] : "";
+        $sort = isset($filter["sort"]) ? $filter["sort"] : "";
 
         $excludeOrderStatuses = $settings->getSettings("orderStatuses");
         $excludeOrderStatuses = $excludeOrderStatuses === null ? "wc-checkout-draft,trash" : $excludeOrderStatuses->value;
@@ -3354,6 +3392,18 @@ class ManagementActions
             if ($permissions && isset($permissions['onlymy']) && $permissions['onlymy'] == 1) {
                 $type = "my";
             }
+
+            update_user_meta($userId, "usbs_orders_list_filter", array(
+                "type" => $type,
+                "status" => $status,
+                "statuses" => $statuses,
+                "from" => $from,
+                "to" => $to,
+                "customerId" => $customerId,
+                "customerName" => $customerName,
+                "sort" => $sort,
+            ));
+
         }
 
         $orders = array();
@@ -3418,6 +3468,18 @@ class ManagementActions
         }
 
         $order = " ORDER BY P.post_date DESC, P.post_id DESC ";
+        $get_posts_orderby = "date";
+        $get_posts_order = "DESC";
+
+        if ($sort) {
+            $sort = explode(".", $sort);
+            if (count($sort) == 2 && in_array($sort[1], array("ASC", "DESC")) && in_array($sort[0], array("post_date"))) {
+                $order = " ORDER BY P.{$sort[0]} {$sort[1]}, P.post_id DESC ";
+                $get_posts_orderby = $sort[0];
+                $get_posts_order = $sort[1];
+            }
+        }
+
         $sql = "SELECT SQL_CALC_FOUND_ROWS P.post_id FROM {$wpdb->prefix}barcode_scanner_posts AS P {$fromTables} WHERE P.post_type = 'shop_order' {$where} {$order} {$limit};";
 
         $orders = $wpdb->get_results($sql);
@@ -3439,8 +3501,8 @@ class ManagementActions
                 'post__in' => $ids,
                 'post_status' => 'any',
                 'numberposts' => 9999,
-                'orderby' => 'date',
-                'order' => 'DESC',
+                'orderby' => $get_posts_orderby,
+                'order' => $get_posts_order,
             ));
         } else {
             $orders = array();

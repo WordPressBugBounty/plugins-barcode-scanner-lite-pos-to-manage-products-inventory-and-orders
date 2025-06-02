@@ -31,6 +31,7 @@ class PluginsHelper
             array('key' => '_wepos_barcode', 'status' => self::is_plugin_active('wepos/wepos.php'), 'label' => 'WePOS', 'fieldLabel' => 'Barcode <sup>(WePOS)</sup>', 'title' => 'WePOS'),
             array('key' => '_ts_gtin', 'status' => self::is_plugin_active('woocommerce-germanized/woocommerce-germanized.php'), 'label' => 'GTIN - Germanized for WooCommerce', 'fieldLabel' => 'GTIN <sup>(Germanized for WooCommerce)</sup>', 'title' => 'Germanized for WooCommerce'),
             array('key' => '_ts_mpn', 'status' => self::is_plugin_active('woocommerce-germanized/woocommerce-germanized.php'), 'label' => 'MPN - Germanized for WooCommerce', 'fieldLabel' => 'MPN <sup>(Germanized for WooCommerce)</sup>', 'title' => 'Germanized for WooCommerce'),
+            array('key' => 'uegen_code', 'status' => self::is_plugin_active('upc-ean-code-generator/index.php'), 'label' => 'UPC/EAN codes', 'fieldLabel' => 'UPC/EAN codes', 'title' => 'UPC/EAN codes importer/generator'),
 
             array('key' => '_zettle_barcode', 'status' => self::is_plugin_active('zettle-pos-integration/zettle-pos-integration.php'), 'label' => 'PayPal Zettle', 'fieldLabel' => 'PayPal Zettle', 'title' => 'PayPal Zettle POS for WooCommerce'),
             array('key' => 'atum_supplier_sku', 'status' => is_plugin_active('atum-stock-manager-for-woocommerce/atum-stock-manager-for-woocommerce.php'), 'label' => 'ATUM SKU', 'fieldLabel' => 'ATUM SKU', 'title' => 'ATUM Inventory Management for WooCommerce'),

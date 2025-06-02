@@ -159,9 +159,9 @@ class MobileRouter
 
         echo "<";
         esc_html_e($this->tn, 'us-barcode-scanner');
-        echo " src='" . esc_url(USBS_PLUGIN_BASE_URL) . "src/features/mobile/assets/js/index.js?v=1.8.0&t=1738162468894' ";
-        echo " onload='console.log(\"Loader: " . esc_url(USBS_PLUGIN_BASE_URL) . "src/features/mobile/assets/js/index.js?v=1.8.0&t=1738162468894 loaded\")' ";
-        echo " onerror='usbsLoaderJSError(\"" . esc_url(USBS_PLUGIN_BASE_URL) . "src/features/mobile/assets/js/index.js?v=1.8.0&t=1738162468894\")' ";
+        echo " src='" . esc_url(USBS_PLUGIN_BASE_URL) . "src/features/mobile/assets/js/index.js?v=1.9.1&t=1748599013457' "; // 1.9.1
+        echo " onload='console.log(\"Loader: " . esc_url(USBS_PLUGIN_BASE_URL) . "src/features/mobile/assets/js/index.js?v=1.9.1&t=1748599013457 loaded\")' "; // 1.9.1
+        echo " onerror='usbsLoaderJSError(\"" . esc_url(USBS_PLUGIN_BASE_URL) . "src/features/mobile/assets/js/index.js?v=1.9.1&t=1748599013457\")' "; // 1.9.1
         echo ">";
         echo "<";
         echo "/";
@@ -170,9 +170,9 @@ class MobileRouter
 
         echo "<";
         esc_html_e($this->tn, 'us-barcode-scanner');
-        echo " src='" . esc_url(USBS_PLUGIN_BASE_URL) . "src/features/mobile/assets/js/loader.js?v=1.8.0&t=1738162468894' ";
-        echo " onload='console.log(\"Loader: " . esc_url(USBS_PLUGIN_BASE_URL) . "src/features/mobile/assets/js/loader.js?v=1.8.0&t=1738162468894 loaded\")' ";
-        echo " onerror='usbsLoaderJSError(\"" . esc_url(USBS_PLUGIN_BASE_URL) . "src/features/mobile/assets/js/loader.js?v=1.8.0&t=1738162468894\")' ";
+        echo " src='" . esc_url(USBS_PLUGIN_BASE_URL) . "src/features/mobile/assets/js/loader.js?v=1.9.1&t=1748599013457' "; // 1.9.1
+        echo " onload='console.log(\"Loader: " . esc_url(USBS_PLUGIN_BASE_URL) . "src/features/mobile/assets/js/loader.js?v=1.9.1&t=1748599013457 loaded\")' "; // 1.9.1
+        echo " onerror='usbsLoaderJSError(\"" . esc_url(USBS_PLUGIN_BASE_URL) . "src/features/mobile/assets/js/loader.js?v=1.9.1&t=1748599013457\")' "; // 1.9.1
         echo ">";
         echo "<";
         echo "/";

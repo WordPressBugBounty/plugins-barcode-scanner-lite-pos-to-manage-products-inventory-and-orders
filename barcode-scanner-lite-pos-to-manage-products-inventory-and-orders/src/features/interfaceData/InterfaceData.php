@@ -41,7 +41,7 @@ class InterfaceData
         }
 
         if (!$role || $role == 'default') {
-            $fields = $wpdb->get_results("SELECT * FROM {$table} WHERE `role` IS NUll ORDER BY `" . $orderField . "` DESC;", ARRAY_A);
+            $fields = $wpdb->get_results("SELECT *, `disabled_field` as 'read_only' FROM {$table} WHERE `role` IS NUll ORDER BY `" . $orderField . "` DESC;", ARRAY_A);
         } else {
             $fields = $wpdb->get_results($wpdb->prepare(
                 "SELECT * FROM {$table} WHERE `role` = %s ORDER BY %s DESC;",
@@ -107,7 +107,7 @@ class InterfaceData
                 "label_width" => $value["label_width"],
                 "show_in_create_order" => $value["show_in_create_order"],
                 "show_in_products_list" => $value["show_in_products_list"],
-                "disabled_field" => $value["disabled_field"],
+                "disabled_field" => $value["read_only"],
                 "role" => !$role || $role == 'default'  ? null : $role,
                 "updated" => $created,
                 "attribute_id" => $value["attribute_id"] ? $value["attribute_id"] : null,

@@ -107,7 +107,8 @@ class Post
             $excludeStatuses,
             $excludeProductsCatalogVisibility,
             $postTypes,
-            $isDisabledVariations
+            $isDisabledVariations,
+            $tab
         );
 
         $postsSearchData = $wpdb->get_results($sql);
@@ -121,7 +122,7 @@ class Post
             $types = "'shop_order', 'product', 'product_variation'";
             $ids = implode(",", array_column($postsSearchData, 'ID'));
 
-            $sql =  "SELECT P.* FROM {$wpdb->posts} AS P WHERE P.ID IN( {$ids} ) AND P.post_type IN( {$types} ) ORDER BY P.post_date DESC LIMIT {$this->limit}; ";
+            $sql =  "SELECT P.* FROM {$wpdb->posts} AS P WHERE P.ID IN( {$ids} ) AND P.post_type IN( {$types} ) ORDER BY P.post_modified DESC LIMIT {$this->limit}; ";
             $posts = $wpdb->get_results($sql);
 
             Debug::addPoint("1. wpml status = " . (WPML::status() ? 1 : 0) . ', by id ' . ($onlyById ? 1 : 0));
@@ -132,6 +133,7 @@ class Post
 
             $count = $posts ? count($posts) : 0;
             Debug::addPoint("1. after wpml posts = " . $count);
+
 
             return array(
                 "total" => $total ? $total->total : 0,
@@ -181,7 +183,8 @@ class Post
         $excludeStatuses,
         $excludeProductsCatalogVisibility = '',
         $postTypes = array(),
-        $isDisabledVariations = false
+        $isDisabledVariations = false,
+        $tab = ""
     ) {
         global $wpdb;
 
@@ -217,6 +220,10 @@ class Post
         }
 
         $sql .= " AND ( P.post_parent = 0 OR P.post_parent IS NULL OR P.post_parent_status IS NUll OR P.post_parent_status NOT IN('" . implode("','", $statuses) . "')  ) ";
+
+        if ($tab == 'cart') {
+            $sql .= " AND P.product_type != 'variable' ";
+        }
 
         if (is_array($catalogVisibility)) {
             $notIn = array();
@@ -508,6 +515,15 @@ class Post
             $selectColumns[] = "{$_sql} AS 'atum_barcode'";
         }
 
+        if ($params["uegen_code"] != 0) {
+            $filterSql .= (strlen($filterSql)) ? " OR " : "";
+            $types = "'product', 'product_variation'";
+            $_sql = $this->sqlComp($params["uegen_code"], $types, $query, "P.uegen_code");
+
+            $filterSql .= $_sql;
+            $selectColumns[] = "{$_sql} AS 'uegen_code'";
+        }
+
         if ($params["usbs_barcode_field"] != 0) {
             $filterSql .= (strlen($filterSql)) ? " OR " : "";
             $types = "'product', 'product_variation'";
@@ -605,11 +621,7 @@ class Post
 
         $sql .= ($filterSql) ? $filterSql : " 1 != 1 ";
 
-        if (strpos($types, 'shop_order') !== false) {
-            $sql .= " ) GROUP BY P.ID ORDER BY P.post_date DESC LIMIT {$this->limit} ";
-        } else {
-            $sql .= " ) GROUP BY P.ID LIMIT {$this->limit} ";
-        }
+        $sql .= " ) GROUP BY P.ID ORDER BY P.post_modified DESC, P.post_date DESC LIMIT {$this->limit} ";
 
         if ($selectColumns) {
             $sql = str_replace("%SELECT_COLUMNS%", ", " . implode(", ", $selectColumns), $sql);
@@ -668,6 +680,7 @@ class Post
             "_ts_gtin" => is_plugin_active('woocommerce-germanized/woocommerce-germanized.php') ? "1" : "0",
             "_ts_mpn" => is_plugin_active('woocommerce-germanized/woocommerce-germanized.php') ? "1" : "0",
             "_zettle_barcode" => is_plugin_active('zettle-pos-integration/zettle-pos-integration.php') ? "1" : "0",
+            "uegen_code" => is_plugin_active('upc-ean-code-generator/index.php') ? "1" : "0",
             "atum_supplier_sku" => $isAtum ? "1" : "0",
             "atum_barcode" => $isAtum ? "1" : "0",
             "post_types" => array(),

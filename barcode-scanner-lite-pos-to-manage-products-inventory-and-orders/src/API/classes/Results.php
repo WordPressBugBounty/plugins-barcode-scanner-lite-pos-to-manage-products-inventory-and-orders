@@ -322,15 +322,15 @@ class Results
 
         $product_regular_price = strip_tags(wc_price($product->get_regular_price(), array("currency" => " ",)));
         $product_regular_price = trim(str_replace("&nbsp;", "", $product_regular_price));
-        $product_regular_price_c = html_entity_decode(strip_tags(wc_price($product_regular_price)), ENT_COMPAT | ENT_HTML5, 'UTF-8');
+        $product_regular_price_c = html_entity_decode(strip_tags(wc_price($product->get_regular_price())), ENT_COMPAT | ENT_HTML5, 'UTF-8');
 
         $product_sale_price = strip_tags(wc_price($product->get_sale_price(), array("currency" => " ",)));
         $product_sale_price = trim(str_replace("&nbsp;", "", $product_sale_price));
-        $product_sale_price_c = html_entity_decode(strip_tags(wc_price($product_sale_price)), ENT_COMPAT | ENT_HTML5, 'UTF-8');
+        $product_sale_price_c = html_entity_decode(strip_tags(wc_price($product->get_sale_price())), ENT_COMPAT | ENT_HTML5, 'UTF-8');
 
         $product_price = strip_tags(wc_price($product->get_price(), array("currency" => " ",)));
         $product_price = trim(str_replace("&nbsp;", "", $product_price));
-        $product_price_c = html_entity_decode(strip_tags(wc_price($product_price)), ENT_COMPAT | ENT_HTML5, 'UTF-8');
+        $product_price_c = html_entity_decode(strip_tags(wc_price($product->get_price())), ENT_COMPAT | ENT_HTML5, 'UTF-8');
 
         $attributes = $this->autoFill == false ? $product->get_attributes() : array();
 
@@ -355,6 +355,8 @@ class Results
         $shippingClass = $this->getShippingClass($post->ID);
         $shippingClasses = $this->getAllShippingClasses();
 
+        $status = $post->post_status ? get_post_status_object($post->post_status) : null;
+
         $props = array(
             "ID" => $post->ID,
             "post_parent" => $product->get_parent_id(),
@@ -362,6 +364,7 @@ class Results
             "post_type" => $post->post_type,
             "post_type_tooltip" => $product ? $product->get_type() : 'product',
             "post_status" => $post->post_status,
+            "post_status_name" => $status ? $status->label : '',
             "post_author" => $post->post_author,
             "product_desc" => urlencode($product->get_description()),
             "product_type" => $product->get_type(),
@@ -525,15 +528,15 @@ class Results
 
         $product_regular_price = strip_tags(wc_price($product->get_regular_price(), array("currency" => " ",)));
         $product_regular_price = trim(str_replace("&nbsp;", "", $product_regular_price));
-        $product_regular_price_c = html_entity_decode(strip_tags(wc_price($product_regular_price)), ENT_COMPAT | ENT_HTML5, 'UTF-8');
+        $product_regular_price_c = html_entity_decode(strip_tags(wc_price($product->get_regular_price())), ENT_COMPAT | ENT_HTML5, 'UTF-8');
 
         $product_sale_price = strip_tags(wc_price($product->get_sale_price(), array("currency" => " ",)));
         $product_sale_price = trim(str_replace("&nbsp;", "", $product_sale_price));
-        $product_sale_price_c = html_entity_decode(strip_tags(wc_price($product_sale_price)), ENT_COMPAT | ENT_HTML5, 'UTF-8');
+        $product_sale_price_c = html_entity_decode(strip_tags(wc_price($product->get_sale_price())), ENT_COMPAT | ENT_HTML5, 'UTF-8');
 
         $product_price = strip_tags(wc_price($product->get_price(), array("currency" => " ",)));
         $product_price = trim(str_replace("&nbsp;", "", $product_price));
-        $product_price_c = html_entity_decode(strip_tags(wc_price($product_price)), ENT_COMPAT | ENT_HTML5, 'UTF-8');
+        $product_price_c = html_entity_decode(strip_tags(wc_price($product->get_price())), ENT_COMPAT | ENT_HTML5, 'UTF-8');
 
         $attributes = $this->autoFill == false ? $product->get_attributes() : array();
 
@@ -807,6 +810,8 @@ class Results
 
         $shipping_class_names = \WC()->shipping->get_shipping_method_class_names();
 
+        $settings = new Settings();
+
         $order_shipping = 0;
         $order_shipping_tax = 0;
         $order_shipping_name = "";
@@ -900,6 +905,23 @@ class Results
 
             $quantity = \wc_get_order_item_meta($item->get_id(), '_qty', true);
 
+            $product = $item->get_product();
+            $variationForPreview = array();
+
+            if ($product && $product->is_type('variation')) {
+                $variation_attributes = $product->get_attributes();
+
+                foreach ($variation_attributes as $attribute_name => $attribute_value) {
+                    if (taxonomy_is_product_attribute($attribute_name)) {
+                        $attribute_label = wc_attribute_label($attribute_name);
+                    } else {
+                        $attribute_label = wc_attribute_label($attribute_name, $product);
+                    }
+
+                    $variationForPreview[] = array("label" => esc_html($attribute_label), "value" => esc_html($attribute_value));
+                }
+            }
+
             $_productData = array(
                 "ID" => $_post->ID,
                 "variation_id" => $variationId,
@@ -934,6 +956,7 @@ class Results
                 "fulfillment_user_name" => $fulfillment_user_name,
                 "fulfillment_user_email" => $fulfillment_user_email,
                 "product_categories" => wp_get_post_terms($item->get_product_id(), 'product_cat'),
+                "variationForPreview" => $variationForPreview,
                 "refund_data" => OrdersHelper::getOrderItemRefundData($order, $item)
             );
 
@@ -944,6 +967,36 @@ class Results
                 $filteredValue = apply_filters($filterName, $defaultValue, $value['field_name'], $_productData["ID"]);
                 $filteredValue = $filteredValue;
                 $_productData[$value['field_name']] = $filteredValue;
+            }
+
+            $filter = SearchFilter::get();
+
+            if ($filter && isset($filter['products']) && is_array($filter['products'])) {
+                foreach ($filter['products'] as $key => $value) {
+                    if (strpos($key, 'custom-') !== false) {
+                        if (!isset($_productData[$value])) {
+                            $defaultValue = \get_post_meta($_productData["ID"], $value, true);
+                            $filteredValue = apply_filters($filterName, $defaultValue, $value, $_productData["ID"]);
+                            $_productData[$value] = $filteredValue;
+                        }
+                    }
+                }
+            }
+
+            $number_field_step = get_post_meta($_productData["ID"], "number_field_step", true);
+
+                        if ($number_field_step && is_numeric($number_field_step)) {
+                $_productData["number_field_step"] = (float)$number_field_step;
+            } else {
+                $_productData["number_field_step"] = 1;
+            }
+
+            $ffQtyStep = $settings->getSettings("ffQtyStep");
+            $ffQtyStep = $ffQtyStep === null ? "" : $ffQtyStep->value;
+
+            if ($ffQtyStep) {
+                $_productData['ffQtyStep'] = get_post_meta($_productData["ID"], $ffQtyStep, true);
+                if ($_productData['ffQtyStep']) $_productData['ffQtyStep'] = (float)$_productData['ffQtyStep'];
             }
 
             $products[] = $_productData;
@@ -990,15 +1043,15 @@ class Results
 
         $wpFormat = get_option("date_format", "F j, Y") . " " . get_option("time_format", "g:i a");
         $orderDate = new \DateTime($order->get_date_created());
-        $date_format = $orderDate->format($wpFormat);
-        $date_format = SettingsHelper::dateTranslate($date_format);
+        $date_format = $order->get_date_created();
+        $date_format = $date_format->format("Y-m-d H:i:s");
 
         if ($order->get_billing_first_name() || $order->get_billing_last_name()) {
             $customerName = $order->get_billing_first_name() . " " . $order->get_billing_last_name();
         }
 
         $customerCountry = $order->get_billing_country();
-        $previewDateFormat = $orderDate->format("M j, Y");
+        $previewDateFormat = $orderDate->format("F j, Y");
         $previewDateFormat = SettingsHelper::dateTranslate($previewDateFormat);
 
         $authorName = get_user_meta($customerId, "first_name", true);
@@ -1026,8 +1079,6 @@ class Results
                 $fulfillment_user_email = $_user->user_email;
             }
         }
-
-        $settings = new Settings();
 
         $fulfillmentField = $settings->getSettings("orderFulFillmentField");
         $fulfillmentField = $fulfillmentField === null ? "" : $fulfillmentField->value;
@@ -1070,7 +1121,7 @@ class Results
                     'first_name' => $order->get_shipping_first_name(),
                     'last_name' => $order->get_shipping_last_name(),
                     'company' => $order->get_shipping_company(),
-                    'phone' => $order->get_shipping_phone(),
+                    'phone' => method_exists($order, 'get_shipping_phone') ? $order->get_shipping_phone() : "",
                     'address_1' => $order->get_shipping_address_1(),
                     'address_2' => $order->get_shipping_address_2(),
                     'postcode' => $order->get_shipping_postcode(),
@@ -1083,6 +1134,7 @@ class Results
                 "customer_note" => $this->getNotes($order),
                 "total_tax" => $order->get_total_tax(),
                 "status" => $order->get_status(),
+                "status_name" => wc_get_order_status_name($order->get_status()),
                 "customFields" => $this->getOrderCustomFields($order->get_id()),
             ),
             "order_date" => $order->get_date_created(),
@@ -1201,8 +1253,8 @@ class Results
 
         $wpFormat = get_option("date_format", "F j, Y") . " " . get_option("time_format", "g:i a");
         $orderDate = new \DateTime($order->get_date_created());
-        $date_format = $orderDate->format($wpFormat);
-        $date_format = SettingsHelper::dateTranslate($date_format);
+        $date_format = $order->get_date_created();
+        $date_format = $date_format->format("Y-m-d H:i:s");
 
         if ($order->get_billing_first_name() || $order->get_billing_last_name()) {
             $customerName = $order->get_billing_first_name() . " " . $order->get_billing_last_name();
@@ -1230,12 +1282,14 @@ class Results
         $fulfillmentField = $settings->getSettings("orderFulFillmentField");
         $fulfillmentField = $fulfillmentField === null ? "" : $fulfillmentField->value;
 
+
         $props = array(
             "ID" => $order->get_id(),
             "post_type" => $post->post_type,
             "post_author" => $post->post_author,
             "data" => array(
                 "status" => $order->get_status(),
+                "status_name" => wc_get_order_status_name($order->get_status()),
             ),
             "order_date" => $order->get_date_created(),
             "date_format" => $date_format,

@@ -20,7 +20,10 @@ class Integrations
             if (PluginsHelper::is_plugin_active('atum-stock-manager-for-woocommerce/atum-stock-manager-for-woocommerce.php')) {
                 add_action('init', array($this, "atumStockManagerForWoocommerce"));
             }
-            add_action('init', array($this, "dokan"));
+            if (PluginsHelper::is_plugin_active('dokan-lite/dokan.php')) {
+                add_action('init', array($this, "dokan"));
+                add_action('init', array($this, "dokanVendorField"));
+            }
             add_action('init', array($this, "checkoutFeesForWoocommerce"));
 
             add_action('init', array($this, "userAcfFields"));
@@ -28,6 +31,8 @@ class Integrations
             add_action('init', array($this, "fulfillmentStep"));
 
             add_action('init', array($this, "cartQtyStep"));
+
+            add_action('init', array($this, "postDateFields"));
         } catch (\Throwable $th) {
         }
     }
@@ -289,7 +294,8 @@ class Integrations
 
     public function dokan()
     {
-        try {
+
+                try {
             if (!is_plugin_active('dokan-lite/dokan.php')) {
                 return;
             }
@@ -316,6 +322,78 @@ class Integrations
                 }
             }
         } catch (\Throwable $th) {
+        }
+    }
+
+    public function dokanVendorField()
+    {
+        try {
+            add_action('scanner_product_fields_filter', function ($fields) {
+                if ($fields) {
+                    foreach ($fields as $key => &$value) {
+                        if (isset($value['field_name']) && $value['field_name'] === '_dokan_vendor') {
+                            $vendors = get_users(array(
+                                'meta_key' => 'dokan_enable_selling',
+                                'meta_value' => 'yes',
+                            ));
+
+                                                        $options = array();
+
+                            if ($vendors) {
+                                foreach ($vendors as $vendor) {
+                                    $options[$vendor->ID] = $vendor->display_name;
+                                }
+                            }
+
+                            $value['options'] = json_encode($options);
+                        }
+                    }
+                }
+
+                return $fields;
+            }, 10, 1);
+
+            add_filter('scanner_search_result', function ($items, $customFilter) {
+                if ($items && count($items) == 1) {
+                    $parentId = get_post_field('post_parent', $items[0]['ID']);
+
+                    if ($parentId) {
+                        $items[0]['_dokan_vendor'] = get_post_field('post_author', $parentId);
+                    } else {
+                        $items[0]['_dokan_vendor'] = get_post_field('post_author', $items[0]['ID']);
+                    }
+                }
+
+                return $items;
+            }, 10, 2);
+
+            add_action('barcode_scanner__dokan_vendor_set_after', function ($value, $field, $id) {
+                if ($value) {
+                    $parentId = get_post_field('post_parent', $id);
+
+                    if ($parentId) {
+                        wp_update_post(array('ID' => $parentId, 'post_author' => $value ));
+
+                        $args = array(
+                            'post_type' => 'product_variation',
+                            'post_parent' => $parentId,
+                        );
+                        $posts = get_posts($args);
+
+                        if ($posts) {
+                            foreach ($posts as $post) {
+                                wp_update_post(array('ID' => $post->ID, 'post_author' => $value ));
+                            }
+                        }
+                    } else {
+                        wp_update_post(array('ID' => $id, 'post_author' => $value ));
+                    }
+                }
+
+                return $value;
+            }, 10, 3);
+
+                    } catch (\Throwable $th) {
         }
     }
 
@@ -458,5 +536,42 @@ class Integrations
 
             return $step;
         }, 10, 5);
+    }
+
+    public function postDateFields()
+    {
+        add_action('scanner_search_result', function ($items, $customFilter) {
+            foreach ($items as &$item) {
+                if (isset($item['_sale_price_dates_from'])) {
+                    if (preg_match("/^[0-9]{10}$/", $item['_sale_price_dates_from'])) {
+                        $item['_sale_price_dates_from'] = date("Y-m-d", $item['_sale_price_dates_from']);
+                    }
+                }
+
+                if (isset($item['_sale_price_dates_to'])) {
+                    if (preg_match("/^[0-9]{10}$/", $item['_sale_price_dates_to'])) {
+                        $item['_sale_price_dates_to'] = date("Y-m-d", $item['_sale_price_dates_to']);
+                    }
+                }
+            }
+
+            return $items;
+        }, 10, 2);
+
+        add_action('barcode_scanner__sale_price_dates_from_set_after', function ($value, $field, $id) {
+            if (preg_match("/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/", $value)) {
+                $value = strtotime($value);
+            }
+
+            return $value;
+        }, 10, 3);
+
+        add_action('barcode_scanner__sale_price_dates_to_set_after', function ($value, $field, $id) {
+            if (preg_match("/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/", $value)) {
+                $value = strtotime($value);
+            }
+
+            return $value;
+        }, 10, 3);
     }
 }

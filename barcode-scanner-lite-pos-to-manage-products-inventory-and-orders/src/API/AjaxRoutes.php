@@ -12,6 +12,7 @@ use UkrSolution\BarcodeScanner\API\classes\BatchNumbers;
 use UkrSolution\BarcodeScanner\API\classes\BatchNumbersWebis;
 use UkrSolution\BarcodeScanner\API\classes\PostsList;
 use UkrSolution\BarcodeScanner\API\classes\Users;
+use UkrSolution\BarcodeScanner\Database;
 use UkrSolution\BarcodeScanner\features\Debug\Debug;
 use UkrSolution\BarcodeScanner\features\history\History;
 use UkrSolution\BarcodeScanner\features\logs\Logs;
@@ -32,7 +33,7 @@ class AjaxRoutes
 
         $this->coreInstance = $coreInstance;
 
-        if (isset($post["rout"]) && $post["rout"]) {
+            if (isset($post["rout"]) && $post["rout"]) {
             $route = sanitize_text_field($post["rout"]);
 
             add_filter('scanner_filter_cart_item_price', function ($productId, $price, $customFilter) {
@@ -70,9 +71,9 @@ class AjaxRoutes
 
                 if ($platform == "android" || $platform == "ios") {
                     wp_set_current_user($tokenUserId);
-                }
 
-                Users::updateAppUsesTime($tokenUserId);
+                    Users::updateAppUsesTime($tokenUserId);
+                }
             }
 
             if (!key_exists('woocommerce/woocommerce.php', get_plugins())) {
@@ -138,7 +139,7 @@ class AjaxRoutes
                 "reqbs",
                 "postAutoAction",
                 "postAutoField",
-                "ignoreStockDisabled",
+                "postAutoActionQtyStep",
                 "status",
                 "autoFill",
                 "byId",
@@ -148,6 +149,7 @@ class AjaxRoutes
                 "orderCustomShippingTax",
                 "orderCustomSubPrice",
                 "orderCustomTax",
+                "orderCustomCashGot",
                 "orderStatus",
                 "shippingMethod",
                 "paymentMethod",
@@ -185,7 +187,8 @@ class AjaxRoutes
                 "attributeName",
                 "attributeValue",
                 "loadCustomerData",
-                "taxonomy"
+                "taxonomy",
+                "ignoreIncrease",
             );
             $keysArray = array(
                 "filter",
@@ -222,7 +225,8 @@ class AjaxRoutes
                 "globalAttributes",
                 "customAttributes",
                 "globalOptions",
-                "customOptions"
+                "customOptions",
+                "ids"
             );
             $response = array();
 
@@ -337,6 +341,7 @@ class AjaxRoutes
                     break;
                 case 'changeOrderAddress':
                     PermissionsHelper::onePermRequired(['orders']);
+                    PermissionsHelper::onePermRequired(['order_edit_address']);
                     $response = $managementActions->changeOrderAddress($request);
                     break;
                 case 'updateOrderMeta':
@@ -451,6 +456,14 @@ class AjaxRoutes
                     PermissionsHelper::onePermRequired(['linkcustomer', 'plugin_settings']);
                     $response = $usersActions->find($request);
                     break;
+                case 'getUsersByIds':
+                    PermissionsHelper::onePermRequired(['linkcustomer', 'plugin_settings']);
+                    $response = $usersActions->getUsersByIds($request);
+                    break;
+                case 'getRoleData':
+                    PermissionsHelper::onePermRequired(['linkcustomer', 'plugin_settings']);
+                    $response = $usersActions->getRoleData($request);
+                    break;
                 case 'userCreate':
                     PermissionsHelper::onePermRequired(['orders', 'cart']);
                     PermissionsHelper::onePermRequired(['linkcustomer']);
@@ -510,6 +523,7 @@ class AjaxRoutes
                     break;
                 case 'backgroundIndexing':
                     PermissionsHelper::onePermRequired(['inventory', 'newprod', 'orders', 'cart']);
+                    Database::pluginUpdateHistory();
                     $response = $dbActions->backgroundIndexing($request);
                     break;
                 case 'indexingClearTable':
@@ -540,17 +554,38 @@ class AjaxRoutes
                     $settings->updateSettings("userSessions", $userSessions, "text");
                     $uid = $this->getParam($post, "userId", "");
                     $userAction = $this->getParam($post, "userAction", "");
+                    $usersIds = $this->getParam($post, "ids", array());
+
                     $password = "";
-                    if ($uid && $userAction == "add") {
-                        $password = $usersActions->usersGenerateOtp();
-                        update_user_meta($uid, "barcode_scanner_app_otp", md5($password));
-                        update_user_meta($uid, "barcode_scanner_app_otp_expired_dt", time());
+
+                    if ($uid == 0 && $usersIds) {
+                        foreach ($usersIds as $_uid) {
+                            if ($_uid && $userAction == "add") {
+                                $password = $usersActions->usersGenerateOtp();
+                                update_user_meta($_uid, "barcode_scanner_app_otp", md5($password));
+                                update_user_meta($_uid, "barcode_scanner_app_otp_expired_dt", time());
+                            }
+                            if ($_uid && $userAction == "remove") {
+                                update_user_meta($_uid, "barcode_scanner_app_otp", "");
+                                update_user_meta($_uid, "barcode_scanner_app_otp_expired_dt", "");
+                                update_user_meta($_uid, "barcode_scanner_app_auth_method", "");
+                            }
+                        }
+                        $password = "";
+                    } else {
+                        if ($uid && $userAction == "add") {
+                            $password = $usersActions->usersGenerateOtp();
+                            update_user_meta($uid, "barcode_scanner_app_otp", md5($password));
+                            update_user_meta($uid, "barcode_scanner_app_otp_expired_dt", time());
+                        }
+                        if ($uid && $userAction == "remove") {
+                            update_user_meta($uid, "barcode_scanner_app_otp", "");
+                            update_user_meta($uid, "barcode_scanner_app_otp_expired_dt", "");
+                            update_user_meta($uid, "barcode_scanner_app_auth_method", "");
+                        }
                     }
-                    if ($uid && $userAction == "remove") {
-                        update_user_meta($uid, "barcode_scanner_app_otp", "");
-                        update_user_meta($uid, "barcode_scanner_app_otp_expired_dt", "");
-                    }
-                    $urlData = $MobileRouter->getParamsFromPlainUrl();
+
+		                        $urlData = $MobileRouter->getParamsFromPlainUrl();
                     $jsData = $this->coreInstance->adminEnqueueScripts(true, true, $urlData);
                     $usbs = $jsData && isset($jsData['usbs']) ? $jsData['usbs'] : array();
                     $response = rest_ensure_response(array("usbs" => $usbs, "password" => $password));
@@ -621,6 +656,7 @@ class AjaxRoutes
             if ($response && $response->data) {
                 $updatedTimestamp = $settings->getSettings("updated_timestamp");
                 $response->data["settings_updated_timestamp"] = $updatedTimestamp ? $updatedTimestamp->value : "";
+                $response->data["microtime"] = microtime(true);
                 echo json_encode($response->data);
             } else {
                 echo json_encode("error");

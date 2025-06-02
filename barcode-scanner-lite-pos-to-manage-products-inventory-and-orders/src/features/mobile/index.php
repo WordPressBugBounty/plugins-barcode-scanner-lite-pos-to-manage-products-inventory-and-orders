@@ -14,6 +14,7 @@ $usbsOrderCF = $jsData && isset($jsData['usbsOrderCF']) ? $jsData['usbsOrderCF']
 $userFormCF = $jsData && isset($jsData['userFormCF']) ? $jsData['userFormCF'] : array();
 $usbsWooShippmentProviders = $jsData && isset($jsData['usbsWooShippmentProviders']) ? $jsData['usbsWooShippmentProviders'] : array();
 $usbsLangs = $jsData && isset($jsData['usbsLangs']) ? $jsData['usbsLangs'] : array();
+$usbsLangsApp = $jsData && isset($jsData['usbsLangsApp']) ? $jsData['usbsLangsApp'] : array();
 $usbsInterface = $jsData && isset($jsData['usbsInterface']) ? $jsData['usbsInterface'] : array();
 $cartExtraData = $jsData && isset($jsData['cartExtraData']) ? $jsData['cartExtraData'] : array();
 
@@ -40,6 +41,9 @@ $userRole = $userId ? Users::getUserRole($userId) : '';
 </script>
 <script>
     window.usbsLangsMobile = <?php echo json_encode($usbsLangs); ?>;
+</script>
+<script>
+    window.usbsLangsMobileApp = <?php echo json_encode($usbsLangsApp); ?>;
 </script>
 <script>
     window.usbsInterfaceMobile = <?php echo json_encode(apply_filters("scanner_product_fields_filter", $usbsInterface)); ?>;

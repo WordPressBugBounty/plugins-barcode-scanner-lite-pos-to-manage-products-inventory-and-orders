@@ -60,4 +60,29 @@ class IntegrationsHelper
 
         return $clear_string;
     }
+
+    public static function getUegenPostValue($id)
+    {
+        $value = "";
+        $uegenSettingsOptions = get_option('uegen-settings-options');
+
+        if ($uegenSettingsOptions && isset($uegenSettingsOptions['general'])) {
+            $codeType = isset($uegenSettingsOptions['general']['code-type']) ? $uegenSettingsOptions['general']['code-type'] : "";
+            $codeStoreField = isset($uegenSettingsOptions['general']['code-store-field']) ? $uegenSettingsOptions['general']['code-store-field'] : "";
+            $codeStoreCustomField = isset($uegenSettingsOptions['general']['code-store-custom-field']) ? $uegenSettingsOptions['general']['code-store-custom-field'] : "";
+            $field = "";
+
+            if ($codeStoreField == "custom") {
+                $field = $codeStoreCustomField;
+            } else if ($codeStoreField == "woocommercesku") {
+                $field = "_sku";
+            }
+
+            if ($field) {
+                $value = get_post_meta($id, $field, true);
+            }
+        }
+
+        return $value;
+    }
 }

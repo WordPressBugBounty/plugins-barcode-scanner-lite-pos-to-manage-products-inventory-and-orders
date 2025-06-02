@@ -64,17 +64,17 @@ $button_js_default = '// Get product details
                             </td>
                         </tr>
 
-                        <tr class="disabled_field">
+                        <tr class="read_only">
                             <td scope="row" style="text-align:left; padding: 0 10px 0 10px; width: 110px; box-sizing: border-box;">
-                                <label onclick="WebbsFieldsChToggle(this, 'usbs_field_disabled_field')" data-fid="<?php echo esc_attr($field["id"]); ?>">
+                                <label onclick="WebbsFieldsChToggle(this, 'usbs_field_read_only')" data-fid="<?php echo esc_attr($field["id"]); ?>">
                                     <?php echo esc_html__("Read-only", "us-barcode-scanner"); ?>
                                 </label>
                             </td>
                             <td style="padding: 0 0 5px;">
                                 <!-- checkbox -->
-                                <?php $checked = $field["disabled_field"] == 1 ? ' checked=checked ' : ''; ?>
-                                <input type="checkbox" class="usbs_field_disabled_field" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> data-fid="<?php echo esc_attr($field["id"]); ?>" onchange="WebbsSettingsCheckboxChange(`#bs-settings-fields-tab .disabled_field input[data-fid='<?php echo esc_attr($field['id']); ?>']`, this.checked ? '1' : '0')" />
-                                <input type="hidden" name="fields[<?php echo esc_attr($field["id"]); ?>][disabled_field]" value="<?php echo $checked ? esc_attr("1") : esc_attr("0"); ?>" data-fid="<?php echo esc_attr($field["id"]); ?>" />
+                                <?php $checked = $field["read_only"] == 1 ? ' checked=checked ' : ''; ?>
+                                <input type="checkbox" class="usbs_field_read_only" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> data-fid="<?php echo esc_attr($field["id"]); ?>" onchange="WebbsSettingsCheckboxChange(`#bs-settings-fields-tab .read_only input[data-fid='<?php echo esc_attr($field['id']); ?>']`, this.checked ? '1' : '0')" />
+                                <input type="hidden" name="fields[<?php echo esc_attr($field["id"]); ?>][read_only]" value="<?php echo $checked ? esc_attr("1") : esc_attr("0"); ?>" data-fid="<?php echo esc_attr($field["id"]); ?>" />
                             </td>
                         </tr>
 
@@ -110,6 +110,7 @@ $button_js_default = '// Get product details
                                     <?php if (YITHPointOfSale::status()) : ?>
                                         <option value="_yith_pos_multistock" <?php echo $field["type"] == "_yith_pos_multistock" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo  esc_html__("YITH Point of Sale", "us-barcode-scanner"); ?></option>
                                     <?php endif; ?>
+                                    <option value="checkbox" <?php echo $field["type"] == "checkbox" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo  esc_html__("Checkbox", "us-barcode-scanner"); ?></option>
                                 </select>
                             </td>
                         </tr>

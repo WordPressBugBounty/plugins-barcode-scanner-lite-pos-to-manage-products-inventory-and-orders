@@ -3,14 +3,14 @@
  * Plugin Name: Barcode Scanner with Inventory & Order Manager - (business)
  * Description: Scan barcodes to find & manage inventory and orders.
  * Text Domain: us-barcode-scanner
- * Version: 1.8.0
- * Build: 1738162470266
+ * Version: 1.9.1
+ * Build: 1748599014784
  * Author: UkrSolution
  * Plugin URI: https://www.ukrsolution.com/Wordpress/WooCommerce-Barcode-QRCode-Scanner-Reader
  * Author URI: http://www.ukrsolution.com
  * License: GPL2
  * WC requires at least: 2.0.0
- * -WC tested up to: 9.6.*
+ * -WC tested up to: 9.8.*
  */
 
 use UkrSolution\BarcodeScanner\Database;
@@ -22,6 +22,10 @@ if (!defined('ABSPATH')) {
 }
 
 include_once ABSPATH . 'wp-admin/includes/plugin.php';
+
+if (file_exists(__DIR__ . '/src/PaymentCashCashier.php')) {
+    include_once __DIR__ . '/src/PaymentCashCashier.php';
+}
 
 if (!is_plugin_active(plugin_basename(__FILE__))) {
     $activePlugins = is_multisite() ? get_site_option('active_sitewide_plugins') : get_option('active_plugins');
@@ -65,34 +69,6 @@ add_action('init', function () {
     load_plugin_textdomain('us-barcode-scanner', false, $pluginRelPath);
 }, 1);
 
-add_action('init', function () {
-    global $wpdb;
-
-    $lastVersion = get_option("web_active-barcode-scanner-version", "");
-    $pluginData = \get_plugin_data(dirname(__FILE__) . "/barcode-scanner.php");
-
-    $fileData = get_file_data(dirname(__FILE__) . "/barcode-scanner.php",  array('Version' => 'Version', 'Build' => 'Build'));
-    $lastBuild = get_option("web_active-barcode-scanner-build", "");
-    $build = $fileData && isset($fileData['Build']) ? $fileData['Build'] : null;
-
-    if ($pluginData && isset($pluginData["Version"]) && $lastVersion !== $pluginData["Version"]) {
-        try {
-            Database::setupTables(null);
-            $table = $wpdb->prefix . Database::$posts;
-            $wpdb->query("UPDATE {$table} SET `updated` = '0000-00-00 00:00:00';");
-
-            update_option("web_active-barcode-scanner-version", $pluginData["Version"]);
-        } catch (\Throwable $th) {
-        }
-    } elseif ($build && $lastBuild != $build) {
-        try {
-            Database::setupTables(null);
-
-            update_option("web_active-barcode-scanner-build", $build);
-        } catch (\Throwable $th) {
-        }
-    }
-}, 1);
 
 add_filter('plugin_action_links_' . plugin_basename(__FILE__), function ($links) {
     $url = get_admin_url() . "admin.php?page=barcode-scanner-settings";

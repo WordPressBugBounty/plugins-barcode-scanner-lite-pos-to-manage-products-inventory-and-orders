@@ -54,21 +54,46 @@ class Auth
 
         try {
             $password = isset($_POST["password"]) ? $_POST["password"] : (isset($_GET["password"]) ? trim($_GET["password"]) : "");
+            $username = isset($_POST["username"]) ? $_POST["username"] : (isset($_GET["username"]) ? trim($_GET["username"]) : "");
             $user = null;
+            $method = "one_time_password";
 
-            if ($password) {
-                $p = strlen($password) < 40 ? md5(strtoupper($password)) : $password;
-                $userMeta = $wpdb->get_row("SELECT UM.meta_key, UM.meta_value, UM.user_id FROM {$wpdb->usermeta} AS UM WHERE UM.meta_key IN ('barcode_scanner_app_otp') AND UM.meta_value = '{$p}'");
+            $settings = new Settings();
+            $appLoginMethods = $settings->getSettings("appLoginMethods");
+            $appLoginMethods = $appLoginMethods === null ? 'both' : $appLoginMethods->value;
 
-                if ($userMeta && $userMeta->user_id) {
-                    $user = get_user_by("ID", $userMeta->user_id);
-                }
+            if ($username && $password) {
+                if($appLoginMethods === "login_pass" || $appLoginMethods === "both") {
+                    $user = get_user_by('login', $username);
+
+                    if (!$user) {
+                        $user = get_user_by('email', $username);
+                    }
+
+                    if ($user && !is_wp_error($user) && isset($user->data) && wp_check_password($password, $user->data->user_pass, $user->ID)) {
+                        $password = "";                    
+                    } else {
+                        $user = null;
+                    }
+                }                
+
+                $method = "login_password";
+            }
+            else if ($password) {
+                if ($appLoginMethods === "one_time_password" || $appLoginMethods === "both" || $username === "") {
+                    $p = strlen($password) < 40 ? md5(strtoupper($password)) : $password;
+                    $userMeta = $wpdb->get_row("SELECT UM.meta_key, UM.meta_value, UM.user_id FROM {$wpdb->usermeta} AS UM WHERE UM.meta_key IN ('barcode_scanner_app_otp') AND UM.meta_value = '{$p}'");
+
+                    if ($userMeta && $userMeta->user_id) {
+                        $user = get_user_by("ID", $userMeta->user_id);
+                    }
 
 
-                $expired = $user ? get_user_meta($user->ID, "barcode_scanner_app_otp_expired_dt", true) : null;
+                    $expired = $user ? get_user_meta($user->ID, "barcode_scanner_app_otp_expired_dt", true) : null;
 
-                if ($expired && (time() - $expired) > 60 * 60 * 24 * 30) {
-                    $user = null;
+                    if ($expired && (time() - $expired) > 60 * 60 * 24 * 30) {
+                        $user = null;
+                    }
                 }
             }
 
@@ -92,11 +117,12 @@ class Auth
                     $password = md5(SettingsHelper::generateRandomString(20)) . md5(mt_rand(1000000, 9999999));
                     update_user_meta($user->ID, "barcode_scanner_app_otp", $password);
                     update_user_meta($user->ID, "barcode_scanner_app_otp_expired_dt", "");
+                    update_user_meta($user->ID, "barcode_scanner_app_auth_method", $method);
                     $data["password"] = $password;
                     $data["token"] = $password;
                 }
             } else if (!$user) {
-                $data["securityIssue"] = 1;
+                $data["securityIssue"] = $method === "login_password" ? 2 : 1;                
             }
         } catch (\Throwable $th) {
             $data = array("error" => $th->getMessage());
@@ -255,7 +281,7 @@ class Auth
                 "username" => $user->display_name ? $user->display_name : $user->user_nicename,
                 "website" => $domain,
                 "protocol" => $protocol,
-                "pluginVersion" => "1.8.0",
+                "pluginVersion" => "1.9.1",
                 "wpVersion" => $wp_version,
                 "wooVersion" => $this->getWooVersion(),
                 "phpVersion" => phpversion(),

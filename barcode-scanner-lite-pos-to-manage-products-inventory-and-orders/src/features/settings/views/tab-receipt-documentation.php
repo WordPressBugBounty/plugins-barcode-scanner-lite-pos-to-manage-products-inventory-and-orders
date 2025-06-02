@@ -54,7 +54,7 @@ $tabs = array(
             __('Order tax', "us-barcode-scanner") => '[order-tax]',
             __('Order total price', "us-barcode-scanner") => '[order-total]',
             __('Order discount', "us-barcode-scanner") => '[order-discount before="Discount:" show-value="false"]',
-            __('Order date', "us-barcode-scanner") => '[order-date format="DD.MM.YYYY HH:mm"]',
+            __('Order date (JS format)', "us-barcode-scanner") => '[order-date format="DD.MM.YYYY HH:mm"]',
             __('Pull data from the order custom/meta field', "us-barcode-scanner") => '[custom-field=XXXX]',
             "<b>" . __('Billing:', 'us-barcode-scanner') . "</b>" => '',
             __('Order billing first name', "us-barcode-scanner") => '[order-billing-first-name]',

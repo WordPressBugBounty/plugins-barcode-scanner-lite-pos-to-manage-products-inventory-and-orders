@@ -4,7 +4,7 @@ $tabPrintingFields = array(
         "label" => esc_html__("Press \"CREATE\" label button automatically", "us-barcode-scanner"),
         "type" => "checkbox",
         "fieldName" => "uslpBtnAutoCreate",
-        "defaultValue" => "on",
+        "defaultValue" => "off",
     ),
     array(
         "label" => esc_html__("Use \"Receipt\" button for label printing plugin", "us-barcode-scanner"),

@@ -226,8 +226,8 @@
                 </th>
                 <td>
                     <?php
-                    $defaultValue = $settings->getSettings("sortOrderItemsByCategories");
-                    $defaultValue = $defaultValue === null ? 'off' : $defaultValue->value;
+                    $sortOrderItemsByCategories = $settings->getSettings("sortOrderItemsByCategories");
+                    $defaultValue = $sortOrderItemsByCategories === null ? 'off' : $sortOrderItemsByCategories->value;
                     ?>
                     <label>
                         <?php $checked = $defaultValue !== "off" ? ' checked=checked ' : ''; ?>
@@ -235,6 +235,27 @@
                         <input type="hidden" name="sortOrderItemsByCategories" value="<?php echo $checked ? "on" : "off"; ?>" />
                         <?php echo esc_html__("Enable", "us-barcode-scanner"); ?>
                     </label>
+                </td>
+            </tr>
+            <!-- Fast front-end fulfillment -->
+            <tr id="fulfillment_frontend_search">
+                <th scope="row">
+                    <?php echo esc_html__("Fast front-end fulfillment.", "us-barcode-scanner"); ?>
+                </th>
+                <td>
+                    <?php
+                    $defaultValue = $settings->getSettings("fulfillmentFrontendSearch");
+                    $defaultValue = $defaultValue === null ? ($sortOrderItemsByCategories == null ? "on" : "off") : $defaultValue->value;
+                    ?>
+                    <label>
+                        <?php $checked = $defaultValue !== "off" ? ' checked=checked ' : ''; ?>
+                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> onchange="WebbsSettingsCheckboxChange(`#fulfillment_frontend_search input[name='fulfillmentFrontendSearch']`,this.checked ? 'on' : 'off')" />
+                        <input type="hidden" name="fulfillmentFrontendSearch" value="<?php echo $checked ? "on" : "off"; ?>" />
+                        <?php echo esc_html__("Enable", "us-barcode-scanner"); ?>
+                    </label>
+                    <div>
+                        <i><?php echo esc_html__('This option allows to mark product as "fulfilled" without waiting for the ajax response.', "us-barcode-scanner"); ?></i>
+                    </div>
                 </td>
             </tr>
 

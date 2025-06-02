@@ -29,7 +29,10 @@ if (file_exists($root . "/wp-includes/plugin.php")) {
 require($root . "/wp-load.php");
 
 $dt = new \DateTime("now");
-$tempFileName = isset($_GET['fn']) ? sanitize_text_field($_GET['fn']) : null;
+
+$tempFileName = isset($_GET['fn']) ? sanitize_text_field($_GET['fn']) : "";
+
+$tempFileName = str_replace("..", "", $tempFileName);
 
 if ($tempFileName && current_user_can('administrator')) {
     $wp_upload_dir = wp_upload_dir();

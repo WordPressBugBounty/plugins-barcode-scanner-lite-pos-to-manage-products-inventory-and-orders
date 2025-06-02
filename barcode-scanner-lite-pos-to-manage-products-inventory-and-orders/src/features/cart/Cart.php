@@ -167,6 +167,18 @@ class Cart
                         );
                     }
                 }
+
+                $paymentCashCashier = array_filter($enabledGateways, function($gateway) {
+                    return $gateway['id'] === 'payment_cash_cashier';
+                });
+
+                $enabledGateways = array_filter($enabledGateways, function($gateway) {
+                    return $gateway['id'] !== 'payment_cash_cashier';
+                });
+
+                if ($paymentCashCashier) {
+                    $enabledGateways = array_merge($paymentCashCashier, $enabledGateways);
+                }
             }
         } catch (\Throwable $th) {
         }

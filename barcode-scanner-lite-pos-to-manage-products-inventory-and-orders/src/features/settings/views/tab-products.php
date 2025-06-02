@@ -58,7 +58,7 @@ use UkrSolution\BarcodeScanner\API\PluginsHelper;
                 <td>
                     <label>
                         <?php
-                        if ($allowNegativeStock && $allowNegativeStock->value === "on") {
+                        if (!$allowNegativeStock || ($allowNegativeStock && $allowNegativeStock->value === "on")) {
                             $checked = ' checked=checked ';
                         } else {
                             $checked = '';

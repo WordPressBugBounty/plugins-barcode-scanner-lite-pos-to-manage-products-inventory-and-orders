@@ -74,6 +74,64 @@ class UsersActions
         return rest_ensure_response($result);
     }
 
+    public function getUsersByIds(WP_REST_Request $request)
+    {
+        $ids = $request->get_param("ids");
+        $users = array();
+        $errors = array();
+
+        try {
+            $users = get_users(array('include' => $ids));
+
+            $users = array_map(function ($user) {
+                $otp = get_user_meta($user->ID, 'barcode_scanner_app_otp', true);
+                $expired = get_user_meta($user->ID, 'barcode_scanner_app_otp_expired_dt', true);
+                $lastUsed = get_user_meta($user->ID, 'barcode_scanner_app_last_used', true);
+                $authMethod = get_user_meta($user->ID, 'barcode_scanner_app_auth_method', true);
+
+                return array(
+                    'id' => $user->ID,
+                    'name' => $user->display_name,
+                    'nicename' => $user->user_nicename,
+                    'otp' => $otp,
+                    'otp_expired_dt' => $expired ? (time() - $expired) > 60 * 60 * 24 * 30 ? 1 : 0 : 0,
+                    'last_used' => $lastUsed,
+                    'auth_method' => $authMethod
+                );
+            }, $users);
+        } catch (\Throwable $th) {
+            $errors[] = $th->getMessage();
+        }
+
+        return rest_ensure_response(array("users" => $users, "errors" => $errors));
+    }
+
+    public function getRoleData(WP_REST_Request $request)
+    {
+        global $wp_roles;
+
+        $roleSlug = $request->get_param("query");
+        $roleData = array();
+        $errors = array();
+
+        if ($roleSlug) {
+            $role = get_role($roleSlug);
+
+                        if ($role) {
+                if (!isset($wp_roles)) {
+                    $wp_roles = new WP_Roles();
+                }
+                $roleData["name"] = $role->name;
+                $roleData["label"] = isset($wp_roles->role_names[$roleSlug]) ? translate_user_role($wp_roles->role_names[$roleSlug]) : $roleSlug;
+
+                $userIds = get_users(array('role' => $roleSlug, 'fields' => 'ID'));
+                $roleData["ids"] = $userIds;
+            }
+        }
+
+        return rest_ensure_response(array("roleData" => $roleData, "errors" => $errors));
+    }
+
     public function createUser(WP_REST_Request $request)
     {
         global $wpdb;
@@ -207,8 +265,10 @@ class UsersActions
                 ));
             }
             $password = $this->usersGenerateOtp();
+
             update_user_meta($userId, "barcode_scanner_app_otp", md5($password));
             update_user_meta($userId, "barcode_scanner_app_otp_expired_dt", time());
+            update_user_meta($userId, "barcode_scanner_app_auth_method", "");
         } catch (\Throwable $th) {
             $errors[] = $th->getMessage();
         }

@@ -156,4 +156,27 @@ class ProductsHelper
 
         return $attributes;
     }
+
+    public static function setSKU($productId, $sku)
+    {
+        try {
+            $product = \wc_get_product($productId);
+
+            if ($product) {
+                $product->set_sku($sku);
+                $product->save();
+
+
+                return true;
+            } else {
+                return rest_ensure_response(array(
+                    "errors" => array("Product not found")
+                ));
+            }
+        } catch (\Throwable $th) {
+            return rest_ensure_response(array(
+                "errors" => array($th->getMessage())
+            ));
+        }
+    }
 }

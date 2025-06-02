@@ -8,6 +8,7 @@ use UkrSolution\BarcodeScanner\API\classes\Post;
 use UkrSolution\BarcodeScanner\API\classes\ProductsHelper;
 use UkrSolution\BarcodeScanner\API\classes\Results;
 use UkrSolution\BarcodeScanner\API\classes\ResultsHelper;
+use UkrSolution\BarcodeScanner\API\classes\SearchFilter;
 use UkrSolution\BarcodeScanner\API\classes\Users;
 use UkrSolution\BarcodeScanner\Database;
 use UkrSolution\BarcodeScanner\features\Debug\Debug;
@@ -88,6 +89,7 @@ class HPOS
         Debug::addPoint("1. orders = " . count($orders));
 
         if (count($orders)) {
+
             return array(
                 "total" => $total ? $total->total : 0,
                 "limit" => $searchResultsLimit,
@@ -285,7 +287,7 @@ class HPOS
 
         $limit = self::$limit;
         $sql .= ($filterSql) ? $filterSql : " 1 != 1 ";
-        $sql .= " ) GROUP BY P.ID ORDER BY P.post_date DESC LIMIT {$limit} ";
+        $sql .= " ) GROUP BY P.ID ORDER BY P.post_modified DESC, P.post_date DESC LIMIT {$limit} ";
 
         if ($selectColumns) {
             $sql = str_replace("%SELECT_COLUMNS%", ", " . implode(", ", $selectColumns), $sql);
@@ -378,6 +380,8 @@ class HPOS
         $order_subtotal_taxes = array();
 
         $shipping_class_names = \WC()->shipping->get_shipping_method_class_names();
+
+        $settings = new Settings();
 
         $order_shipping = 0;
         $order_shipping_tax = 0;
@@ -508,8 +512,8 @@ class HPOS
                 "subtotal_tax_c" => strip_tags(wc_price($item->get_subtotal_tax())),
                 "total_tax" => self::clearPrice($item->get_total_tax(), $args),
                 "total_tax_c" => strip_tags(wc_price($item->get_total_tax())),
-                "item_price_tax" => self::clearPrice(($item->get_subtotal() / $quantity) + $item->get_total_tax(), $args),
-                "item_price_tax_c" => strip_tags(wc_price(($item->get_subtotal() / $quantity) + $item->get_total_tax())),
+                "item_price_tax" => $quantity ? self::clearPrice(($item->get_subtotal() / $quantity) + $item->get_total_tax(), $args) : self::clearPrice($item->get_total_tax(), $args),
+                "item_price_tax_c" => $quantity ? strip_tags(wc_price(($item->get_subtotal() / $quantity) + $item->get_total_tax())) : strip_tags(wc_price($item->get_total_tax())),
                 "item_price_tax_total" => self::clearPrice($item->get_subtotal() + $item->get_total_tax(), $args),
                 "item_price_tax_total_c" => strip_tags(wc_price($item->get_total() + $item->get_total_tax())),
                 "item_regular_price" => self::clearPrice(get_post_meta($id, "_regular_price", true)), 
@@ -539,6 +543,36 @@ class HPOS
                 $_productData[$value['field_name']] = $filteredValue;
             }
 
+            $filter = SearchFilter::get();
+
+            if ($filter && isset($filter['products']) && is_array($filter['products'])) {
+                foreach ($filter['products'] as $key => $value) {
+                    if (strpos($key, 'custom-') !== false) {
+                        if (!isset($_productData[$value])) {
+                            $defaultValue = \get_post_meta($_productData["ID"], $value, true);
+                            $filteredValue = apply_filters($filterName, $defaultValue, $value, $_productData["ID"]);
+                            $_productData[$value] = $filteredValue;
+                        }
+                    }
+                }
+            }
+
+            $number_field_step = get_post_meta($_productData["ID"], "number_field_step", true);
+
+                        if ($number_field_step && is_numeric($number_field_step)) {
+                $_productData["number_field_step"] = (float)$number_field_step;
+            } else {
+                $_productData["number_field_step"] = 1;
+            }
+
+
+            $ffQtyStep = $settings->getSettings("ffQtyStep");
+            $ffQtyStep = $ffQtyStep === null ? "" : $ffQtyStep->value;
+
+            if ($ffQtyStep) {
+                $_productData['ffQtyStep'] = get_post_meta($_productData["ID"], $ffQtyStep, true);
+                if ($_productData['ffQtyStep']) $_productData['ffQtyStep'] = (float)$_productData['ffQtyStep'];
+            }
 
             $products[] = $_productData;
 
@@ -580,13 +614,13 @@ class HPOS
 
         $wpFormat = get_option("date_format", "F j, Y") . " " . get_option("time_format", "g:i a");
         $orderDate = new \DateTime($order->get_date_created());
-        $date_format = $orderDate->format($wpFormat);
-        $date_format = SettingsHelper::dateTranslate($date_format);
+        $date_format = $order->get_date_created();
+        $date_format = $date_format->format("Y-m-d H:i:s");
 
         $customerName = $order->get_billing_first_name() . " " . $order->get_billing_last_name();
         $customerName = trim($customerName);
         $customerCountry = $order->get_billing_country();
-        $previewDateFormat = $orderDate->format("M j, Y");
+        $previewDateFormat = $orderDate->format("F j, Y");
         $previewDateFormat = SettingsHelper::dateTranslate($previewDateFormat);
 
         if (!$customerName && $customerId) {
@@ -607,8 +641,6 @@ class HPOS
                 $fulfillment_user_email = $user->user_email;
             }
         }
-
-        $settings = new Settings();
 
         $fulfillmentField = $settings->getSettings("orderFulFillmentField");
         $fulfillmentField = $fulfillmentField === null ? "" : $fulfillmentField->value;
@@ -653,7 +685,7 @@ class HPOS
                     'first_name' => $order->get_shipping_first_name(),
                     'last_name' => $order->get_shipping_last_name(),
                     'company' => $order->get_shipping_company(),
-                    'phone' => $order->get_shipping_phone(),
+                    'phone' => method_exists($order, 'get_shipping_phone') ? $order->get_shipping_phone() : "",
                     'address_1' => $order->get_shipping_address_1(),
                     'address_2' => $order->get_shipping_address_2(),
                     'postcode' => $order->get_shipping_postcode(),
@@ -666,6 +698,7 @@ class HPOS
                 "customer_note" => $order->get_customer_note(),
                 "total_tax" => $order->get_total_tax(),
                 "status" => $order->get_status(),
+                "status_name" => wc_get_order_status_name($order->get_status()),
             ),
             "order_date" => $order->get_date_created(),
             "date_format" => $date_format,
@@ -780,8 +813,9 @@ class HPOS
 
         $wpFormat = get_option("date_format", "F j, Y") . " " . get_option("time_format", "g:i a");
         $orderDate = new \DateTime($order->get_date_created());
-        $date_format = $orderDate->format($wpFormat);
-        $date_format = SettingsHelper::dateTranslate($date_format);
+        $date_format = $order->get_date_created();
+        $date_format = $date_format->format("Y-m-d H:i:s");
+
 
         $customerName = $order->get_billing_first_name() . " " . $order->get_billing_last_name();
         $customerName = trim($customerName);
@@ -817,6 +851,7 @@ class HPOS
             "post_author" => "",
             "data" => array(
                 "status" => $order->get_status(),
+                "status_name" => wc_get_order_status_name($order->get_status()),
             ),
             "order_date" => $order->get_date_created(),
             "date_format" => $date_format,
@@ -826,7 +861,6 @@ class HPOS
             "order_total" => $order->get_total(),
             "order_total_c" => strip_tags(wc_price($order->get_total())),
             "customer_name" => trim($customerName),
-            "products" => array(),
             "total_products" => count($order->get_items("line_item")),
             "updated" => time(),
             "customer_orders_count" => 0,

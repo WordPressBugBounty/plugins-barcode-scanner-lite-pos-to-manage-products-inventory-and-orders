@@ -41,7 +41,7 @@ class Products
     public function pre_get_posts($query)
     {
         try {
-            if ($query->is_main_query() && isset($query->query['post_type']) && 'product' == $query->query['post_type']) {
+            if ($query->is_main_query() && isset($query->query['post_type']) && 'product' == $query->query['post_type'] && is_admin()) {
                 $new_query = clone ($query);
                 $search_term = isset($_REQUEST['s']) ? sanitize_text_field($_REQUEST['s']) : '';
 
@@ -85,6 +85,7 @@ class Products
                 $new_query->set('post_type', 'product_variation');
                 $new_query->set('fields', 'id=>parent');
                 $result = get_posts($new_query->query_vars);
+
                 if ($result) {
                     $new_ids = array_merge($new_ids, $result);
                 }
