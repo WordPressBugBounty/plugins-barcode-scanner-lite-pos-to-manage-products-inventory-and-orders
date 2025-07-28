@@ -49,6 +49,7 @@ return array(
     "tv_qty_increased" => __("Quantity increased", 'us-barcode-scanner'),
     "tv_qty_decreased" => __("Quantity decreased", 'us-barcode-scanner'),
     "tv_found_items" => __("items", 'us-barcode-scanner'),
+    "tv_order_status" => __("Order status:", 'us-barcode-scanner'),
 
     "title_system_information" => __("System information", 'us-barcode-scanner'),
     "btn_send_report" => __("Send report", 'us-barcode-scanner'),
@@ -76,4 +77,28 @@ return array(
     "tv_sale_price" => __("Sale price", 'us-barcode-scanner'),
     "tv_cant_qty_increased" => __("Can't increase, stock is disabled.", 'us-barcode-scanner'),
     "tv_cant_qty_decreased" => __("Can't decrease, stock is disabled.", 'us-barcode-scanner'),
+
+        "otp_is_reset_msg" => __("Your one time password has been reset by administrator. Please ask for a new one and login into app again.", 'us-barcode-scanner'),
+
+    "app_ff_picked_and_total_amount" => __("%x of %y picked", 'us-barcode-scanner'),
+    "app_ff_picked" => __("Picked:", 'us-barcode-scanner'),
+    "app_x_of_y" => __("%x of %y", 'us-barcode-scanner'),
+    "app_ff_pick_btn" => __("Pick", 'us-barcode-scanner'),
+    "app_ff_repick_btn" => __("Re-pick", 'us-barcode-scanner'),
+    "app_ff_confirm_btn" => __("Confirm", 'us-barcode-scanner'),
+    "app_ff_cancel_btn" => __("Cancel", 'us-barcode-scanner'),
+    "app_ff_sure_to_reset_fulfillment" => __("Are you sure you want to reset fulfillment and do it again?", 'us-barcode-scanner'),
+    "app_ff_only_x_can_be_picked" => __("Only %x item(s) should be picked now (not %y)! Please confirm", 'us-barcode-scanner'),
+    "app_ff_tracking_code_from_order" => __("Tracking code is from this order. Please confirm it", 'us-barcode-scanner'),
+
+    "tv_scan_to_pick_item" => __("Scan barcode to pick item", 'us-barcode-scanner'),
+    "tv_product_not_from_order" => __("Scanned product is not from this order!", 'us-barcode-scanner'),
+    "tv_product_correct" => __("Correct product", 'us-barcode-scanner'),
+    "tv_product_fully_picked" => __("Product fully picked", 'us-barcode-scanner'),
+    "tv_tracking_code_correct" => __("Correct tracking code", 'us-barcode-scanner'),
+    "tv_tracking_code_confirmed" => __("Tracking code is confirmed", 'us-barcode-scanner'),
+    "tv_order_already_fulfilled" => __("Order already fulfilled", 'us-barcode-scanner'),
+    "app_undefined_error_text" => __("Undefined error. Contact our support to help resolve this issue.", 'us-barcode-scanner'),
+    "btn_app_ok" => __("OK", 'us-barcode-scanner'),
+    "error" => __("Error", 'us-barcode-scanner'),
 );

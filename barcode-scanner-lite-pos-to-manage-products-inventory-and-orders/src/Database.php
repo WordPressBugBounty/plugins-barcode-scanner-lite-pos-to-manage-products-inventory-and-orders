@@ -471,6 +471,7 @@ class Database
             `show_in_create_order` int(1) DEFAULT 0,
             `show_in_products_list` int(1) DEFAULT 0,
             `disabled_field` int(1) DEFAULT 0,
+            `read_only` int(1) DEFAULT 0,
             `use_for_auto_action` int(1) DEFAULT 0,
             `role` varchar(255) DEFAULT NULL,
             `status` int(1) DEFAULT 1,
@@ -956,6 +957,10 @@ class Database
             $post_title = htmlspecialchars_decode($post_title);
             $post_title = preg_replace('/<[^><]*>/', '', $post_title);
 
+            if (empty($_sku) && $post->post_parent) {
+                $_sku = get_post_meta($post->post_parent, "_sku", true);
+            }
+
             if ($post->post_type == "product") {
                 $product = \wc_get_product($id);
                 $productType = $product->get_type();
@@ -1064,10 +1069,10 @@ class Database
                     if (strpos($attribute_name, 'attribute_pa_') === 0) {
                         $taxonomy = str_replace('attribute_', '', $attribute_name);
                         $term = get_term_by('slug', $attribute_value, $taxonomy);
-                        if ($term && !is_wp_error($term)) {
+                        if ($term && !is_wp_error($term) && $term->name && trim($term->name)) {
                             $attributesValue[] = $term->name;
                         }
-                    } else {
+                    } else if ($attribute_value && trim($attribute_value)) {
                         $attributesValue[] = $attribute_value;
                     }
                 }
@@ -1100,7 +1105,7 @@ class Database
 
                 $uegenCode = IntegrationsHelper::getUegenPostValue($id);
 
-                $wcShipmentTrackingItems = $order->get_meta("_wc_shipment_tracking_items", true);
+                $wcShipmentTrackingItems = OrdersHelper::get_meta_value($order, $id, "_wc_shipment_tracking_items");
                 $_wc_shipment_tracking_items = "";
 
                 if ($wcShipmentTrackingItems && is_array($wcShipmentTrackingItems)) {
@@ -1109,7 +1114,7 @@ class Database
                     }
                 }
 
-                $aftershipTrackingItems = $order->get_meta("_aftership_tracking_items", true);
+                $aftershipTrackingItems = OrdersHelper::get_meta_value($order, $id, "_aftership_tracking_items");
                 $_aftership_tracking_items = "";
 
                 if ($aftershipTrackingItems && is_array($aftershipTrackingItems)) {
@@ -1129,12 +1134,12 @@ class Database
                     'post_author' => $post->post_author,
                     'post_date' => $post->post_date,
                     'post_modified' => $date_modified ? $date_modified->date("Y-m-d H:i:s") : null,
-                    "{$prefix}_order_number" => $order->get_meta("_order_number", true),
+                    "{$prefix}_order_number" => OrdersHelper::get_meta_value($order, $id, "_order_number"),
                     "{$prefix}_billing_address_index" => str_replace("<br/>", ", ", $order->get_formatted_billing_address()),
                     "{$prefix}_shipping_address_index" => str_replace("<br/>", ", ", $order->get_formatted_shipping_address()),
                     "{$prefix}_wc_shipment_tracking_items" => trim($_wc_shipment_tracking_items),
                     "{$prefix}_aftership_tracking_items" => trim($_aftership_tracking_items),
-                    "{$prefix}ywot_tracking_code" => $order->get_meta("ywot_tracking_code", true),
+                    "{$prefix}ywot_tracking_code" => OrdersHelper::get_meta_value($order, $id, "ywot_tracking_code"),
                     "atum_supplier_sku" => $atum["atum_supplier_sku"],
                     "atum_barcode" => $atum["atum_barcode"],
                     "atum_supplier_id" => $atum["atum_supplier_id"],
@@ -1152,7 +1157,7 @@ class Database
 
                 foreach ($additionalColumns as $value) {
                     if ($value['table'] == 'postmeta') {
-                        $column_value = $order->get_meta($value["name"], true);
+                        $column_value = OrdersHelper::get_meta_value($order, $id, $value["name"]);
                         $data["{$value["column"]}"] = $column_value ? trim($column_value) : $column_value;
                     } else if ($value['table'] == 'order-item') {
                         $_items_velues = array();
@@ -1277,5 +1282,27 @@ class Database
         }
 
         $output = ob_get_clean();
+    }
+
+    public static function removeUsersData()
+    {
+        global $wpdb;
+
+        $cf = array(
+            "scanner_custom_order_total",
+            "scanner_custom_order_shipping",
+            "scanner_custom_order_shipping_tax",
+            "scanner_custom_order_custom_taxes",
+            "scanner_active_shipping_method",
+            "scanner_active_payment_method",
+            "scanner_custom_order_cash_got",
+            "barcode_scanner_app_otp",
+            "barcode_scanner_web_otp",
+            "barcode_scanner_app_otp_expired_dt",
+            "barcode_scanner_app_last_used",
+            "barcode_scanner_app_auth_method"
+        );
+
+        $wpdb->query($wpdb->prepare("DELETE FROM {$wpdb->usermeta} WHERE `meta_key` IN ('" . implode("', '", $cf) . "');"));
     }
 }

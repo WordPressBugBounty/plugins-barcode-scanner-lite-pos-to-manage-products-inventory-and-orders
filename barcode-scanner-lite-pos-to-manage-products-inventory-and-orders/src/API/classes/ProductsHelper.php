@@ -179,4 +179,31 @@ class ProductsHelper
             ));
         }
     }
+
+    public static function updatePostModifiedDate($postId)
+    {
+        try {
+            wp_update_post(array('ID' => $postId, 'post_modified' => current_time('mysql'), 'post_modified_gmt' => current_time('mysql', true)));
+        } catch (\Throwable $th) {
+        }
+    }
+
+    public static function getProductCategories($productId)
+    {
+        $itemCategories = array();
+
+        if (!$productId) {
+            return $itemCategories;
+        }
+
+        $terms = get_the_terms($productId, 'product_cat');
+
+        if ($terms && !is_wp_error($terms)) {
+            foreach ($terms as $term) {
+                $itemCategories[] = $term->term_id;
+            }
+        }
+
+        return $itemCategories;
+    }
 }

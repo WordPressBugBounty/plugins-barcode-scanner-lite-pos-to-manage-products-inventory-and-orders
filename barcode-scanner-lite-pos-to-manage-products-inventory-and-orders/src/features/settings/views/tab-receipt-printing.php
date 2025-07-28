@@ -34,6 +34,7 @@ use UkrSolution\BarcodeScanner\API\actions\ManagementActions;
 
             $allowed_tags = wp_kses_allowed_html('post');
             $allowed_tags["link"] = array("href" => 1, "rel" => 1);
+            $allowed_tags["style"] = array("type" => 1);
             ?>
             <tr>
                 <td style="padding: 0; vertical-align: top;">

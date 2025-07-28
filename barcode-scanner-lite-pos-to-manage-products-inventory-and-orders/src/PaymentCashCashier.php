@@ -2,6 +2,9 @@
 
 add_action('plugins_loaded', 'init_gateway_payment_cash_cashier');
 function init_gateway_payment_cash_cashier() {
+    if (!class_exists('WC_Payment_Gateway')) {
+        return;
+    }
 
     class WC_Gateway_Payment_Cash_Cashier extends WC_Payment_Gateway {
 

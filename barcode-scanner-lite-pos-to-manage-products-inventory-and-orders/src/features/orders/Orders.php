@@ -7,6 +7,7 @@ use UkrSolution\BarcodeScanner\features\settings\Settings;
 class Orders
 {
     public $settings;
+    public $postId = null;
 
     function __construct()
     {
@@ -20,10 +21,19 @@ class Orders
                 if ($defaultValue == 'on') {
                     add_action('admin_head', array($this, 'manage_shop_order_posts_custom_column_style'));
                     add_action('manage_shop_order_posts_custom_column', array($this, 'manage_shop_order_posts_custom_column'), 100);
+                    add_action('woocommerce_shop_order_list_table_custom_column', array($this, 'woocommerce_shop_order_list_table_custom_column'), 100, 2);
                 }
             });
-        } catch (\Throwable $th) {
+
+                   } catch (\Throwable $th) {
         }
+    }
+
+    public function woocommerce_shop_order_list_table_custom_column($column, $order)
+    {
+        $this->postId = $order->get_id();
+
+        $this->manage_shop_order_posts_custom_column($column);
     }
 
     public function manage_shop_order_posts_custom_column($column)
@@ -32,7 +42,9 @@ class Orders
 
         try {
             if ($column == 'order_status') {
-                $data = get_post_meta($post->ID, "usbs_order_fulfillment_data", true);
+                $postId = $this->postId ? $this->postId : $post->ID;
+
+                $data = get_post_meta($postId, "usbs_order_fulfillment_data", true);
 
                 if ($data && isset($data["totalQty"]) && isset($data["totalScanned"]) && isset($data["items"]) && isset($data["codes"])) {
                     $picked = 0;
@@ -65,7 +77,7 @@ class Orders
                     }
 
                     if ($total > 0) {
-                        echo '<span usbs-order-open-post="' . esc_html($post->ID) . '">';
+                        echo '<span usbs-order-open-post="' . esc_html($postId) . '">';
                         echo sprintf(esc_html__('(%s of %s picked)', 'us-barcode-scanner'), esc_html($picked), esc_html($total));
                         echo '</span></div>';
                     }

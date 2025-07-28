@@ -162,7 +162,9 @@ class ManagementActions
         );
         Debug::addPoint("end Results()->productsPrepare");
 
-        $this->itemsLevenshtein($products, $query, $data);
+        $sortBy = SettingsHelper::getSearchResultsSortBy($request);
+        if ($sortBy == "relevance") $this->itemsLevenshtein($products, $query, $data);
+        else if ($sortBy == "parent_product") $this->itemsParentProduct($products);
 
         if ($products) {
             $customFilter["searchQuery"] = $query;
@@ -213,8 +215,6 @@ class ManagementActions
             if ($requestName === "post-search" && $fulfillmentOrderId) {
 
                 return $this->orderSearch($request);
-
-
             }
         }
 
@@ -256,7 +256,9 @@ class ManagementActions
         $products = (new Results())->productsPrepare($data["posts"]);
         Debug::addPoint("end Results()->productsPrepare");
 
-        $this->itemsLevenshtein($products, $query, $data);
+        $sortBy = SettingsHelper::getSearchResultsSortBy($request);
+        if ($sortBy == "relevance") $this->itemsLevenshtein($products, $query, $data);
+        else if ($sortBy == "parent_product") $this->itemsParentProduct($products);
 
         if ($products) {
             $customFilter["searchQuery"] = $query;
@@ -327,8 +329,11 @@ class ManagementActions
         $settings = new Settings();
 
         $order = wc_get_order($orderId);
+
         $items = $order->get_items("line_item");
-        $products = array();
+        $items = apply_filters('scanner_order_ff_get_items', $items, $orderId);
+
+          $products = array();
 
         foreach ($items as $item) {
             $id = $item->get_variation_id();
@@ -352,6 +357,7 @@ class ManagementActions
             "products" => $products,
             "post_type" => $order->get_type(),
             "usbs_fulfillment_objects" => get_post_meta($orderId, "usbs_fulfillment_objects", true),
+            "usbs_order_fulfillment_data" => get_post_meta($orderId, "usbs_order_fulfillment_data", true),
             "data" => array(
                 "billing" => array(
                     "country" => $order->get_billing_country(),
@@ -366,14 +372,12 @@ class ManagementActions
             ),
         );
 
-
-
         $fulfillmentField = $settings->getSettings("orderFulFillmentField");
         $fulfillmentField = $fulfillmentField === null ? "" : $fulfillmentField->value;
 
         if ($fulfillmentField) {
-            $orderData[$fulfillmentField] = $order->get_meta($fulfillmentField, true);
-            $orderData[$fulfillmentField . "-filled"] = $order->get_meta($fulfillmentField . "-filled", true);
+            $orderData[$fulfillmentField] = OrdersHelper::get_meta_value($order, $orderId, $fulfillmentField);
+            $orderData[$fulfillmentField . "-filled"] = OrdersHelper::get_meta_value($order, $orderId, $fulfillmentField . "-filled");
         }
 
         $orders = apply_filters($this->filter_search_result, array($orderData), array());
@@ -429,7 +433,7 @@ class ManagementActions
 
     private function isOrderFulfillment($order)
     {
-        $data = array("items" => array(), "codes" => array(), "totalQty" => 0, "totalScanned" => 0);
+        $data = array("items" => array(), "codes" => array(), "totalQty" => 0, "totalScanned" => 0, "dateFulfilled" => "");
 
         if (!isset($order["products"])) return $data;
 
@@ -437,7 +441,8 @@ class ManagementActions
             $qty = isset($value["quantity"]) ? $value["quantity"] : 1;
             $qty = apply_filters('scanner_order_ff_get_item_qty', $qty, $value["item_id"], $order["ID"]);
             $scanned = isset($value["usbs_check_product_scanned"]) ? $value["usbs_check_product_scanned"] : 1;
-            $data["items"][$value["ID"]] = array("qty" => $qty, "scanned" => $scanned, "item_id" => $value["item_id"]);
+
+            $data["items"][] = array("qty" => $qty, "scanned" => $scanned, "item_id" => $value["item_id"], "ID" => $value["ID"]);
 
             $data["totalQty"] += $qty;
             $data["totalScanned"] += $scanned;
@@ -473,6 +478,12 @@ class ManagementActions
                 }
             }
         }
+
+        if (isset($order["usbs_order_fulfillment_data"]) && isset($order["usbs_order_fulfillment_data"]["dateFulfilled"])) {
+            $data["dateFulfilled"] = $order["usbs_order_fulfillment_data"]["dateFulfilled"];
+        }
+
+        OrdersHelper::setOrderFulfillmentDate($data, $order["ID"]);
 
         return $data;
     }
@@ -565,6 +576,13 @@ class ManagementActions
             }
         } catch (\Throwable $th) {
         }
+    }
+
+    private function itemsParentProduct(&$items)
+    {
+        usort($items, function($a, $b) {
+            return $b["post_parent"] - $a["post_parent"];
+        });
     }
 
     private function findValueByField($postsSearchData, $item)
@@ -828,6 +846,8 @@ class ManagementActions
             LogActions::add($productId, LogActions::$actions["update_qty"], "_stock", $quantity, $oldValue, "product", $request);
         }
 
+                $this->clearProductCache($productId);
+
         if ($result === true) {
             return $this->productSearch($request, true, true);
         } else {
@@ -895,7 +915,7 @@ class ManagementActions
 
         $customFilter = $request->get_param("customFilter");
         $query = RequestHelper::getQuery($request, "product");
-        $productId = ($productId) ? $productId : $query;
+        $productId = $productId ? $productId : $query;
 
         $filteredData = 1;
         $filteredData = apply_filters($this->filter_quantity_plus, $productId, $customFilter);
@@ -952,6 +972,8 @@ class ManagementActions
             $result = $this->setQuantityPlus($request, $productId);
         }
 
+        $this->clearProductCache($productId);
+
         if ($result === true) {
             return $this->productSearch($request, false, true);
         } else {
@@ -975,7 +997,7 @@ class ManagementActions
                     $qty = (float)get_post_meta($productId, "_stock", true);
                 }
             } else {
-                $step = 1;
+                $step = apply_filters($this->filter_auto_action_step, 1, $productId);
                 $qty = $curQty;
             }
 
@@ -1067,7 +1089,9 @@ class ManagementActions
             $result = $this->setQuantityMinus($request, $productId);
         }
 
-        if ($result === true) {
+        $this->clearProductCache($productId);
+
+                if ($result === true) {
             return $this->productSearch($request, false, true);
         } else {
             return $result;
@@ -1304,12 +1328,17 @@ class ManagementActions
                     } else {
                         $oldValue = \get_post_meta($id, $key, true);
                         update_post_meta($id, $key, $filteredValue);
+
+                        ProductsHelper::updatePostModifiedDate($id);
+
                         LogActions::add($id, LogActions::$actions["update_meta_field"], $key, $filteredValue, $oldValue, "product", $request, $customAction);
                     }
 
                     $this->productIndexation($id, "productUpdateMeta");
                 }
             }
+
+            $this->clearProductCache($productId);
         } catch (\Throwable $th) {
         }
 
@@ -1342,6 +1371,8 @@ class ManagementActions
                 LogActions::add($postId, LogActions::$actions["update_product_status"], "post_status", $status, $oldValue, "product", $request);
             }
 
+
+            $this->clearProductCache($postId);
 
             return $this->productSearch($request, false, true);
         } catch (\Throwable $th) {
@@ -1901,6 +1932,310 @@ class ManagementActions
         return rest_ensure_response(array("updatedOrder" => $updatedOrder));
     }
 
+    public function orderChangePrices(WP_REST_Request $request)
+    {
+        global $wpdb;
+
+        $orderId = $request->get_param("orderId");
+        $prices = $request->get_param("prices");
+
+        $result = array(
+            "orders" => null,
+            "findByTitle" => null,
+        );
+
+        if (!$orderId || !$prices) {
+            return rest_ensure_response(array("error" => "Incorrect data."));
+        }
+
+        $order = new \WC_Order($orderId);
+
+        if ($order) {
+            foreach ($prices as $price) {
+                $type = $price["type"];
+                $value = $price["price"];
+
+                if ($type == "total") {
+                    $order->set_total($value);
+                } 
+                else if ($type == "shipping") {
+                    $shippingItems = $order->get_items('shipping');
+
+                    if (!empty($shippingItems)) {
+                        foreach ($shippingItems as $shippingItem) {
+                            $shippingItem->set_total($value);
+                        }
+
+                        $order->calculate_totals();
+                    }
+                }
+                else if ($type == "item") {
+                    $itemId = $price["itemId"];
+                    $items = $order->get_items();
+
+                    foreach ($items as $item) {
+                        if ($item->get_id() == $itemId) {
+                            $pricePerItem = $item->get_quantity() > 0 && $value ? $value * $item->get_quantity() : $value;
+                            $item->set_subtotal($pricePerItem);
+                            $item->set_total($pricePerItem);
+                            $item->calculate_taxes();
+                            $order->calculate_totals();
+                        }
+                    }
+                }
+                else if ($type == "item-qty") {
+                    $itemId = $price["itemId"];
+                    $items = $order->get_items();
+
+                    foreach ($items as $item) {
+                        if ($item->get_id() == $itemId) {
+                            $pricePerItem = $item->get_total() > 0 && $item->get_quantity() > 0 ? $item->get_total() / $item->get_quantity() : $item->get_total();
+                            $item->set_subtotal($pricePerItem * $value);
+                            $item->set_total($pricePerItem * $value);
+                            $item->set_quantity($value);
+                            $order->calculate_totals();
+                        }
+                    }
+                }
+            }
+
+            $order->save();
+
+            $this->productIndexation($orderId, "orderChangeCustomer");
+
+            $orderRequest = new WP_REST_Request("", "");
+            $orderRequest->set_param("query", $orderId);
+
+            return $this->orderSearch($orderRequest, false, true);
+        }
+
+        return rest_ensure_response(array("error" => "Order not found."));
+    }
+
+    public function orderChangeShippingMethod(WP_REST_Request $request)
+    {
+        $orderId = $request->get_param("orderId");
+        $shippingMethod = $request->get_param("shippingMethod");
+
+        if (!$orderId || !$shippingMethod) {
+            return rest_ensure_response(array("error" => "Incorrect data."));
+        }
+
+        $order = new \WC_Order($orderId);
+
+        if ($order) {
+            foreach ($order->get_items('shipping') as $item_id => $shipping_item) {
+                $order->remove_item($item_id);
+            }
+
+            if ($shippingMethod["id"] || $shippingMethod["id"] == 0) {
+                $item = new \WC_Order_Item_Shipping();
+                $item->set_method_title($shippingMethod["title"]);
+                $item->set_method_id($shippingMethod["id"]);
+                $item->set_total($shippingMethod["cost"]);
+                $order->add_item($item);
+            }
+
+            $order->calculate_totals();
+            $order->save();
+
+            $this->productIndexation($orderId, "orderChangeCustomer");
+
+            $orderRequest = new WP_REST_Request("", "");
+            $orderRequest->set_param("query", $orderId);
+
+            return $this->orderSearch($orderRequest, false, true);
+        }
+
+        return rest_ensure_response(array("error" => "Order not found."));
+    }
+
+    public function orderChangePaymentMethod(WP_REST_Request $request)
+    {
+        $orderId = $request->get_param("orderId");
+        $paymentMethod = $request->get_param("paymentMethod");
+
+        if (!$orderId || !$paymentMethod) {
+            return rest_ensure_response(array("error" => "Incorrect data."));
+        }
+
+        $order = new \WC_Order($orderId);
+
+        if ($order) {
+            if ($paymentMethod) {
+                $order->set_payment_method($paymentMethod);
+            }
+
+            $order->calculate_totals();
+            $order->save();
+
+            $this->productIndexation($orderId, "orderChangeCustomer");
+
+            $orderRequest = new WP_REST_Request("", "");
+            $orderRequest->set_param("query", $orderId);
+
+            return $this->orderSearch($orderRequest, false, true);
+        }
+
+        return rest_ensure_response(array("error" => "Order not found."));
+    }
+
+    public function orderChangeOrderNote(WP_REST_Request $request)
+    {
+        $orderId = $request->get_param("orderId");
+        $note = $request->get_param("note");
+
+        if (!$orderId || !$note) {
+            return rest_ensure_response(array("error" => "Incorrect data."));
+        }
+
+        $order = new \WC_Order($orderId);
+
+        if ($order) {
+            $order->set_customer_note($note);
+            $order->save();
+
+            $this->productIndexation($orderId, "orderChangeCustomer");
+
+            $orderRequest = new WP_REST_Request("", "");
+            $orderRequest->set_param("query", $orderId);
+
+            return $this->orderSearch($orderRequest, false, true);
+        }
+
+        return rest_ensure_response(array("error" => "Order not found."));
+    }
+
+    public function orderChangeOrderCoupon(WP_REST_Request $request)
+    {
+        $orderId = $request->get_param("orderId");
+        $coupon = $request->get_param("coupon");
+
+        if (!$orderId) {
+            return rest_ensure_response(array("error" => "Incorrect data."));
+        }
+
+        $order = new \WC_Order($orderId);
+
+        if ($order) {
+            $coupons = $order->get_items('coupon');
+
+            foreach ($coupons as $item_id => $coupon_item) {
+                $order->remove_item($item_id);
+                $order->save();
+            }
+
+            foreach ($order->get_items() as $item_id => $item) {
+                $item->set_total_tax(0);
+                $item->set_total($item->get_subtotal());
+                $item->set_subtotal_tax(0);
+                $item->set_subtotal($item->get_subtotal());
+                $item->save();
+            }
+
+            $order->set_discount_total(0);
+            $order->set_discount_tax(0);
+            $order->calculate_totals(true);
+            $order->save();
+
+            if (preg_match('/^(\d+)\%$/', $coupon, $matches)) {
+                $couponPercent = $matches[1];
+                $item = new \WC_Order_Item_Coupon();
+                $item->set_props(array(
+                    'code' => $coupon,
+                    'discount' => $couponPercent,
+                    'discount_tax' => 0,
+                ));
+                $order->add_item($item);
+
+            }
+            else if ($coupon) {
+                $coupon = new \WC_Coupon($coupon);
+
+                if ($coupon->get_id()) {
+                    $order->apply_coupon($coupon->get_code());
+                    $order->set_discount_total($coupon->get_amount());
+                }
+            } 
+
+
+
+            $order->calculate_totals(true);
+            $order->save();
+
+            $this->productIndexation($orderId, "orderChangeCustomer");
+
+                    $orderRequest = new WP_REST_Request("", "");
+            $orderRequest->set_param("query", $orderId);
+
+            return $this->orderSearch($orderRequest, false, true);
+        }
+
+        return rest_ensure_response(array("error" => "Order not found."));
+    }
+
+    public function orderReCalculate(WP_REST_Request $request)
+    {
+        global $wpdb;
+
+        $orderId = $request->get_param("orderId");
+
+        $result = array(
+            "orders" => null,
+            "findByTitle" => null,
+        );
+
+        if (!$orderId) {
+            return rest_ensure_response(array("error" => "Incorrect data."));
+        }
+
+        $order = new \WC_Order($orderId);
+
+        if ($order) {
+            $coupons = $order->get_items('coupon');
+            $coupon_codes = $order->get_coupon_codes();
+
+            foreach ($coupons as $item_id => $coupon_item) {
+                $order->remove_item($item_id);
+                $order->save();
+            }
+
+            foreach ($order->get_items() as $item_id => $item) {
+                $item->set_total_tax(0);
+                $item->set_total($item->get_subtotal());
+                $item->set_subtotal_tax(0);
+                $item->set_subtotal($item->get_subtotal());
+                $item->save();
+            }
+
+            $order->set_discount_total(0);
+            $order->set_discount_tax(0);
+            $order->calculate_totals(true);
+            $order->save();
+
+            foreach ( $coupon_codes as $coupon_code ) {
+                $coupon = new \WC_Coupon($coupon_code);
+
+                if ($coupon->get_id()) {
+                    $order->apply_coupon($coupon->get_code());
+                    $order->set_discount_total($coupon->get_amount());
+                }
+            }
+
+            $order->calculate_totals(true);
+            $order->save();
+
+            $this->productIndexation($orderId, "orderReCalculate");
+
+            $orderRequest = new WP_REST_Request("", "");
+            $orderRequest->set_param("query", $orderId);
+
+            return $this->orderSearch($orderRequest, false, true);
+        }
+
+        return rest_ensure_response(array("error" => "Order not found."));
+    }
+
     public function orderUpdateItemsMeta(WP_REST_Request $request)
     {
         $orderId = $request->get_param("orderId");
@@ -1918,12 +2253,13 @@ class ManagementActions
         }
 
         $items = $order->get_items();
+        $items = apply_filters("scanner_update_order_items_meta", $items, $order->get_id());
         $isOrderFulfillmentReset = false;
         $isOrderFulfillmentObjectsReset = false;
 
-        foreach ($items as $key => $item) {
+        foreach ($items as $item) {
             foreach ($fields as $field) {
-                \wc_update_order_item_meta($key, $field["key"], $field["value"]);
+                \wc_update_order_item_meta($item->get_id(), $field["key"], $field["value"]);
 
                 if ($field["key"] == "usbs_check_product") {
                     if ($field["value"] == "") {
@@ -1947,14 +2283,14 @@ class ManagementActions
 
         $updatedItems = array();
 
-        foreach ($items as $key => $item) {
-            $usbs_check_product_scanned = \wc_get_order_item_meta($key, 'usbs_check_product_scanned', true);
+        foreach ($items as $item) {
+            $usbs_check_product_scanned = \wc_get_order_item_meta($item->get_id(), 'usbs_check_product_scanned', true);
             $usbs_check_product_scanned = $usbs_check_product_scanned == "" ? 0 : $usbs_check_product_scanned;
-            $qty = (float)\wc_get_order_item_meta($key, '_qty', true);
+            $qty = (float)\wc_get_order_item_meta($item->get_id(), '_qty', true);
 
             $updatedItems[] = array(
-                "item_id" => $key,
-                "usbs_check_product" => \wc_get_order_item_meta($key, 'usbs_check_product', true),
+                "item_id" => $item->get_id(),
+                "usbs_check_product" => \wc_get_order_item_meta($item->get_id(), 'usbs_check_product', true),
                 "usbs_check_product_scanned" => $usbs_check_product_scanned,
                 "quantity" => $qty,
                 "updatedAction" => "checked-" . time()
@@ -1984,6 +2320,7 @@ class ManagementActions
         $itemId = $itemId ? $itemId : $request->get_param("itemId");
         $fields = $fields ? $fields : $request->get_param("fields");
         $customFilter = $request->get_param("customFilter");
+        $quantity = $request->get_param("quantity");
         $confirmationLeftFulfillment = $request->get_param("confirmationLeftFulfillment");
 
         if (!$orderId || !$itemId || !$fields) {
@@ -2000,7 +2337,8 @@ class ManagementActions
         $fulfillmentScanItemQty = $settings->getSettings("fulfillmentScanItemQty");
         $fulfillmentScanItemQty = $fulfillmentScanItemQty ? $fulfillmentScanItemQty->value == "on" : true;
 
-        $items = $order->get_items();
+        $items = OrdersHelper::getOrderItems($orderId, array('line_item', 'line_item_child'));
+
         $isUpdated = false;
         $isFulfillmentChanged = false;
         $isFulfillmentAlready = false;
@@ -2261,6 +2599,8 @@ class ManagementActions
                     }
                 }
             }
+
+            $this->clearProductCache($productId);
         }
 
         $result = array(
@@ -2295,6 +2635,8 @@ class ManagementActions
 
         $this->checkAutoDraftStatus($postId);
 
+        ProductsHelper::updatePostModifiedDate($postId);
+
         LogActions::add($postId, LogActions::$actions["set_product_image"], "", $attachmentId, $oldValue, "product", $request);
 
         $result = array(
@@ -2311,6 +2653,8 @@ class ManagementActions
         if (isset($data["query"])) {
             $result["foundBy"] = $data["query"];
         }
+
+        $this->clearProductCache($postId);
 
         return rest_ensure_response($result);
     }
@@ -2433,7 +2777,8 @@ class ManagementActions
             }
 
             WPML::addTranslations($products);
-            $result["products"] = $products;
+
+                       $result["products"] = $products;
 
             if (isset($data["query"])) {
                 $result["foundBy"] = $data["query"];
@@ -2554,6 +2899,8 @@ class ManagementActions
         $products = apply_filters($this->filter_search_result, $products, $customFilter);
         $result["products"] = $products;
 
+        $this->clearProductCache($fields["postId"]);
+
         $this->productIndexation($fields["postId"], "productUpdateFields");
 
         if (isset($data["query"])) {
@@ -2629,6 +2976,8 @@ class ManagementActions
         $products = apply_filters($this->filter_search_result, $products, array());
         $result["products"] = $products;
 
+        $this->clearProductCache($postId);
+
         return rest_ensure_response($result);
     }
 
@@ -2676,6 +3025,8 @@ class ManagementActions
 
                 WPML::addTranslations($products);
                 $products = apply_filters($this->filter_search_result, $products, array());
+
+                $this->clearProductCache($postId);
 
                 $result["products"] = $products;
             }
@@ -2744,6 +3095,8 @@ class ManagementActions
         $products = apply_filters($this->filter_search_result, $products, array());
         $result["products"] = $products;
 
+        $this->clearProductCache($postId);
+
         return rest_ensure_response($result);
     }
 
@@ -2778,6 +3131,8 @@ class ManagementActions
         WPML::addTranslations($products);
         $products = apply_filters($this->filter_search_result, $products, array());
         $result["products"] = $products;
+
+        $this->clearProductCache($postId);
 
         return rest_ensure_response($result);
     }
@@ -2831,7 +3186,7 @@ class ManagementActions
                     }
 
                     if ($order && $order->get_id()) {
-                        $count = $order->get_meta("usbs_found_counter", true);
+                        $count = OrdersHelper::get_meta_value($order, $postId, "usbs_found_counter");
                         $newCount = $count ? (int)$count + 1 : 1;
 
 
@@ -3610,9 +3965,44 @@ class ManagementActions
         $id = $request->get_param("id");
         $key = $request->get_param("key");
         $value = $request->get_param("value");
+        $checkFulfillment = $request->get_param("checkFulfillment");
 
         if ($id && $key) {
+            $currentValue = get_post_meta($id, $key, true);
+
             update_post_meta($id, $key, $value);
+
+            if ($checkFulfillment && !$currentValue) {
+                $usbs_fulfillment_objects = get_post_meta($id, "usbs_fulfillment_objects", true);
+                $usbs_order_fulfillment_data = get_post_meta($id, "usbs_order_fulfillment_data", true);
+
+                if (!$usbs_fulfillment_objects) $usbs_fulfillment_objects = array();
+
+                $usbs_fulfillment_objects[$key] = array("value" => $value, "type" => "tracking-code");
+                update_post_meta($id, "usbs_fulfillment_objects", $usbs_fulfillment_objects);
+
+                if ($usbs_order_fulfillment_data && isset($usbs_order_fulfillment_data['codes']) && is_array($usbs_order_fulfillment_data['codes'])) {
+                    $usbs_order_fulfillment_data_updated = false;
+
+                    foreach ($usbs_order_fulfillment_data['codes'] as $code_field => &$code_data) {
+                        if ($code_field == $key) {
+                            $code_data['scanned'] = 1;
+                            $usbs_order_fulfillment_data_updated = true;
+                        }
+                    }
+
+                    if ($usbs_order_fulfillment_data_updated) {
+                        OrdersHelper::setOrderFulfillmentDate($usbs_order_fulfillment_data, $id);
+
+                        update_post_meta($id, "usbs_order_fulfillment_data", $usbs_order_fulfillment_data);
+                    }
+                }
+
+                $managementActions = new ManagementActions();
+                $managementActions->getFulfillmentOrderData($id);
+            }
+
+            ProductsHelper::updatePostModifiedDate($id);
         }
 
         $orderRequest = new WP_REST_Request("", "");
@@ -3651,6 +4041,8 @@ class ManagementActions
                 }
 
                 if ($usbs_order_fulfillment_data_updated) {
+                    OrdersHelper::setOrderFulfillmentDate($usbs_order_fulfillment_data, $id);
+
                     update_post_meta($id, "usbs_order_fulfillment_data", $usbs_order_fulfillment_data);
                 }
             }
@@ -3692,6 +4084,8 @@ class ManagementActions
                 }
 
                 if ($usbs_order_fulfillment_data_updated) {
+                    OrdersHelper::setOrderFulfillmentDate($usbs_order_fulfillment_data, $id);
+
                     update_post_meta($id, "usbs_order_fulfillment_data", $usbs_order_fulfillment_data);
                 }
             }
@@ -3888,7 +4282,11 @@ class ManagementActions
     private function clearProductCache($productId)
     {
         try {
-            @wc_delete_product_transients($productId);
+            if ($productId) {
+                @wc_delete_product_transients($productId);
+
+                do_action('litespeed_purge_all');
+            }
         } catch (\Throwable $th) {
         }
     }

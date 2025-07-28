@@ -135,49 +135,8 @@ class MobileRouter
         esc_html_e($this->tn, 'us-barcode-scanner');
         echo ">";
 
-        echo "\n<";
-        esc_html_e($this->tn, 'us-barcode-scanner');
-        echo " src='" . esc_url(home_url()) . "/wp-includes/js/jquery/jquery.js' ";
-        echo " onload='console.log(\"Loader: " . esc_url(home_url()) . "/wp-includes/js/jquery/jquery.js loaded\")' ";
-        echo " onerror='usbsLoaderJSError(\"" . esc_url(home_url()) . "/wp-includes/js/jquery/jquery.js\")' ";
-        echo ">";
-        echo "<";
-        echo "/";
-        esc_html_e($this->tn, 'us-barcode-scanner');
-        echo ">";
 
-        echo "<";
-        esc_html_e($this->tn, 'us-barcode-scanner');
-        echo " src='" . esc_url(home_url()) . "/wp-includes/js/jquery/jquery-migrate.min.js' ";
-        echo " onload='console.log(\"Loader: " . esc_url(home_url()) . "/wp-includes/js/jquery/jquery-migrate.min.js loaded\")' ";
-        echo " onerror='usbsLoaderJSError(\"" . esc_url(home_url()) . "/wp-includes/js/jquery/jquery-migrate.min.js\")' ";
-        echo ">";
-        echo "<";
-        echo "/";
-        esc_html_e($this->tn, 'us-barcode-scanner');
-        echo ">";
 
-        echo "<";
-        esc_html_e($this->tn, 'us-barcode-scanner');
-        echo " src='" . esc_url(USBS_PLUGIN_BASE_URL) . "src/features/mobile/assets/js/index.js?v=1.9.1&t=1748599013457' "; // 1.9.1
-        echo " onload='console.log(\"Loader: " . esc_url(USBS_PLUGIN_BASE_URL) . "src/features/mobile/assets/js/index.js?v=1.9.1&t=1748599013457 loaded\")' "; // 1.9.1
-        echo " onerror='usbsLoaderJSError(\"" . esc_url(USBS_PLUGIN_BASE_URL) . "src/features/mobile/assets/js/index.js?v=1.9.1&t=1748599013457\")' "; // 1.9.1
-        echo ">";
-        echo "<";
-        echo "/";
-        esc_html_e($this->tn, 'us-barcode-scanner');
-        echo ">";
-
-        echo "<";
-        esc_html_e($this->tn, 'us-barcode-scanner');
-        echo " src='" . esc_url(USBS_PLUGIN_BASE_URL) . "src/features/mobile/assets/js/loader.js?v=1.9.1&t=1748599013457' "; // 1.9.1
-        echo " onload='console.log(\"Loader: " . esc_url(USBS_PLUGIN_BASE_URL) . "src/features/mobile/assets/js/loader.js?v=1.9.1&t=1748599013457 loaded\")' "; // 1.9.1
-        echo " onerror='usbsLoaderJSError(\"" . esc_url(USBS_PLUGIN_BASE_URL) . "src/features/mobile/assets/js/loader.js?v=1.9.1&t=1748599013457\")' "; // 1.9.1
-        echo ">";
-        echo "<";
-        echo "/";
-        esc_html_e($this->tn, 'us-barcode-scanner');
-        echo ">";
 
         require __DIR__ . '/index.php';
         exit();

@@ -11,6 +11,7 @@ use UkrSolution\BarcodeScanner\API\classes\ResultsHelper;
 use UkrSolution\BarcodeScanner\API\classes\SearchFilter;
 use UkrSolution\BarcodeScanner\API\classes\Users;
 use UkrSolution\BarcodeScanner\Database;
+use UkrSolution\BarcodeScanner\features\cart\Cart;
 use UkrSolution\BarcodeScanner\features\Debug\Debug;
 use UkrSolution\BarcodeScanner\features\interfaceData\InterfaceData;
 use UkrSolution\BarcodeScanner\features\settings\Settings;
@@ -435,169 +436,7 @@ class HPOS
         Debug::addPoint(" - formatOrder payment & fee");
 
         foreach ($items as $item) {
-            $variationId = $item->get_variation_id();
-            $id = $variationId;
-
-            if (!$id) {
-                $id = $item->get_product_id();
-            }
-            $_post = get_post($id);
-
-
-            if (!$_post) {
-                $_post = (object)array("ID" => "", "post_parent" => "", "post_type" => "");
-            }
-
-            $product_thumbnail_url = get_the_post_thumbnail_url($_post->ID, 'medium');
-            $product_large_thumbnail_url = get_the_post_thumbnail_url($_post->ID, 'large');
-
-            if (!$product_thumbnail_url && $_post->post_parent) {
-                $product_thumbnail_url = get_the_post_thumbnail_url($_post->post_parent, 'medium');
-                $product_large_thumbnail_url = get_the_post_thumbnail_url($_post->post_parent, 'large');
-            }
-
-
-            $editId = $variationId && $_post->post_parent ? $_post->post_parent : $_post->ID;
-
-            $args = array("currency" => " ", "thousand_separator" => "", "decimal_separator" => ".");
-
-            $usbs_check_product_scanned = \wc_get_order_item_meta($item->get_id(), 'usbs_check_product_scanned', true);
-            $usbs_check_product_scanned = $usbs_check_product_scanned == "" ? 0 : $usbs_check_product_scanned;
-
-            $logRecord = $wpdb->get_row("SELECT * FROM {$wpdb->prefix}barcode_scanner_logs AS L WHERE L.post_id = '{$item->get_id()}' AND L.field = 'usbs_check_product' AND L.action = 'update_order_item_meta' ORDER BY L.id DESC LIMIT 1");
-            $fulfillment_user_name = "";
-            $fulfillment_user_email = "";
-
-            if ($logRecord && $logRecord->user_id) {
-                $user = get_user_by("ID", $logRecord->user_id);
-
-                if ($user) {
-                    $fulfillment_user_name = $user->display_name ? $user->display_name : $user->user_nicename;
-                    $fulfillment_user_email = $user->user_email;
-                }
-            }
-
-
-            $quantity = \wc_get_order_item_meta($item->get_id(), '_qty', true);
-
-            $product = $item->get_product();
-            $variationForPreview = array();
-
-            if ($product && $product->is_type('variation')) {
-                $variation_attributes = $product->get_attributes();
-
-                foreach ($variation_attributes as $attribute_name => $attribute_value) {
-                    if (taxonomy_is_product_attribute($attribute_name)) {
-                        $attribute_label = wc_attribute_label($attribute_name);
-                    } else {
-                        $attribute_label = wc_attribute_label($attribute_name, $product);
-                    }
-
-                    $variationForPreview[] = array("label" => esc_html($attribute_label), "value" => esc_html($attribute_value));
-                }
-            }
-            $_productData = array(
-                "ID" => $_post->ID,
-                "variation_id" => $variationId,
-                "post_type" => $_post->post_type,
-                "post_type_tooltip" => $_post->post_type == "product_variation" ? "variation" : "product", 
-                "name" => strip_tags($item->get_name()),
-                "quantity" => (float)$quantity,
-                "price_c" => $quantity ? strip_tags(wc_price($item->get_total() / $quantity)) : strip_tags(wc_price($item->get_total())),
-                "subtotal" => self::clearPrice($item->get_subtotal(), $args),
-                "subtotal_c" => strip_tags(wc_price($item->get_subtotal())),
-                "total" => self::clearPrice($item->get_total(), $args),
-                "total_c" => strip_tags(wc_price($item->get_total())),
-                "subtotal_tax" => self::clearPrice($item->get_subtotal_tax(), $args),
-                "subtotal_tax_c" => strip_tags(wc_price($item->get_subtotal_tax())),
-                "total_tax" => self::clearPrice($item->get_total_tax(), $args),
-                "total_tax_c" => strip_tags(wc_price($item->get_total_tax())),
-                "item_price_tax" => $quantity ? self::clearPrice(($item->get_subtotal() / $quantity) + $item->get_total_tax(), $args) : self::clearPrice($item->get_total_tax(), $args),
-                "item_price_tax_c" => $quantity ? strip_tags(wc_price(($item->get_subtotal() / $quantity) + $item->get_total_tax())) : strip_tags(wc_price($item->get_total_tax())),
-                "item_price_tax_total" => self::clearPrice($item->get_subtotal() + $item->get_total_tax(), $args),
-                "item_price_tax_total_c" => strip_tags(wc_price($item->get_total() + $item->get_total_tax())),
-                "item_regular_price" => self::clearPrice(get_post_meta($id, "_regular_price", true)), 
-                "item_regular_price_c" => strip_tags(wc_price(get_post_meta($id, "_regular_price", true))), 
-                "taxes" => strip_tags(wc_price($item->get_taxes())),
-                "product_thumbnail_url" => $product_thumbnail_url,
-                "product_large_thumbnail_url" => $product_large_thumbnail_url,
-                "postEditUrl" => admin_url('post.php?post=' . $editId) . '&action=edit',
-                "locations" => (new Results())->getLocations($_post->ID),
-                "item_id" => $item->get_id(),
-                "usbs_check_product" => \wc_get_order_item_meta($item->get_id(), 'usbs_check_product', true),
-                "usbs_check_product_scanned" => $usbs_check_product_scanned,
-                "fulfillment_user_name" => $fulfillment_user_name,
-                "fulfillment_user_email" => $fulfillment_user_email,
-                "product_categories" => wp_get_post_terms($item->get_product_id(), 'product_cat'),
-                "variationForPreview" => $variationForPreview,
-                "refund_data" => OrdersHelper::getOrderItemRefundData($order, $item)
-            );
-
-
-            foreach (InterfaceData::getFields(true, "", false, Users::userRole()) as $value) {
-                if (!$value['field_name']) continue;
-                $filterName = str_replace("%field", $value['field_name'], self::$filter_get_after);
-                $defaultValue = \get_post_meta($_productData["ID"], $value['field_name'], true);
-                $filteredValue = apply_filters($filterName, $defaultValue, $value['field_name'], $_productData["ID"]);
-                $filteredValue = $filteredValue;
-                $_productData[$value['field_name']] = $filteredValue;
-            }
-
-            $filter = SearchFilter::get();
-
-            if ($filter && isset($filter['products']) && is_array($filter['products'])) {
-                foreach ($filter['products'] as $key => $value) {
-                    if (strpos($key, 'custom-') !== false) {
-                        if (!isset($_productData[$value])) {
-                            $defaultValue = \get_post_meta($_productData["ID"], $value, true);
-                            $filteredValue = apply_filters($filterName, $defaultValue, $value, $_productData["ID"]);
-                            $_productData[$value] = $filteredValue;
-                        }
-                    }
-                }
-            }
-
-            $number_field_step = get_post_meta($_productData["ID"], "number_field_step", true);
-
-                        if ($number_field_step && is_numeric($number_field_step)) {
-                $_productData["number_field_step"] = (float)$number_field_step;
-            } else {
-                $_productData["number_field_step"] = 1;
-            }
-
-
-            $ffQtyStep = $settings->getSettings("ffQtyStep");
-            $ffQtyStep = $ffQtyStep === null ? "" : $ffQtyStep->value;
-
-            if ($ffQtyStep) {
-                $_productData['ffQtyStep'] = get_post_meta($_productData["ID"], $ffQtyStep, true);
-                if ($_productData['ffQtyStep']) $_productData['ffQtyStep'] = (float)$_productData['ffQtyStep'];
-            }
-
-            $products[] = $_productData;
-
-            $_taxes = $item->get_taxes();
-
-            if ($_taxes && isset($_taxes["total"]) && is_array($_taxes["total"])) {
-                foreach ($_taxes["total"] as $tax_rate_id => $tax_amount) {
-                    if ($tax_amount) {
-                        $order_subtotal_tax += $tax_amount;
-
-                        if (isset($order_subtotal_taxes[$tax_rate_id])) {
-                            $order_subtotal_taxes[$tax_rate_id]['cost'] += $tax_amount;
-                            $order_subtotal_taxes[$tax_rate_id]['cost_c'] = ResultsHelper::getFormattedPrice(strip_tags(wc_price($order_subtotal_taxes[$tax_rate_id]['cost'])));
-                        } else {
-                            $order_subtotal_taxes[$tax_rate_id] = array(
-                                'label' => \WC_Tax::get_rate_label($tax_rate_id),
-                                'cost' => $tax_amount,
-                                'cost_c' => ResultsHelper::getFormattedPrice(strip_tags(wc_price($tax_amount))),
-                                'rate_id' => $tax_rate_id,
-                            );
-                        }
-                    }
-                }
-            }
-
+            OrdersHelper::assignOrderItemProps($products, $order_subtotal_tax, $order_subtotal_taxes, $order, $item, $settings);
         }
 
         Debug::addPoint(" - formatOrder items");
@@ -659,7 +498,45 @@ class HPOS
         $sStates = WC()->countries->get_states($order->get_shipping_country());
         $sState  = !empty($sStates[$order->get_shipping_state()]) ? $sStates[$order->get_shipping_state()] : '';
 
-        $receiptShortcodes = ResultsHelper::getReceiptShortcodes($settings, $order->get_id());
+        $receiptShortcodes = ResultsHelper::getReceiptShortcodesOrder($settings, $order->get_id());
+
+        $cart = new Cart();
+
+        if ($customerId) {
+            $cartScannerActions = new CartScannerActions();
+
+            $taxAddress = $cartScannerActions->getTaxAddress(array("address" => array(
+                "billing_country" => $order->billing_country,
+                "billing_state" => $order->billing_state,
+                "billing_city" => $order->billing_city,
+                "billing_postcode" => $order->billing_postcode,
+                "shipping_country" => $order->shipping_country,
+                "shipping_state" => $order->shipping_state,
+                "shipping_city" => $order->shipping_city,
+                "shipping_postcode" => $order->shipping_postcode,
+                "shipping_as_billing" => 0
+            )));
+
+            $shippingMethods = $cart->getShippingMethods($customerId, $taxAddress);
+        } 
+        else {
+            $userId = get_current_user_id();
+            $shippingMethods = $cart->getShippingMethods($userId, array());
+        }
+
+        $shipping_method = "";
+
+        foreach ($order->get_items('shipping') as $shipping_item) {
+            $method_id = $shipping_item->get_method_id();
+            if (!$method_id && $method_id != 0) $method_id = "";
+
+            $instance_id = $shipping_item->get_instance_id();
+            if (!$instance_id) $instance_id = 0;
+
+            $shipping_method = $method_id;
+        }
+
+        $payment_method = $order->get_payment_method();
 
         $props = array(
             "ID" => $order->get_id(),
@@ -733,7 +610,7 @@ class HPOS
             "postEditUrl" => admin_url('post.php?post=' . $post->ID) . '&action=edit',
             "postPayUrl" => $order->get_checkout_payment_url(),
             "updated" => time(),
-            "foundCounter" => $order->get_meta("usbs_found_counter", true),
+            "foundCounter" => OrdersHelper::get_meta_value($order, $post->ID, "usbs_found_counter"),
             "fulfillment_user_name" => $fulfillment_user_name,
             "fulfillment_user_email" => $fulfillment_user_email,
             "discount" => $order->get_discount_total() ?  strip_tags($order->get_discount_to_display()) : "",
@@ -744,6 +621,9 @@ class HPOS
             "customer_orders_count" => 0,
             "user_pending_orders_count" => ResultsHelper::get_user_pending_orders_count($customerId, $post->ID, $orderStatusesAreStillNotCompleted),
             "refund_data" => OrdersHelper::getOrderRefundData($order),
+            "shippingMethods" => $shippingMethods,
+            "shipping_method" => $shipping_method,
+            "payment_method" => $payment_method,
         );
 
         OrdersHelper::addOrderData($order->get_id(), $props);
@@ -762,17 +642,17 @@ class HPOS
         Debug::addPoint(" - formatOrder customer orders");
 
         if ($fulfillmentField) {
-            $props[$fulfillmentField] = $order->get_meta($fulfillmentField, true); 
-            $props[$fulfillmentField . "-filled"] = $order->get_meta($fulfillmentField . "-filled", true); 
+            $props[$fulfillmentField] = OrdersHelper::get_meta_value($order, $post->ID, $fulfillmentField);
+            $props[$fulfillmentField . "-filled"] = OrdersHelper::get_meta_value($order, $post->ID, $fulfillmentField . "-filled");
         }
 
-        $props["_order_number"] = $order->get_meta("_order_number", true);
+        $props["_order_number"] = OrdersHelper::get_meta_value($order, $post->ID, "_order_number");
         $props["_billing_address_index"] = str_replace("<br/>", ", ", $order->get_formatted_billing_address());
         $props["_shipping_address_index"] = str_replace("<br/>", ", ", $order->get_formatted_shipping_address());
-        $props["ywot_tracking_code"] = $order->get_meta("ywot_tracking_code", true);
+        $props["ywot_tracking_code"] = OrdersHelper::get_meta_value($order, $post->ID, "ywot_tracking_code");
 
         $props["_wc_shipment_tracking_items_list"] = array();
-        $wcShipmentTrackingItems = $order->get_meta("_wc_shipment_tracking_items", true);
+        $wcShipmentTrackingItems = OrdersHelper::get_meta_value($order, $post->ID, "_wc_shipment_tracking_items");
         $_wc_shipment_tracking_items = "";
         if ($wcShipmentTrackingItems && is_array($wcShipmentTrackingItems)) {
             foreach ($wcShipmentTrackingItems as $value) {
@@ -784,7 +664,7 @@ class HPOS
         }
         $props["_wc_shipment_tracking_items"] = trim($_wc_shipment_tracking_items);
 
-        $aftershipTrackingItems = $order->get_meta("_aftership_tracking_items", true);
+        $aftershipTrackingItems = OrdersHelper::get_meta_value($order, $post->ID, "_aftership_tracking_items");
         $_aftership_tracking_items = "";
         if ($aftershipTrackingItems && is_array($aftershipTrackingItems)) {
             foreach ($aftershipTrackingItems as $value) {
@@ -871,11 +751,11 @@ class HPOS
         OrdersHelper::addOrderData($order->get_id(), $props);
 
         if ($fulfillmentField) {
-            $props[$fulfillmentField] = $order->get_meta($fulfillmentField, true); 
-            $props[$fulfillmentField . "-filled"] = $order->get_meta($fulfillmentField . "-filled", true); 
+            $props[$fulfillmentField] = OrdersHelper::get_meta_value($order, $post->ID, $fulfillmentField);
+            $props[$fulfillmentField . "-filled"] = OrdersHelper::get_meta_value($order, $post->ID, $fulfillmentField . "-filled");
         }
 
-        $props["_order_number"] = $order->get_meta("_order_number", true);
+        $props["_order_number"] = OrdersHelper::get_meta_value($order, $post->ID, "_order_number");
 
         return $props;
     }

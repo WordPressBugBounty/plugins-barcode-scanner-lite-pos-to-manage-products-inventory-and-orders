@@ -3,6 +3,7 @@
 namespace UkrSolution\BarcodeScanner\API\actions;
 
 use UkrSolution\BarcodeScanner\API\classes\Emails;
+use UkrSolution\BarcodeScanner\API\classes\ProductsHelper;
 use UkrSolution\BarcodeScanner\API\classes\Results;
 use UkrSolution\BarcodeScanner\API\classes\ResultsHelper;
 use UkrSolution\BarcodeScanner\API\classes\Users;
@@ -350,7 +351,7 @@ class CartScannerActions
         return rest_ensure_response($result);
     }
 
-    private function getTaxAddress($userExtraData)
+    public function getTaxAddress($userExtraData)
     {
         if ($userExtraData && isset($userExtraData['address'])) $userExtraData = $userExtraData['address'];
 
@@ -402,10 +403,10 @@ class CartScannerActions
 
         $isUpdateShipping = $request ? $request->get_param("isUpdateShipping") : null;
         $shippingMethod = $request ? trim($request->get_param("shippingMethod")) : null;
-        if (!$shippingMethod && $userExtraData && isset($userExtraData['shippingMethod'])) $shippingMethod = $userExtraData['shippingMethod'];
+        if (!$shippingMethod && $userExtraData && isset($userExtraData['shippingMethod']) && $userExtraData['shippingMethod']) $shippingMethod = $userExtraData['shippingMethod'];
 
         $paymentMethod = $request ? $request->get_param("paymentMethod") : "";
-        if (!$paymentMethod && $userExtraData && isset($userExtraData['paymentMethod'])) $paymentMethod = $userExtraData['paymentMethod'];
+        if (!$paymentMethod && $userExtraData && isset($userExtraData['paymentMethod']) && $userExtraData['paymentMethod']) $paymentMethod = $userExtraData['paymentMethod'];
 
         $newOrderStatus = $request ? $request->get_param("newOrderStatus") : "";
 
@@ -593,7 +594,7 @@ class CartScannerActions
                 $itemSubtotal = (float)$item->price * $item->quantity;
             }
 
-            $discountPrice = $this->getDiscountPrice($itemSubtotal, $item->quantity, $items, $coupon);
+            $discountPrice = $this->getDiscountPrice($item, $itemSubtotal, $item->quantity, $items, $coupon);
 
             $cartSubtotal += $itemSubtotal;
             $cartTotal += $discountPrice;
@@ -667,6 +668,7 @@ class CartScannerActions
                 "product_id" => $item->product_id,
                 "variation_id" => $item->variation_id,
                 "meta" => @json_decode($item->meta, false),
+                "attributes" => @json_decode($item->attributes, false),
                 "quantity" => $item->quantity,
                 "price" => $discountPrice,
                 "subtotal" => $itemSubtotal,
@@ -746,7 +748,7 @@ class CartScannerActions
             "cart_subtotal_tax_c" => strip_tags(wc_price($cartSubtotalTax)),
             "total_tax" => $total_tax,
             "total_tax_c" => ResultsHelper::getFormattedPrice(strip_tags(wc_price($cartTaxTotal))),
-            "shipping" => ResultsHelper::getFormattedPrice(strip_tags($cartShippingTotal)),
+            "shipping" => ResultsHelper::getFormattedPrice(strip_tags(wc_price($cartShippingTotal))),
             "shipping_c" => ResultsHelper::getFormattedPrice(strip_tags(wc_price($cartShippingTotal))),
             "shipping_total_tax" => ResultsHelper::getFormattedPrice(strip_tags(wc_price($cartShippingTotalTax))),
             "shipping_tax" => $cartShippingTax,
@@ -816,27 +818,13 @@ class CartScannerActions
             }
         }
 
-        $excludeProducts = $couponData->get_excluded_product_ids();
-        if ($excludeProducts) {
-            foreach ($excludeProducts as $product) {
-                if (in_array($product, $itemIds) || in_array($product, $itemVariationIds)) {
-                    return array("error" => __("Coupon is not valid for this product.", "us-barcode-scanner"));
-                }
-            }
-        }
 
         $productCategories = $couponData->get_product_categories();
         $itemCategories = array();
 
         foreach ($items as $item) {
             $productId = $item->product_id;
-            $terms = get_the_terms($productId, 'product_cat');
-
-            if ($terms && !is_wp_error($terms)) {
-                foreach ($terms as $term) {
-                    $itemCategories[] = $term->term_id;
-                }
-            }
+            $itemCategories = array_merge($itemCategories, ProductsHelper::getProductCategories($productId));
         }
 
         foreach ($productCategories as $category) {
@@ -845,14 +833,6 @@ class CartScannerActions
             }
         }
 
-        $excludeCategories = $couponData->get_excluded_product_categories();
-        if ($excludeCategories) {
-            foreach ($excludeCategories as $category) {
-                if (in_array($category, $itemCategories)) {
-                    return array("error" => __("Coupon is not valid for this product.", "us-barcode-scanner"));
-                }
-            }
-        }
 
         $allowedEmails = $couponData->get_email_restrictions();
         if ($allowedEmails) {
@@ -964,11 +944,37 @@ class CartScannerActions
         }
     }
 
-    private function getDiscountPrice($price, $quantity, $items, &$coupon)
+    private function getDiscountPrice($item, $price, $quantity, $items, &$coupon)
     {
         $discountPrice = $price;
 
         if (!$coupon) return $discountPrice;
+
+        if (isset($coupon["product_ids"]) && count($coupon["product_ids"]) > 0) {
+            if (!in_array($item->product_id, $coupon["product_ids"])) {
+                return $discountPrice;
+            }
+        }
+
+        if (isset($coupon["excluded_product_ids"]) && count($coupon["excluded_product_ids"]) > 0) {
+            if (in_array($item->product_id, $coupon["excluded_product_ids"])) {
+                return $discountPrice;
+            }
+        }
+
+        $itemCategories = ProductsHelper::getProductCategories($item->product_id);
+
+        if (isset($coupon["product_categories"]) && count($coupon["product_categories"]) > 0) {
+            if (count(array_intersect($itemCategories, $coupon["product_categories"])) == 0) {
+                return $discountPrice;
+            }
+        }
+
+        if (isset($coupon["excluded_product_categories"]) && count($coupon["excluded_product_categories"]) > 0) {
+            if (count(array_intersect($itemCategories, $coupon["excluded_product_categories"])) > 0) {
+                return $discountPrice;
+            }
+        }
 
         $totalQuantities = array_reduce($items, function ($carry, $obj) {
             return $carry + $obj->quantity;
@@ -1481,6 +1487,14 @@ class CartScannerActions
 
                 $orderItemId = $order->add_product($product, $value["quantity"], $options);
 
+                if (isset($value["attributes"]) && $value["attributes"]) {
+                    foreach ($value["attributes"] as $attribute_name => $attribute_value) {
+                        if (preg_match('/^attribute_(.*)/', $attribute_name, $matches)) {
+                            \wc_update_order_item_meta($orderItemId, $matches[1], $attribute_value);
+                        }
+                    }
+                }
+
                 if ($value["tax"] && $value["_line_tax_data"]) {
                     \wc_update_order_item_meta($orderItemId, '_line_tax_data', $value["_line_tax_data"]);
 
@@ -1532,6 +1546,8 @@ class CartScannerActions
 
             if ($details && $shippingMethod) {
                 $activeShippingMethod = get_user_meta($userId, "scanner_active_shipping_method", true);
+                if (!$activeShippingMethod && $shippingMethod) $activeShippingMethod = $shippingMethod;
+
                 $shippingLabel = __("Shipping", "us-barcode-scanner");
 
                 $cart = new Cart();
@@ -1550,8 +1566,11 @@ class CartScannerActions
                     $shipping_data = @explode(":", $shipping_method->id);
 
                     if ($shipping_data && is_array($shipping_data) && count($shipping_data) == 2 && $shipping_data[0] == "free_shipping") {
-                        $shipping_method->set_method_id($shipping_data[0]);
-                        $shipping_method->set_instance_id($shipping_data[1]);
+                        $_method_id = $shipping_data[0];
+                        $_instance_id = $shipping_data[1];
+
+                        $shipping_method->set_method_id($_method_id);
+                        $shipping_method->set_instance_id($_instance_id);
                     }
                 }
 
@@ -1758,6 +1777,8 @@ class CartScannerActions
             if (function_exists("wcpdf_get_document")) {
                 wcpdf_get_document("invoice", array($orderId), true);
             }   
+
+            do_action('woocommerce_new_order', $orderId, $order);
         }
 
         $settings = new Settings();

@@ -910,17 +910,24 @@ class Results
 
             if ($product && $product->is_type('variation')) {
                 $variation_attributes = $product->get_attributes();
-
-                foreach ($variation_attributes as $attribute_name => $attribute_value) {
-                    if (taxonomy_is_product_attribute($attribute_name)) {
-                        $attribute_label = wc_attribute_label($attribute_name);
-                    } else {
-                        $attribute_label = wc_attribute_label($attribute_name, $product);
-                    }
-
-                    $variationForPreview[] = array("label" => esc_html($attribute_label), "value" => esc_html($attribute_value));
-                }
+                $variationForPreview = OrdersHelper::getOrderItemAttributeValues($variation_attributes, $item, $product);
             }
+
+            if ($quantity) {
+                $price_c = html_entity_decode(strip_tags(wc_price($item->get_total() / $quantity)), ENT_COMPAT | ENT_HTML5, 'UTF-8');
+            } else {
+                $price_c = html_entity_decode(strip_tags(wc_price($item->get_total())), ENT_COMPAT | ENT_HTML5, 'UTF-8');
+            }
+
+                        $item_regular_price_c = html_entity_decode(strip_tags(wc_price(get_post_meta($id, "_regular_price", true))), ENT_COMPAT | ENT_HTML5, 'UTF-8');
+            $subtotal_c = html_entity_decode(strip_tags(wc_price($item->get_subtotal())), ENT_COMPAT | ENT_HTML5, 'UTF-8');
+            $total_c = html_entity_decode(strip_tags(wc_price($item->get_total())), ENT_COMPAT | ENT_HTML5, 'UTF-8');
+            $subtotal_tax_c = html_entity_decode(strip_tags(wc_price($item->get_subtotal_tax())), ENT_COMPAT | ENT_HTML5, 'UTF-8');
+            $total_tax_c = html_entity_decode(strip_tags(wc_price($item->get_total_tax())), ENT_COMPAT | ENT_HTML5, 'UTF-8');
+            $item_price_tax_total_c = html_entity_decode(strip_tags(wc_price($item->get_total() + $item->get_total_tax())), ENT_COMPAT | ENT_HTML5, 'UTF-8');
+            $item_price_tax_c = html_entity_decode(strip_tags(wc_price(($item->get_subtotal() / $quantity) + $item->get_total_tax())), ENT_COMPAT | ENT_HTML5, 'UTF-8');
+
+            $receiptShortcodes = ResultsHelper::getReceiptShortcodesOrderItem($settings, $order, $item);
 
             $_productData = array(
                 "ID" => $_post->ID,
@@ -928,21 +935,22 @@ class Results
                 "post_type" => $_post->post_type,
                 "name" => strip_tags($item->get_name()),
                 "quantity" => (float)$quantity,
-                "price_c" => $quantity ? strip_tags(wc_price($item->get_total() / $quantity)) : strip_tags(wc_price($item->get_total())),
+                "price" => $quantity ? self::clearPrice($item->get_total() / $quantity, $args) : self::clearPrice($item->get_total(), $args),
+                "price_c" => $price_c,
                 "subtotal" => $this->clearPrice($item->get_subtotal(), $args),
-                "subtotal_c" => strip_tags(wc_price($item->get_subtotal())),
+                "subtotal_c" => $subtotal_c,
                 "total" => $this->clearPrice($item->get_total(), $args),
-                "total_c" => strip_tags(wc_price($item->get_total())),
+                "total_c" => $total_c,
                 "subtotal_tax" => $this->clearPrice($item->get_subtotal_tax(), $args),
-                "subtotal_tax_c" => strip_tags(wc_price($item->get_subtotal_tax())),
+                "subtotal_tax_c" => $subtotal_tax_c,
                 "total_tax" => $this->clearPrice($item->get_total_tax(), $args),
-                "total_tax_c" => strip_tags(wc_price($item->get_total_tax())),
+                "total_tax_c" => $total_tax_c,
                 "item_price_tax" => $this->clearPrice(($item->get_subtotal() / $quantity) + $item->get_total_tax(), $args),
-                "item_price_tax_c" => strip_tags(wc_price(($item->get_subtotal() / $quantity) + $item->get_total_tax())),
+                "item_price_tax_c" => $item_price_tax_c,
                 "item_price_tax_total" => $this->clearPrice($item->get_subtotal() + $item->get_total_tax(), $args),
-                "item_price_tax_total_c" => strip_tags(wc_price($item->get_total() + $item->get_total_tax())),
+                "item_price_tax_total_c" => $item_price_tax_total_c,
                 "item_regular_price" => $this->clearPrice(get_post_meta($id, "_regular_price", true)), 
-                "item_regular_price_c" => strip_tags(wc_price(get_post_meta($id, "_regular_price", true))), 
+                "item_regular_price_c" => $item_regular_price_c, 
                 "taxes" => strip_tags(wc_price($item->get_taxes())),
                 "product_thumbnail_url" => $product_thumbnail_url,
                 "product_large_thumbnail_url" => $product_large_thumbnail_url,
@@ -957,7 +965,9 @@ class Results
                 "fulfillment_user_email" => $fulfillment_user_email,
                 "product_categories" => wp_get_post_terms($item->get_product_id(), 'product_cat'),
                 "variationForPreview" => $variationForPreview,
-                "refund_data" => OrdersHelper::getOrderItemRefundData($order, $item)
+                "refund_data" => OrdersHelper::getOrderItemRefundData($order, $item),
+                "receiptShortcodes" => $receiptShortcodes,
+                "search_data" => InterfaceData::getIndexedData($_post->ID)
             );
 
             foreach (InterfaceData::getFields(true, "", false, Users::userRole()) as $value) {
@@ -1095,7 +1105,7 @@ class Results
         $sStates = WC()->countries->get_states($order->get_shipping_country());
         $sState  = !empty($sStates[$order->get_shipping_state()]) ? $sStates[$order->get_shipping_state()] : '';
 
-        $receiptShortcodes = ResultsHelper::getReceiptShortcodes($settings, $order->get_id());
+        $receiptShortcodes = ResultsHelper::getReceiptShortcodesOrder($settings, $order->get_id());
 
         $props = array(
             "ID" => $order->get_id(),

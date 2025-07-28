@@ -157,10 +157,10 @@ class Core
         });
 
         add_filter('woocommerce_order_item_get_formatted_meta_data', function ($formatted_meta) {
-            if($formatted_meta) {
+            if ($formatted_meta) {
                 foreach ($formatted_meta as $key => $value) {
-                    if(in_array($value->key, array("usbs_check_product","usbs_check_product_scanned"))) {
-                    unset($formatted_meta[$key]);
+                    if (in_array($value->key, array("usbs_check_product","usbs_check_product_scanned"))) {
+                        unset($formatted_meta[$key]);
                     }
                 }
             }
@@ -313,21 +313,21 @@ class Core
 
         if ($webview) {
             
-  $appJsPath = plugin_dir_url(__FILE__)."../assets/js/bundle-business-1.9.1-1748599013457.js";
+  $appJsPath = plugin_dir_url(__FILE__)."../assets/js/bundle-business-1.10.0-1753286566858.js";
 
-  $vendorJsPath = plugin_dir_url(__FILE__)."../assets/js/chunk-business-1.9.1-1748599013457.js";
+  $vendorJsPath = plugin_dir_url(__FILE__)."../assets/js/chunk-business-1.10.0-1753286566858.js";
 
   
         } else {
-            wp_enqueue_script("barcode_scanner_loader", $path."assets/js/index-business-1.9.1-1748599013457.js", array("jquery"), 1748599013457, true);
+            wp_enqueue_script("barcode_scanner_loader", $path."assets/js/index-business-1.10.0-1753286566858.js", array("jquery"), 1753286566858, true);
 
-    $appJsPath = $path."assets/js/bundle-business-1.9.1-1748599013457.js";
+    $appJsPath = $path."assets/js/bundle-business-1.10.0-1753286566858.js";
 
-    $vendorJsPath = $path."assets/js/chunk-business-1.9.1-1748599013457.js";
+    $vendorJsPath = $path."assets/js/chunk-business-1.10.0-1753286566858.js";
 
         }
 
-        wp_enqueue_style('barcode_scanner_main', USBS_PLUGIN_BASE_URL . '/assets/css/style.css', array(), '1.9.1');
+        wp_enqueue_style('barcode_scanner_main', USBS_PLUGIN_BASE_URL . '/assets/css/style.css', array(), '1.10.0');
 
         if(!$isReturn) {
             $settings = get_option("barcode-scanner-settings-options", array());
@@ -340,6 +340,7 @@ class Core
                 'wc_nonce' => wp_create_nonce('wc_store_api'),
                 'wp_version' => $wp_version,
                 'wc_version' => defined("WC_VERSION") ? WC_VERSION : 0,
+                "phpVersion" => phpversion(),
                 'settings' => array("license" => $settings && isset($settings["license"]) ? $settings["license"] : array()),
             );
             wp_localize_script("barcode_scanner_loader", "usbs", $usbs);
@@ -448,7 +449,7 @@ class Core
             'pluginUrl' => USBS_PLUGIN_BASE_URL,
             'frontendLink' => get_home_url() . "/barcode-scanner-front",
             'jsonUrl' => get_rest_url(),
-            'pluginVersion' => '1.9.1',
+            'pluginVersion' => '1.10.0',
             'isWoocommerceActive' => PluginsHelper::is_plugin_active('woocommerce/woocommerce.php'),
             'isStockLocations' => PluginsHelper::is_plugin_active('stock-locations-for-woocommerce/stock-locations-for-woocommerce.php'),
             'currencySymbol' => $currency,
@@ -498,6 +499,7 @@ class Core
             'taxBasedOn' => get_option('woocommerce_tax_based_on', 'shipping'),
             'user_roles' => Users::getNewUserRoles(),
             'usbs_orders_list_filter' => $userId ? get_user_meta($userId, "usbs_orders_list_filter", true) : array(),
+            'search_results_sort_by' => $userId ? get_user_meta($userId, "search_results_sort_by", true) : "relevance",
         );
 
         $enableLocations = $settings->getSettings("enableLocations");
@@ -629,7 +631,7 @@ class Core
 
         $deps = array('jquery');
 
-                wp_enqueue_script('barcode_scanner_settings', USBS_PLUGIN_BASE_URL . '/src/features/settings/assets/js/index-business-1.9.1-1748599013457.js', $deps, null, true);
+                wp_enqueue_script('barcode_scanner_settings', USBS_PLUGIN_BASE_URL . '/src/features/settings/assets/js/index-business-1.10.0-1753286566858.js', $deps, null, true);
         wp_enqueue_style('barcode_scanner_settings', USBS_PLUGIN_BASE_URL . '/src/features/settings/assets/css/index.css');
 
         wp_enqueue_script('barcode_scanner_settings_chosen', USBS_PLUGIN_BASE_URL . '/src/features/settings/assets/js/chosen.jquery.min.js', $deps, null, true);
@@ -667,17 +669,10 @@ class Core
     public function pageSettingsReset () {
         $tab = isset($_GET["tab"]) ? "&tab=" . sanitize_text_field($_GET["tab"]) : "";
         $settings = new Settings();
-        $userId = get_current_user_id();
 
         $settings->resetOptionsSettings();
 
-        update_user_meta($userId, "scanner_custom_order_total", "");
-        update_user_meta($userId, "scanner_custom_order_shipping", "");
-        update_user_meta($userId, "scanner_custom_order_shipping_tax", "");
-        update_user_meta($userId, "scanner_custom_order_custom_taxes", "");
-        update_user_meta($userId, "scanner_active_shipping_method", "");
-        update_user_meta($userId, "scanner_active_payment_method", "");
-        update_user_meta($userId, "scanner_custom_order_cash_got", "");
+        Database::removeUsersData();        
 
         Database::removeAllTables();
 
@@ -702,7 +697,7 @@ class Core
         $logs = new Logs();
 
         wp_enqueue_script('jquery-ui-datepicker');
-        wp_enqueue_script('barcode_scanner_logs', USBS_PLUGIN_BASE_URL . '/src/features/logs/assets/js/index-business-1.9.1-1748599013457.js', array('jquery'), null, true);
+        wp_enqueue_script('barcode_scanner_logs', USBS_PLUGIN_BASE_URL . '/src/features/logs/assets/js/index-business-1.10.0-1753286566858.js', array('jquery'), null, true);
         wp_enqueue_style('barcode_scanner_logs', USBS_PLUGIN_BASE_URL . '/src/features/logs/assets/css/index.css');
         wp_register_style('jquery-ui', 'https://code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css');
         wp_enqueue_style('jquery-ui'); 
@@ -757,7 +752,7 @@ class Core
         }
 
         wp_enqueue_script('jquery-ui-datepicker');
-        wp_enqueue_script('barcode_scanner_logs', USBS_PLUGIN_BASE_URL . '/src/features/indexedData/assets/js/index-business-1.9.1-1748599013457.js', array('jquery'), null, true);
+        wp_enqueue_script('barcode_scanner_logs', USBS_PLUGIN_BASE_URL . '/src/features/indexedData/assets/js/index-business-1.10.0-1753286566858.js', array('jquery'), null, true);
         wp_enqueue_style('barcode_scanner_logs', USBS_PLUGIN_BASE_URL . '/src/features/indexedData/assets/css/index.css');
         wp_register_style('jquery-ui', 'https://code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css');
         wp_enqueue_style('jquery-ui'); 

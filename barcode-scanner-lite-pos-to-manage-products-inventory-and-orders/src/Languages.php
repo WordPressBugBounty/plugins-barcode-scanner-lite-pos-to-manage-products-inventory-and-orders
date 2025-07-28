@@ -337,4 +337,6 @@ return array(
     "no_new_users_to_revoke" => __("No users to revoke access from the role %role", 'us-barcode-scanner'),
     "no_internet_connection" => __("Please make sure you have a stable internet connection via Wi-Fi or mobile network.", 'us-barcode-scanner'),
     "no_internet_connection_title" => __("No internet connection", 'us-barcode-scanner'),
+    "Relogin required" => __("Relogin required", 'us-barcode-scanner'),
+    "Due to security reason you need to login again." => __("Due to security reason you need to login again.", 'us-barcode-scanner'),
 );

@@ -107,6 +107,7 @@ class InterfaceData
                 "label_width" => $value["label_width"],
                 "show_in_create_order" => $value["show_in_create_order"],
                 "show_in_products_list" => $value["show_in_products_list"],
+                "read_only" => $value["read_only"],
                 "disabled_field" => $value["read_only"],
                 "role" => !$role || $role == 'default'  ? null : $role,
                 "updated" => $created,
@@ -326,5 +327,20 @@ class InterfaceData
         }
 
         return $fieldsToExport;
+    }
+
+    public static function getIndexedData($postId)
+    {
+        global $wpdb;
+
+        if ($postId) {
+            $indexedOrderData = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}barcode_scanner_posts AS P WHERE post_id = %d", $postId));
+
+            if ($indexedOrderData) {
+                return $indexedOrderData;
+            }
+        }
+
+        return null;
     }
 }

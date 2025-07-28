@@ -224,7 +224,7 @@ class Settings
                 }
 
                 if (isset($this->post["key"])) {
-                    @delete_transient('ukrsolution_upgrade_scanner_1.9.1');
+                    @delete_transient('ukrsolution_upgrade_scanner_1.10.0');
                     $user_id = get_current_user_id();
                     update_option($user_id . '_' . basename(USBS_PLUGIN_BASE_PATH) . '_notice_dismissed', '', true);
                 }
@@ -775,6 +775,9 @@ class Settings
                 if (!isset($value["edit_prices"])) {
                     $value["edit_prices"] = in_array($key, $defaultAccess) ? 1 : 0;
                 }
+                if (!isset($value["order_edit"])) {
+                    $value["order_edit"] = in_array($key, $defaultAccess) ? 1 : 0;
+                }
                 if (!isset($value["order_edit_address"])) {
                     $value["order_edit_address"] = in_array($key, $defaultAccess) || in_array($key, $defaultFrontAccess) ? 1 : 0;
                 }
@@ -791,10 +794,12 @@ class Settings
                     "orders" => in_array($key, $defaultAccess) || in_array($key, $defaultFrontAccess) ? 1 : 0,
                     "onlymy" => 0,
                     "show_prices" => in_array($key, $defaultAccess) || in_array($key, $defaultFrontAccess) ? 1 : 0,
+                    "order_edit" => in_array($key, $defaultAccess) ? 1 : 0,
                     "order_edit_address" => in_array($key, $defaultAccess) || in_array($key, $defaultFrontAccess) ? 1 : 0,
                     "edit_prices" => in_array($key, $defaultAccess) ? 1 : 0,
                     "cart" => in_array($key, $defaultAccess) || in_array($key, $defaultFrontAccess) ? 1 : 0,
                     "linkcustomer" => in_array($key, $defaultAccess) || in_array($key, $defaultFrontAccess) ? 1 : 0,
+                    "link_current_user" => 0,
                     "frontend" => in_array($key,  $defaultAccess) || in_array($key, $defaultFrontAccess) ? 1 : 0,
                     "plugin_settings" => in_array($key,  $defaultAccess) ? 1 : 0,
                     "plugin_logs" => in_array($key,  $defaultAccess) ? 1 : 0,
@@ -814,10 +819,12 @@ class Settings
                 "orders" => 1,
                 "onlymy" => 0,
                 "show_prices" => 0,
+                "order_edit" => 0,
                 "order_edit_address" => 0,
                 "edit_prices" => 0,
                 "cart" => 1,
                 "linkcustomer" => 1,
+                "link_current_user" => 0,
                 "frontend" => 1,
                 "plugin_settings" => 0,
                 "plugin_logs" => 0,
@@ -854,10 +861,12 @@ class Settings
             "orders" => 0, 
             "onlymy" => 0, 
             "show_prices" => 0, 
+            "order_edit" => 0, 
             "order_edit_address" => 0, 
             "edit_prices" => 0, 
             "cart" => 0, 
             "linkcustomer" => 0, 
+            "link_current_user" => 0,
             "frontend" => 0, 
             "plugin_settings" => 0, 
             "plugin_logs" => 0,

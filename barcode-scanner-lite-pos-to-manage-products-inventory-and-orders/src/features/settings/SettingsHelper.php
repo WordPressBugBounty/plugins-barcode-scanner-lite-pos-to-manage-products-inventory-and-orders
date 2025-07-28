@@ -2,6 +2,7 @@
 
 namespace UkrSolution\BarcodeScanner\features\settings;
 
+use UkrSolution\BarcodeScanner\API\classes\Users;
 use UkrSolution\BarcodeScanner\Database;
 
 class SettingsHelper
@@ -192,5 +193,23 @@ class SettingsHelper
         }
 
         return $number;
+    }
+
+    public static function updateSettings($request)
+    {
+        if ($request && $request->get_param("resultSortBy")) {
+            $resultSortBy = $request->get_param("resultSortBy");
+            $userId = Users::getUserId($request);
+            update_user_meta($userId, "search_results_sort_by", $resultSortBy);
+        }
+    }
+
+    public static function getSearchResultsSortBy($request)
+    {
+        $userId = Users::getUserId($request);
+        $resultSortBy = $userId ? get_user_meta($userId, "search_results_sort_by", true) : "relevance";
+        $resultSortBy = $resultSortBy ? $resultSortBy : "relevance";
+
+                return $resultSortBy;
     }
 }

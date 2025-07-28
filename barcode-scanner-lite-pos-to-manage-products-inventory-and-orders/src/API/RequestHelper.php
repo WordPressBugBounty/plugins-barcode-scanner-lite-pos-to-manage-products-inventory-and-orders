@@ -14,6 +14,6 @@ class RequestHelper
 
         $query = apply_filters(self::$scanner_search_query, $query, $type);
 
-        return trim($query);
+        return $query ? trim($query) : "";
     }
 }

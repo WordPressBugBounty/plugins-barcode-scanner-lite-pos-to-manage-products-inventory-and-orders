@@ -126,6 +126,7 @@ class AjaxRoutes
                 "orderId",
                 "userId",
                 "itemId",
+                "customField",
                 "recordId",
                 "query",
                 "withVariation",
@@ -189,6 +190,9 @@ class AjaxRoutes
                 "loadCustomerData",
                 "taxonomy",
                 "ignoreIncrease",
+                "note",
+                "resultSortBy",
+                "checkFulfillment",
             );
             $keysArray = array(
                 "filter",
@@ -226,7 +230,8 @@ class AjaxRoutes
                 "customAttributes",
                 "globalOptions",
                 "customOptions",
-                "ids"
+                "ids",
+                "prices"
             );
             $response = array();
 
@@ -241,6 +246,8 @@ class AjaxRoutes
             }
 
             $_POST["bsInstanceFrontendStatus"] = $request->get_param("bsInstanceFrontendStatus");
+
+            SettingsHelper::updateSettings($request);
 
             switch ($route) {
                 case 'getPost':
@@ -344,6 +351,30 @@ class AjaxRoutes
                     PermissionsHelper::onePermRequired(['order_edit_address']);
                     $response = $managementActions->changeOrderAddress($request);
                     break;
+                case 'orderChangePrices':
+                    PermissionsHelper::onePermRequired(['orders']);
+                    $response = $managementActions->orderChangePrices($request);
+                    break;
+                case 'orderChangeShippingMethod':
+                    PermissionsHelper::onePermRequired(['orders']);
+                    $response = $managementActions->orderChangeShippingMethod($request);
+                    break;
+                case 'orderChangePaymentMethod':
+                    PermissionsHelper::onePermRequired(['orders']);
+                    $response = $managementActions->orderChangePaymentMethod($request);
+                    break;
+                case 'orderChangeOrderNote':
+                    PermissionsHelper::onePermRequired(['orders']);
+                    $response = $managementActions->orderChangeOrderNote($request);
+                    break;
+                case 'orderChangeOrderCoupon':
+                    PermissionsHelper::onePermRequired(['orders']);
+                    $response = $managementActions->orderChangeOrderCoupon($request);
+                    break;
+                case 'orderReCalculate':
+                    PermissionsHelper::onePermRequired(['orders']);
+                    $response = $managementActions->orderReCalculate($request);
+                    break;
                 case 'updateOrderMeta':
                     PermissionsHelper::onePermRequired(['orders']);
                     $response = $managementActions->updateOrderMeta($request);
@@ -431,6 +462,10 @@ class AjaxRoutes
                 case 'ff2PickItem':
                     PermissionsHelper::onePermRequired(['orders']);
                     $response = $ordersActions->ff2PickItem($request);
+                    break;
+                case 'ff2PickCustomField':
+                    PermissionsHelper::onePermRequired(['orders']);
+                    $response = $ordersActions->ff2PickCustomField($request);
                     break;
                 case 'ff2RepickItem':
                     PermissionsHelper::onePermRequired(['orders']);

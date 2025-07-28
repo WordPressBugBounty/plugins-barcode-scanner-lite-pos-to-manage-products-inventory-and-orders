@@ -47,7 +47,7 @@ class ResultsHelper
         return self::$locationsList;
     }
 
-    public static function getReceiptShortcodes($settings, $orderId)
+    public static function getReceiptShortcodesOrder($settings, $orderId)
     {
         $receiptTemplate = $settings->getSettings("receipt-template");
         $receiptTemplate = $receiptTemplate ? $receiptTemplate->value : "";
@@ -67,6 +67,38 @@ class ResultsHelper
                 $id = isset($attributes["id"]) ? $attributes["id"] : null;
 
                 if ($id !== null) $shortcodeWithId = str_replace($id, $orderId, $shortcode);
+
+                if ($match && count($match) === 2) $receiptShortcodesValue[$shortcode] = array("html" => do_shortcode($shortcodeWithId), "shortcode_id" => $match[1], "shortcode" => $shortcodeWithId);
+            }
+        }
+
+        return $receiptShortcodesValue;
+    }
+
+    public static function getReceiptShortcodesOrderItem($settings, $order, $item)
+    {
+        $receiptTemplate = $settings->getSettings("receipt-template");
+        $receiptTemplate = $receiptTemplate ? $receiptTemplate->value : "";
+        $receiptShortcodesValue = array();
+
+        if ($receiptTemplate) {
+            $pattern = '/\[barcode\s+id=product_id\s+shortcode=(\d+)\]/';
+
+            preg_match_all($pattern, $receiptTemplate, $matches, PREG_SET_ORDER);
+
+            foreach ($matches as $match) {
+                $shortcode = $match[0];
+                $shortcodeWithId = $shortcode;
+
+                $attributes = shortcode_parse_atts($shortcode);
+
+                $id = isset($attributes["id"]) ? $attributes["id"] : null;
+
+                if ($id !== null) {
+                    $product = $item->get_product();
+                    $sku = $product ? $product->get_id() : "";
+                    $shortcodeWithId = str_replace($id, $sku, $shortcode);
+                }
 
                 if ($match && count($match) === 2) $receiptShortcodesValue[$shortcode] = array("html" => do_shortcode($shortcodeWithId), "shortcode_id" => $match[1], "shortcode" => $shortcodeWithId);
             }
