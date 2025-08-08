@@ -78,7 +78,7 @@ $button_js_default = '// Get product details
                             </td>
                         </tr>
 
-                        <tr>
+                        <tr class="tr_usbs_field_type">
                             <td scope="row" style="text-align:left; padding: 0 10px 0 10px; width: 110px; box-sizing: border-box;">
                                 <?php echo esc_html__("Field type", "us-barcode-scanner"); ?>
                             </td>
@@ -111,6 +111,8 @@ $button_js_default = '// Get product details
                                         <option value="_yith_pos_multistock" <?php echo $field["type"] == "_yith_pos_multistock" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo  esc_html__("YITH Point of Sale", "us-barcode-scanner"); ?></option>
                                     <?php endif; ?>
                                     <option value="checkbox" <?php echo $field["type"] == "checkbox" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo  esc_html__("Checkbox", "us-barcode-scanner"); ?></option>
+                                    <!-- <option value="search_section" <?php echo $field["type"] == "search_section" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo  esc_html__("Search section", "us-barcode-scanner"); ?></option> -->
+                                    <option value="product_name_section" <?php echo $field["type"] == "product_name_section" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo  esc_html__("Product name section", "us-barcode-scanner"); ?></option>
                                 </select>
                             </td>
                         </tr>

@@ -21,7 +21,7 @@ var WebBarcodeScannerAdminMenuList = function () {
     jQuery("#adminmenu span.barcode_scanner_faq")
       .closest("a")
       .attr("target", "_blank")
-      .attr("href", "https://www.ukrsolution.com/ExtensionsSupport/Support?extension=25&version=1.10.2&pversion="); // 1.10.2
+      .attr("href", "https://www.ukrsolution.com/ExtensionsSupport/Support?extension=25&version=1.10.2&pversion=");
     jQuery("#adminmenu span.barcode_scanner_faq")
       .closest("a")
       .attr("target", "_blank")
@@ -29,7 +29,7 @@ var WebBarcodeScannerAdminMenuList = function () {
     jQuery("#adminmenu span.barcode_scanner_support")
       .closest("a")
       .attr("target", "_blank")
-      .attr("href", "https://www.ukrsolution.com/ExtensionsSupport/Support?extension=24&version=1.10.2&pversion=" + wpVersion + "&d=" + btoa(wpKey));  // 1.10.2
+      .attr("href", "https://www.ukrsolution.com/ExtensionsSupport/Support?extension=24&version=1.10.2&pversion=" + wpVersion + "&d=" + btoa(wpKey));
   } catch (error) {
     console.error(error.message);
   }
@@ -308,7 +308,12 @@ jQuery(document).ready(function () {
 
             const coreLoader = new Promise((resolve, reject) => {
 
-              {%iframeScripts%}
+              
+    var appJs = document.createElement("script"); 
+    appJs.type = "text/javascript"; 
+    appJs.src = "` + window.usbs.appJsPath + `";
+    document.body.appendChild(appJs);
+    
 
               // Resolve the promise when the script is successfully loaded
               appJs.onload = () => resolve('Script loaded successfully');

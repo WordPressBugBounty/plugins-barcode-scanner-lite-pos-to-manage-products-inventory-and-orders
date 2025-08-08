@@ -78,7 +78,7 @@ class DbActions
 
                     if (!$customField && !key_exists($name, Database::$postsFields)) {
                         $key = $settings->getField("license", "key", "");
-                        $url = "https://www.ukrsolution.com/ExtensionsSupport/Support?extension=24&version=1.10.0&pversion=" . $wp_version . "&d=" . base64_encode($key);
+                        $url = "https://www.ukrsolution.com/ExtensionsSupport/Support?extension=24&version=1.10.2&pversion=" . $wp_version . "&d=" . base64_encode($key);  // 1.10.2
                         if ($type === "order") {
                             $message = __("Order's custom field \"{$name}\" not found. Please make sure you entered a correct database value or <a href='{$url}' target='_blank'>contact us</a> for help.", "us-barcode-scanner");
                         } else if ($type === "order-item") {
@@ -124,7 +124,7 @@ class DbActions
 
                     if (!$existingLocalAttribute && !$existingGlobalAttribute) {
                         $key = $settings->getField("license", "key", "");
-                        $url = "https://www.ukrsolution.com/ExtensionsSupport/Support?extension=24&version=1.10.0&pversion=" . $wp_version . "&d=" . base64_encode($key);
+                        $url = "https://www.ukrsolution.com/ExtensionsSupport/Support?extension=24&version=1.10.2&pversion=" . $wp_version . "&d=" . base64_encode($key);  // 1.10.2
                         $message = __("Attribute \"{$name}\" not found. Please make sure you entered a correct database value or <a href='{$url}' target='_blank'>contact us</a> for help.", "us-barcode-scanner");
                         $result = array("error" => $message);
 

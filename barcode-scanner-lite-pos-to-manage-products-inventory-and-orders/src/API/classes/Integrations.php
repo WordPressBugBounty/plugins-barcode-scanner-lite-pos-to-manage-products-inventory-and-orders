@@ -33,6 +33,8 @@ class Integrations
             add_action('init', array($this, "cartQtyStep"));
 
             add_action('init', array($this, "postDateFields"));
+
+            add_action('init', array($this, "printInvoicesPackingSlipLabelsForWoocommerce"));
         } catch (\Throwable $th) {
         }
     }
@@ -573,5 +575,20 @@ class Integrations
 
             return $value;
         }, 10, 3);
+    }
+
+    public function printInvoicesPackingSlipLabelsForWoocommerce()
+    {
+        add_filter('wf_pklist_modify_meta_data', function ($meta_data, $order_item, $order = null, $template_type = null) {
+            if (isset($meta_data['usbs_check_product_scanned'])) {
+                unset($meta_data['usbs_check_product_scanned']);
+            }
+
+            if (isset($meta_data['usbs_check_product'])) {
+                unset($meta_data['usbs_check_product']);
+            }
+
+            return $meta_data;
+        }, 1000, 4);
     }
 }

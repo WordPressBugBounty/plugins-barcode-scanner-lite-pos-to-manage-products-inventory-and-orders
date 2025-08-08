@@ -502,8 +502,8 @@ class Database
             array("field_name" => "usbs_stock_location_level_1", "field_label" => "Warehouse", "label_position" => "top", "label_width" => $widthRight, "position" => "product-left-sidebar", "type" => "text", "field_height" => 0, "status" => 1, "order" => 300),
             array("field_name" => "usbs_stock_location_level_2", "field_label" => "Rack", "label_position" => "top", "label_width" => $widthRight, "position" => "product-left-sidebar", "type" => "text", "field_height" => 0, "status" => 1, "order" => 290),
             array("field_name" => "usbs_stock_location_level_3", "field_label" => "Shelf", "label_position" => "top", "label_width" => $widthRight, "position" => "product-left-sidebar", "type" => "text", "field_height" => 0, "status" => 1, "order" => 280),
-        );
-        $defaultFieldsForAll = array(
+            );
+            $defaultFieldsForAll = array(
             array("field_name" => "usbs_variation_attributes", "field_label" => "Variation attributes", "label_position" => "top", "label_width" => $widthRight, "position" => "product-middle-right", "type" => "variation_attributes", "field_height" => 0, "status" => 1, "order" => 870),
             array("field_name" => "product_cat", "field_label" => "Categories", "label_position" => "left", "label_width" => $widthLeft, "position" => "product-middle-left", "type" => "taxonomy", "field_height" => 0, "status" => 1, "order" => 400),
             array("field_name" => "_tax_class", "field_label" => "Tax class", "label_position" => "top", "label_width" => $widthRight, "position" => "product-middle-right", "type" => "select", "field_height" => 0, "status" => 0, "mobile_status" => 0, "order" => 850),
@@ -512,7 +512,9 @@ class Database
 
             array("field_name" => "_backorders", "field_label" => "Allow backorders?", "label_position" => "top", "label_width" => $widthRight, "position" => "product-middle-right", "type" => "select", "field_height" => 0, "status" => 0, "options" => json_encode($_backorders), "order" => 920),
             array("field_name" => "_switch_status", "field_label" => "Checkbox", "label_position" => "top", "label_width" => $widthRight, "position" => "product-middle-right", "type" => "checkbox", "field_height" => 0, "status" => 0, "mobile_status" => 0, "order" => 920),
-        );
+
+            array("field_name" => "product_name_section", "field_label" => "Product name section", "label_position" => "", "label_width" => $widthLeft, "position" => "product-middle-top", "type" => "product_name_section", "field_height" => 0, "status" => 1, "mobile_status" => 0, "order" => 3000),
+            );
 
 
 

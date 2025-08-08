@@ -743,7 +743,7 @@ class CartScannerActions
             "cart_total" => ResultsHelper::getFormattedPrice($cart_total),
             "cart_total_c" => strip_tags($cartTotal),
             "cart_subtotal" => $cart_subtotal,
-            "cart_subtotal_c" => strip_tags(wc_price($cartSubtotal)), 
+            "cart_subtotal_c" => strip_tags(wc_price($cartSubtotal)),
             "cart_subtotal_tax" => $cartSubtotalTax,
             "cart_subtotal_tax_c" => strip_tags(wc_price($cartSubtotalTax)),
             "total_tax" => $total_tax,

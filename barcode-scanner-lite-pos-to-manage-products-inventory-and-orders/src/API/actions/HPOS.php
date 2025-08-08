@@ -506,14 +506,14 @@ class HPOS
             $cartScannerActions = new CartScannerActions();
 
             $taxAddress = $cartScannerActions->getTaxAddress(array("address" => array(
-                "billing_country" => $order->billing_country,
-                "billing_state" => $order->billing_state,
-                "billing_city" => $order->billing_city,
-                "billing_postcode" => $order->billing_postcode,
-                "shipping_country" => $order->shipping_country,
-                "shipping_state" => $order->shipping_state,
-                "shipping_city" => $order->shipping_city,
-                "shipping_postcode" => $order->shipping_postcode,
+                "billing_country" => $order->get_billing_country(),
+                "billing_state" => $order->get_billing_state(),
+                "billing_city" => $order->get_billing_city(),
+                "billing_postcode" => $order->get_billing_postcode(),
+                "shipping_country" => $order->get_shipping_country(),
+                "shipping_state" => $order->get_shipping_state(),
+                "shipping_city" => $order->get_shipping_city(),
+                "shipping_postcode" => $order->get_shipping_postcode(),
                 "shipping_as_billing" => 0
             )));
 

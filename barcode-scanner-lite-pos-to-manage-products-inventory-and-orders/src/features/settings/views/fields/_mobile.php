@@ -23,7 +23,7 @@
         <tbody class="usbs_fields_list_sortable">
             <?php foreach ($interfaceData::getFields(false, "mobile", false, $roleActive, false) as $field) : ?>
                 <?php if ($field["type"] == "price") continue; ?>
-                <?php if (in_array($field["position"], array("product-middle-left", "product-middle-right", "product-left-sidebar", "product-column-4", "product-middle-bottom"))) {
+                <?php if (in_array($field["position"], array("product-middle-top", "product-middle-left", "product-middle-right", "product-left-sidebar", "product-column-4", "product-middle-bottom"))) {
                     require __DIR__ . "/field.php";
                 } ?>
             <?php endforeach; ?>

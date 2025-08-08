@@ -2,14 +2,6 @@
 
 use UkrSolution\BarcodeScanner\Core;
 
-if (!defined('WP_USE_THEMES')) {
-    define('WP_USE_THEMES', false);
-}
-
-if (!defined('DISABLE_WP_CRON')) {
-    define('DISABLE_WP_CRON', true);
-}
-
 global $wp, $wp_query, $wp_the_query, $wp_rewrite, $wp_did_header;
 
 $root = isset($_SERVER['DOCUMENT_ROOT']) ? $_SERVER['DOCUMENT_ROOT'] : "../../..";
@@ -27,6 +19,14 @@ if (file_exists($root . "/wp-includes/plugin.php")) {
 }
 
 require($root . "/wp-load.php");
+
+if (!defined('WP_USE_THEMES')) {
+    define('WP_USE_THEMES', false);
+}
+
+if (!defined('DISABLE_WP_CRON')) {
+    define('DISABLE_WP_CRON', true);
+}
 
 $dt = new \DateTime("now");
 

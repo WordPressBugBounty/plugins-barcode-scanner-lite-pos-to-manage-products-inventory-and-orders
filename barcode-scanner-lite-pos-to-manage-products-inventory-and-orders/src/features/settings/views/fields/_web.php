@@ -137,6 +137,23 @@ $productColumn4Width = $productColumn4Width === null ? '260' : $productColumn4Wi
     </table>
 </div>
 <!-- end product-column-4 -->
+ <!-- middle top -->
+<div style="margin-right: 20px; width: 380px;">
+    <b><?php echo esc_html__("Middle top fields:", "us-barcode-scanner"); ?></b>
+    <button type="button" class="settings_field_add_new" data-position="product-middle-top"><?php echo esc_html__("Add new", "us-barcode-scanner"); ?></button>
+
+    <div style="height: 10px;"></div>
+    <table class="form-table wrapper" data-position="product-middle-top" style="min-height: 100px;">
+        <tbody class="usbs_fields_list_sortable">
+            <?php foreach ($interfaceData::getFields(false, "", false, $roleActive, false) as $field) : ?>
+                <?php if ($field["position"] == "product-middle-top") {
+                    require __DIR__ . "/field.php";
+                } ?>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
+</div>
+<!-- end middle top -->
 <!-- middle bottom -->
 <div style="width: 380px;">
     <b><?php echo esc_html__("Middle bottom fields:", "us-barcode-scanner"); ?></b>

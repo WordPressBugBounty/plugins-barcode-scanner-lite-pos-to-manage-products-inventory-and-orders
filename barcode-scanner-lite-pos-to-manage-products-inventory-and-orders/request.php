@@ -2,14 +2,6 @@
 
 use UkrSolution\BarcodeScanner\Core;
 
-if (!defined('WP_USE_THEMES')) {
-    define('WP_USE_THEMES', false);
-}
-
-if (!defined('DISABLE_WP_CRON')) {
-    define('DISABLE_WP_CRON', true);
-}
-
 global $wp, $wp_query, $wp_the_query, $wp_rewrite, $wp_did_header;
 
 $root = isset($_SERVER['DOCUMENT_ROOT']) ? $_SERVER['DOCUMENT_ROOT'] : "../../..";
@@ -24,6 +16,16 @@ if (file_exists($root . "/wp-includes/plugin.php")) {
     } else {
         echo "/wp-includes/plugin.php is not fond!";
     }
+}
+
+require($root . "/wp-load.php");
+
+if (!defined('WP_USE_THEMES')) {
+    define('WP_USE_THEMES', false);
+}
+
+if (!defined('DISABLE_WP_CRON')) {
+    define('DISABLE_WP_CRON', true);
 }
 
 function usbs_plugin_filter($plugins)
@@ -106,8 +108,6 @@ function usbs_plugin_filter($plugins)
 add_filter("option_active_plugins", "usbs_plugin_filter", 1, 1);
 add_filter("site_option_active_plugins", "usbs_plugin_filter", 1, 1);
 add_filter("active_plugins", "usbs_plugin_filter", 1, 1);
-
-require($root . "/wp-load.php");
 
 if (class_exists("Core")) {
     $core = new Core();

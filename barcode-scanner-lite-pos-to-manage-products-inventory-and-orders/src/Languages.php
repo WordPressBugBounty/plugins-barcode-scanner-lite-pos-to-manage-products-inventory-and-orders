@@ -1,6 +1,7 @@
 <?php
 
 return array(
+    "ID" => __("ID", 'us-barcode-scanner'),
     "inventory" => __("Inventory", 'us-barcode-scanner'),
     "orders" => __("Orders", 'us-barcode-scanner'),
     "create_order" => __("Create Order", 'us-barcode-scanner'),
