@@ -100,6 +100,6 @@ if (function_exists('BSPrintLabelJsHook')) {
 } 
 ?>
 
-<script src="<?php echo esc_url($path); ?>assets/js/index-business-1.10.2-1754656172339.js"></script> <!-- 1.10.2 -->
+<script src="<?php echo esc_url($path); ?>assets/js/index-business-1.10.4-1757425940474.js"></script>
 
 <?php

@@ -51,7 +51,20 @@ class Locations
 
         $interface = $wpdb->prefix . Database::$interface;
 
-        $rows = $wpdb->get_results("SELECT * FROM {$interface} AS I WHERE I.field_name LIKE 'usbs_stock_location_level_%' AND I.status = 1 ORDER BY I.`order` DESC;");
+        $userId = get_current_user_id();
+        $user = $userId ? get_user_by('id', $userId) : null;
+        $role = $user ? $user->roles[0] : null;
+
+        if ($role) {
+            $rows = $wpdb->get_results($wpdb->prepare("SELECT * FROM {$interface} AS I WHERE I.field_name LIKE 'usbs_stock_location_level_%' AND I.status = 1 AND I.role = %s ORDER BY I.`order` DESC;", $role));
+
+            if (count($rows) == 0) {
+                $rows = $wpdb->get_results("SELECT * FROM {$interface} AS I WHERE I.field_name LIKE 'usbs_stock_location_level_%' AND I.status = 1 AND I.role IS NULL ORDER BY I.`order` DESC;");
+            }
+
+        } else {
+            $rows = $wpdb->get_results("SELECT * FROM {$interface} AS I WHERE I.field_name LIKE 'usbs_stock_location_level_%' AND I.status = 1 ORDER BY I.`order` DESC;");
+        }
         $fields = array();
 
 

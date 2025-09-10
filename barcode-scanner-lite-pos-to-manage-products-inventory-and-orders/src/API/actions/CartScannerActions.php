@@ -1057,12 +1057,6 @@ class CartScannerActions
         return $cartItems;
     }
 
-    private function  wcSession(WP_REST_Request $request)
-    {
-
-
-    }
-
     private function addItemToCart($request, $product, $quantity = 1, $repeat = true, $customFilter = array(), $orderUserId = "")
     {
         global $wpdb;
@@ -1359,7 +1353,6 @@ class CartScannerActions
             }
         } catch (\Throwable $th) {
         }
-
 
         $data = array(
             'status' => 'wc-pending',
@@ -1778,7 +1771,7 @@ class CartScannerActions
                 wcpdf_get_document("invoice", array($orderId), true);
             }   
 
-            do_action('woocommerce_new_order', $orderId, $order);
+            do_action('bs_woocommerce_new_order', $orderId, $order);
         }
 
         $settings = new Settings();

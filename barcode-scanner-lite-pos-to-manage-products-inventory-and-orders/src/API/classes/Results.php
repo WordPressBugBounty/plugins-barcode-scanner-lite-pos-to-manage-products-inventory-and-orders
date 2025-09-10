@@ -373,6 +373,7 @@ class Results
             "_tax_class" => get_post_meta($post->ID, "_tax_class", true),
             "_stock_status" => get_post_meta($post->ID, "_stock_status", true),
             "_stock" => $_stock ? sprintf('%g', $_stock) : $_stock,
+            "_sku" => $product->get_sku(),
             "product_sku" => $product->get_sku(),
             "product_regular_price" => $product_regular_price, 
             "product_regular_price_c" => $product_regular_price_c, 
@@ -428,7 +429,9 @@ class Results
                     $defaultValue = \get_post_meta($post->ID, $value['field_name'], true);
                     $filteredValue = apply_filters($filterName, $defaultValue, $value['field_name'], $props["ID"]);
                     $filteredValue = $value['field_name'] == "_stock" && $filteredValue ? sprintf('%g', $filteredValue) :  $filteredValue;
-                    $props[$value['field_name']] = $filteredValue;
+
+                        $props[$value['field_name']] = $filteredValue;
+
                     $props['_yith_pos_multistock_enabled'] = \get_post_meta($post->ID, '_yith_pos_multistock_enabled', true);
 
                     if ($value['field_name'] == "_yith_pos_multistock" && $filteredValue && is_array($filteredValue)) {
@@ -450,35 +453,8 @@ class Results
             } catch (\Throwable $th) {
             }
 
-            $oldPrice1 = $this->settings->getField("prices", "show_regular_price", "");
-            if (($this->settings->getField("prices", "show_price_1", "on") === "on" || $oldPrice1 === "on") && $oldPrice1 !== "off") {
-                $price1Field = $this->settings->getField("prices", "price_1_field", "_regular_price");
 
-                if ($price1Field && isset($post->$price1Field)) {
-                    $props[$price1Field] = $post->$price1Field;
-                }
-            }
 
-            $oldPrice2 = $this->settings->getField("prices", "show_sale_price", "");
-            if (($this->settings->getField("prices", "show_price_2", "on") === "on" || $oldPrice2 === "on") && $oldPrice2 !== "off") {
-                $price2Field = $this->settings->getField("prices", "price_2_field", "_sale_price");
-
-                if ($price2Field && isset($post->$price2Field)) {
-                    $props[$price2Field] = $post->$price2Field;
-                }
-            }
-
-            $oldPrice3 = $this->settings->getField("prices", "show_other_price", "");
-            if (($this->settings->getField("prices", "show_price_3", "on") === "on" || $oldPrice3 === "on") && $oldPrice3 !== "off") {
-                $price3Field = $this->settings->getField("prices", "other_price_field", "");
-                if (!$price3Field) {
-                    $price3Field = $this->settings->getField("prices", "price_3_field", "_purchase_price");
-                }
-
-                if ($price3Field && isset($post->$price3Field)) {
-                    $props[$price3Field] = $post->$price3Field;
-                }
-            }
         }
 
         foreach ($additionalFields as $key => $value) {
@@ -560,9 +536,12 @@ class Results
             "_tax_class" => get_post_meta($post->ID, "_tax_class", true),
             "_stock_status" => get_post_meta($post->ID, "_stock_status", true),
             "_stock" => $_stock ? sprintf('%g', $_stock) : $_stock,
+            "_sku" => $product->get_sku(),
             "product_sku" => $product->get_sku(),
+            "_regular_price" => $product_regular_price,
             "product_regular_price" => $product_regular_price,
             "product_regular_price_c" => $product_regular_price_c,
+            "_sale_price" => $product_sale_price,
             "product_sale_price" => $product_sale_price,
             "product_sale_price_c" => $product_sale_price_c,
             "product_price" => $product_price,
@@ -1054,6 +1033,7 @@ class Results
         $wpFormat = get_option("date_format", "F j, Y") . " " . get_option("time_format", "g:i a");
         $orderDate = new \DateTime($order->get_date_created());
         $date_format = $order->get_date_created();
+        $date_format->setTimezone(new \DateTimeZone( \wp_timezone_string()));
         $date_format = $date_format->format("Y-m-d H:i:s");
 
         if ($order->get_billing_first_name() || $order->get_billing_last_name()) {
@@ -1106,6 +1086,18 @@ class Results
         $sState  = !empty($sStates[$order->get_shipping_state()]) ? $sStates[$order->get_shipping_state()] : '';
 
         $receiptShortcodes = ResultsHelper::getReceiptShortcodesOrder($settings, $order->get_id());
+
+        $shipping_method = "";
+
+        foreach ($order->get_items('shipping') as $shipping_item) {
+            $method_id = $shipping_item->get_method_id();
+            if (!$method_id && $method_id != 0) $method_id = "";
+
+            $instance_id = $shipping_item->get_instance_id();
+            if (!$instance_id) $instance_id = 0;
+
+            $shipping_method = $method_id;
+        }
 
         $props = array(
             "ID" => $order->get_id(),
@@ -1192,6 +1184,8 @@ class Results
             "customer_orders_count" => 0,
             "user_pending_orders_count" => ResultsHelper::get_user_pending_orders_count($customerId, $post->ID, $orderStatusesAreStillNotCompleted),
             "refund_data" => OrdersHelper::getOrderRefundData($order),
+            "shipping_method" => $shipping_method,
+            "payment_method" => $order_payment,
         );
 
         OrdersHelper::addOrderData($order->get_id(), $props);
@@ -1264,6 +1258,7 @@ class Results
         $wpFormat = get_option("date_format", "F j, Y") . " " . get_option("time_format", "g:i a");
         $orderDate = new \DateTime($order->get_date_created());
         $date_format = $order->get_date_created();
+        $date_format->setTimezone(new \DateTimeZone( \wp_timezone_string()));
         $date_format = $date_format->format("Y-m-d H:i:s");
 
         if ($order->get_billing_first_name() || $order->get_billing_last_name()) {

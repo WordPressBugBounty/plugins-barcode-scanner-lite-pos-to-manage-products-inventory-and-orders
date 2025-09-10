@@ -451,9 +451,9 @@ class HPOS
             $userData->avatar = @get_avatar_url($customerId);
         }
 
-        $wpFormat = get_option("date_format", "F j, Y") . " " . get_option("time_format", "g:i a");
         $orderDate = new \DateTime($order->get_date_created());
         $date_format = $order->get_date_created();
+        $date_format->setTimezone(new \DateTimeZone( \wp_timezone_string()));
         $date_format = $date_format->format("Y-m-d H:i:s");
 
         $customerName = $order->get_billing_first_name() . " " . $order->get_billing_last_name();
@@ -691,9 +691,9 @@ class HPOS
             $user = $user->data;
         }
 
-        $wpFormat = get_option("date_format", "F j, Y") . " " . get_option("time_format", "g:i a");
         $orderDate = new \DateTime($order->get_date_created());
         $date_format = $order->get_date_created();
+        $date_format->setTimezone(new \DateTimeZone( \wp_timezone_string()));
         $date_format = $date_format->format("Y-m-d H:i:s");
 
 

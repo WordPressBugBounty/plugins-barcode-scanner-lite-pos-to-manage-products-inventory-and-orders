@@ -42,6 +42,7 @@ class ManagementActions
     public $filter_quantity_plus = 'scanner_quantity_plus';
     public $filter_quantity_minus = 'scanner_quantity_minus';
     public $filter_quantity_update = 'scanner_quantity_update';
+    public $filter_set_before = "barcode_scanner_%field_set_before";
     public $filter_set_after = "barcode_scanner_%field_set_after";
     public $filter_auto_action_step = 'scanner_auto_action_step';
     public $scanner_created_product = 'scanner_created_product';
@@ -166,11 +167,11 @@ class ManagementActions
         if ($sortBy == "relevance") $this->itemsLevenshtein($products, $query, $data);
         else if ($sortBy == "parent_product") $this->itemsParentProduct($products);
 
+        $customFilter["searchQuery"] = $query;
+
+        $products = apply_filters($this->filter_search_result, $products, $customFilter);
+
         if ($products) {
-            $customFilter["searchQuery"] = $query;
-
-            $products = apply_filters($this->filter_search_result, $products, $customFilter);
-
             $userId = Users::getUserId($request);
 
             if ($isAddToList && !$autoFill) {
@@ -260,11 +261,11 @@ class ManagementActions
         if ($sortBy == "relevance") $this->itemsLevenshtein($products, $query, $data);
         else if ($sortBy == "parent_product") $this->itemsParentProduct($products);
 
+        $customFilter["searchQuery"] = $query;
+
+        $products = apply_filters($this->filter_search_result, $products, $customFilter);
+
         if ($products) {
-            $customFilter["searchQuery"] = $query;
-
-            $products = apply_filters($this->filter_search_result, $products, $customFilter);
-
             $result['products'] = $products;
         }
 
@@ -1303,7 +1304,7 @@ class ManagementActions
 
             if (count($productsIds) > 0) {
                 foreach ($productsIds as $id) {
-                    $filterName = str_replace("%field", $key, $this->filter_set_after);
+                    $filterName = str_replace("%field", $key, $this->filter_set_before);
                     $filteredValue = apply_filters($filterName, $value, $key, $id);
 
                     $this->checkAutoDraftStatus($id);
@@ -1565,6 +1566,8 @@ class ManagementActions
             Debug::addPoint("end Results()->ordersPrepare");
         }
 
+        $orders = apply_filters($this->filter_search_result, $orders, $customFilter);
+
         if ($orders) {
             if ($actions === true) {
                 $actionResult = $this->checkOrderAutoAction($request, $orderAutoAction, $orderAutoStatus, $orders, $data["findByTitle"]);
@@ -1573,9 +1576,8 @@ class ManagementActions
                 }
             }
 
-            $orders = apply_filters($this->filter_search_result, $orders, $customFilter);
 
-            $result['orders'] = $orders;
+                        $result['orders'] = $orders;
             $result['findByTitle'] = $data["findByTitle"];
         }
         else {
@@ -1751,9 +1753,6 @@ class ManagementActions
             $this->productIndexation($orderId, "orderChangeCustomer");
         }
 
-
-
-
         $bStates = WC()->countries->get_states($order->get_billing_country());
         $bState  = !empty($bStates[$order->get_billing_state()]) ? $bStates[$order->get_billing_state()] : '';
 
@@ -1879,9 +1878,6 @@ class ManagementActions
 
             $this->productIndexation($orderId, "orderChangeCustomer");
         }
-
-
-
 
         $bStates = WC()->countries->get_states($order->get_billing_country());
         $bState  = !empty($bStates[$order->get_billing_state()]) ? $bStates[$order->get_billing_state()] : '';
@@ -2440,7 +2436,7 @@ class ManagementActions
                             else if ($qty && $scanned + $step > $qty) {
                                 return array(
                                     "error" => __("You cannot add more quantity than in the order", "us-barcode-scanner"),
-                                    "htmlMessageClass" => "ff_cannot_add_more_quantity",
+                                    "htmlMessageClass" => "ff_product_already_picked",
                                     "fulfillment" => 1,
                                     "items_left" => $qty - $scanned,
                                     "fulfillmentStep" => $step
@@ -2532,7 +2528,7 @@ class ManagementActions
                     "updatedAction" => "already-" . time()
                 );
                 $error = __("This product is already scanned in a needed quantity!", "us-barcode-scanner");
-                $htmlMessageClass = "ff_product_is_already_scanned";
+                $htmlMessageClass = "ff_product_already_picked";
             }
 
             $order = wc_get_order($orderId);

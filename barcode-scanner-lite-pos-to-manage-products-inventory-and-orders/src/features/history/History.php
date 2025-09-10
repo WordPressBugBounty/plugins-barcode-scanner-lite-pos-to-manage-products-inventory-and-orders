@@ -108,6 +108,7 @@ class History
                         "ID" => $post->ID,
                         "post_type" => $post->post_type,
                         "post_title" => base64_encode($post_title),
+                        "_sku" => get_post_meta($post->ID, "_sku", true),
                         "product_sku" => get_post_meta($post->ID, "_sku", true),
                         "translation" => array("language_code" => $translation && isset($translation->language_code) ? $translation->language_code : ""),
                         "product_thumbnail_url" => $product_thumbnail_url ? $product_thumbnail_url : "",
@@ -138,6 +139,7 @@ class History
                             $wpFormat = get_option("date_format", "F j, Y") . " " . get_option("time_format", "g:i a");
                             $orderDate = new \DateTime($order->get_date_created());
                             $date_format = $order->get_date_created();
+                            $date_format->setTimezone(new \DateTimeZone( \wp_timezone_string()));
                             $date_format = $date_format->format("Y-m-d H:i:s");
 
                             $previewDateFormat = $orderDate->format("M j, Y");
@@ -187,6 +189,7 @@ class History
                         $wpFormat = get_option("date_format", "F j, Y") . " " . get_option("time_format", "g:i a");
                         $orderDate = new \DateTime($order->get_date_created());
                         $date_format = $order->get_date_created();
+                        $date_format->setTimezone(new \DateTimeZone( \wp_timezone_string()));
                         $date_format = $date_format->format("Y-m-d H:i:s");
 
                         $previewDateFormat = $orderDate->format("M j, Y");

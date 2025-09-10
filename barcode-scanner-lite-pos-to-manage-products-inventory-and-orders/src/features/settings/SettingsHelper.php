@@ -212,4 +212,36 @@ class SettingsHelper
 
                 return $resultSortBy;
     }
+
+    public static function clearAllCaches() {
+        try {
+            if (function_exists('w3tc_flush_all')) {
+                w3tc_flush_all();
+            }
+
+            if (function_exists('wp_cache_clear_cache')) {
+                wp_cache_clear_cache();
+            }
+
+            if (class_exists('WpFastestCache')) {
+                if (method_exists('WpFastestCache', 'deleteCache')) {
+                    $wpfc = new WpFastestCache();
+                    $wpfc->deleteCache();
+                }
+            }
+
+            if (function_exists('rocket_clean_domain')) {
+                rocket_clean_domain();
+            }
+
+            if (class_exists('LiteSpeed_Cache_API')) {
+                LiteSpeed_Cache_API::purge_all();
+            }
+
+            if (function_exists('nitropack_sdk_purge') && class_exists('\NitroPack\SDK\PurgeType')) {
+                nitropack_sdk_purge( NULL, NULL, 'Light purge of all caches', \NitroPack\SDK\PurgeType::LIGHT_PURGE );
+            }
+        } catch (\Throwable $th) {
+        }
+    }
 }

@@ -53,9 +53,10 @@ function init_gateway_payment_cash_cashier() {
 
             $order->update_status('on-hold', 'Awaiting custom payment');
 
-            wc_reduce_stock_levels($order_id);
+            if (function_exists("wc_reduce_stock_levels")) {
+                wc_reduce_stock_levels($order_id);
+            }
 
-            WC()->cart->empty_cart();
 
             return array(
                 'result'   => 'success',

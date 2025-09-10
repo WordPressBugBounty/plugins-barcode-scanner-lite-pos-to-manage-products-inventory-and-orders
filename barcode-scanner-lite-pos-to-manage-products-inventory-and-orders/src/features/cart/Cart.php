@@ -25,9 +25,6 @@ class Cart
                 return array();
             }
 
-            if (is_null(\WC()->cart)) {
-                @wc_load_cart();
-            }
 
             $shipping_packages = array();
 
@@ -112,9 +109,6 @@ class Cart
                 return array();
             }
 
-            if (is_null(\WC()->cart)) {
-                @wc_load_cart();
-            }
 
             $shipping_zones = \WC_Shipping_Zones::get_zones();
 
@@ -149,6 +143,29 @@ class Cart
     {
         if (!function_exists("WC")) {
             return array();
+        }
+
+        try {
+            $enabledGateways = apply_filters('usbs_available_payment_gateways', array());
+
+            if ($enabledGateways) {
+                $paymentCashCashier = array_filter($enabledGateways, function($gateway) {
+                    return $gateway['id'] === 'payment_cash_cashier';
+                });
+
+                $enabledGateways = array_filter($enabledGateways, function($gateway) {
+                    return $gateway['id'] !== 'payment_cash_cashier';
+                });
+
+                if ($paymentCashCashier) {
+                    $enabledGateways = array_merge($paymentCashCashier, $enabledGateways);
+                }
+
+                return $enabledGateways;
+            }
+
+                    } catch (\Throwable $th) {
+            throw $th;
         }
 
         $enabledGateways = [];

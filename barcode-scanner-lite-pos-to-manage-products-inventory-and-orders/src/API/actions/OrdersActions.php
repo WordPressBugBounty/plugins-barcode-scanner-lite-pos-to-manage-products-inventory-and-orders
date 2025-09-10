@@ -202,7 +202,8 @@ class OrdersActions
 
         $result = array(
             "success" => true,
-            "usbs_order_fulfillment_data" => get_post_meta($orderId, "usbs_order_fulfillment_data", true)
+            "usbs_order_fulfillment_data" => get_post_meta($orderId, "usbs_order_fulfillment_data", true),
+            "usbs_fulfillment_objects" => get_post_meta($orderId, "usbs_fulfillment_objects", true)
         );
 
         return rest_ensure_response($result);
