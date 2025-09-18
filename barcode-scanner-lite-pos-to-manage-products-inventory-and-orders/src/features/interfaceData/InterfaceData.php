@@ -31,7 +31,11 @@ class InterfaceData
         $orderKey = $plugin == "mobile" ? "order_mobile" : "order";
 
         if (self::$allFields[$role] && self::$plugin == $plugin && !$isReload) {
-            return self::$allFields[$role];
+            usort(self::$allFields[$role], function ($a, $b) use ($orderKey) {
+                return $a[$orderKey] && $b[$orderKey] && $a[$orderKey] < $b[$orderKey] ? 1 : 0;
+            });            
+
+                        return self::$allFields[$role];
         }
 
         if ($plugin == "mobile") {
@@ -43,11 +47,7 @@ class InterfaceData
         if (!$role || $role == 'default') {
             $fields = $wpdb->get_results("SELECT *, `disabled_field` as 'read_only' FROM {$table} WHERE `role` IS NUll ORDER BY `" . $orderField . "` DESC;", ARRAY_A);
         } else {
-            $fields = $wpdb->get_results($wpdb->prepare(
-                "SELECT * FROM {$table} WHERE `role` = %s ORDER BY %s DESC;",
-                $role,
-                $orderField
-            ), ARRAY_A);
+            $fields = $wpdb->get_results($wpdb->prepare("SELECT * FROM {$table} WHERE `role` = %s ORDER BY `" . $orderField . "` DESC;", $role), ARRAY_A);
         }
 
 

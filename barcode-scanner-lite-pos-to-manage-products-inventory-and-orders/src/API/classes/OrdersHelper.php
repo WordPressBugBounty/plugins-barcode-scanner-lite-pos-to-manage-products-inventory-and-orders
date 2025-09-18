@@ -320,8 +320,10 @@ class OrdersHelper
 
     private static function clearPrice($price, $args = array())
     {
-        $price = trim(strip_tags(wc_price($price, $args)));
+        $wcPrice = wc_price($price, $args);
+        $price = trim(strip_tags($wcPrice));
         $price = str_replace("&nbsp;", "", $price);
+        $price = str_replace("&#36;", "", $price);
 
         return $price;
     }

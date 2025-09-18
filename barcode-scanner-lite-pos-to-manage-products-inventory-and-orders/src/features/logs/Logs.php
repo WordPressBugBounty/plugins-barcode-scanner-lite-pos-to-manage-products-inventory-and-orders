@@ -140,8 +140,11 @@ class Logs
 
         $dt = new \DateTime("now");
         $fname = $inputs["fname"] ? $inputs["fname"] : md5("Barcode_scanner_logs_" . $dt->format("d-m-Y_h-i-s")) . ".csv";
-        $tmpFname = $inputs["tmpFname"] ? $inputs["tmpFname"] : md5("file_" . $dt->format("d-m-Y_h-i-s")) . ".csv";
         $csv_separator = ',';
+
+        $tmpFname = $inputs["tmpFname"] ? $inputs["tmpFname"] : md5("file_" . $dt->format("d-m-Y_h-i-s")) . ".csv";
+
+        $tmpFname = $tmpFname ? basename($tmpFname) : "";
 
         $file = $folder["upload_dir"] . 'logs/' . $tmpFname;
 

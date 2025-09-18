@@ -432,8 +432,6 @@ class Results
 
                         $props[$value['field_name']] = $filteredValue;
 
-                    $props['_yith_pos_multistock_enabled'] = \get_post_meta($post->ID, '_yith_pos_multistock_enabled', true);
-
                     if ($value['field_name'] == "_yith_pos_multistock" && $filteredValue && is_array($filteredValue)) {
                         $storesData = array();
 
@@ -450,6 +448,8 @@ class Results
                         $props["taxonomy_" . $value['field_name']] = $post->post_parent ? get_the_terms($post->post_parent, $value['field_name']) : get_the_terms($post->ID, $value['field_name']);
                     }
                 }
+
+                $props['_yith_pos_multistock_enabled'] = \get_post_meta($post->ID, '_yith_pos_multistock_enabled', true);
             } catch (\Throwable $th) {
             }
 

@@ -1335,6 +1335,9 @@ class ManagementActions
                         LogActions::add($id, LogActions::$actions["update_meta_field"], $key, $filteredValue, $oldValue, "product", $request, $customAction);
                     }
 
+                    $filterName = str_replace("%field", $key, $this->filter_set_after);
+                    apply_filters($filterName, $value, $key, $id);
+
                     $this->productIndexation($id, "productUpdateMeta");
                 }
             }
