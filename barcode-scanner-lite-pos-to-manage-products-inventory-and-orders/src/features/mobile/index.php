@@ -158,20 +158,36 @@ $userRole = $userId ? Users::getUserRole($userId) : '';
     var WebBarcodeScannerScripts = function () {
         try {
             
-    var appJs = document.createElement("script"); 
-    appJs.type = "text/javascript"; 
-    appJs.src = window.usbsMobile.appJsPath;
-    appJs.async = true;
-    appJs.onload = () => { console.log("Loader: " + window.usbsMobile.appJsPath + " loaded"); };
-    appJs.onerror = () => { 
-      console.error("Loader: " + window.usbsMobile.appJsPath + " not loaded"); 
-      window.parent.postMessage({
-        message: "mobile.postMessage", method: "CMD_ALERT", options: {
-            title: "JS Error", message: "Loader: " + window.usbsMobile.appJsPath + " not loaded", hideSystemInfo: false, restart: true, require: true, logout: false
+    const max_tries = 3;
+    let tries = 0;
+    function loadMainJS (url) {
+      var appJs = document.createElement("script"); 
+      appJs.type = "text/javascript"; 
+      appJs.src = url;
+      appJs.async = true;
+      appJs.onload = () => { console.log("Loader: " + window.usbsMobile.appJsPath + " loaded"); };
+      appJs.onerror = () => { 
+        console.error("Loader: " + window.usbsMobile.appJsPath + " not loaded"); 
+
+        if (tries < max_tries) {
+          tries++;
+          
+          setTimeout(() => {
+            loadMainJS(url);
+          }, 2000);
+
+          return;
         }
-      }, "*");
-    };
-    document.body.appendChild(appJs);
+        
+        window.parent.postMessage({
+          message: "mobile.postMessage", method: "CMD_ALERT", options: {
+              title: "JS Error", message: "Loader: " + window.usbsMobile.appJsPath + " not loaded", hideSystemInfo: false, restart: true, require: true, logout: false
+          }
+        }, "*");
+      };
+      document.body.appendChild(appJs);
+    }
+    loadMainJS(window.usbsMobile.appJsPath);
     
         } catch (error) {
             console.error("3. " + error.message);

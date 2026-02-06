@@ -144,4 +144,13 @@ class PluginsHelper
             return is_plugin_active($plugin);
         }
     }
+
+    public static function responseHeaders() {
+        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0, s-maxage=0, private');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+        header('Vary: Authorization, Cookie');
+        header('Surrogate-Control: no-store');
+        header('X-Accel-Expires: 0');
+    }
 }

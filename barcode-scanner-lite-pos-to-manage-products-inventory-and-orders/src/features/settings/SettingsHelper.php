@@ -244,4 +244,27 @@ class SettingsHelper
         } catch (\Throwable $th) {
         }
     }
+
+    public static function getOrderStatuses()
+    {
+        if (!function_exists("wc_get_order_statuses")) {
+            return array();
+        }
+
+        $statuses = \wc_get_order_statuses();
+
+        try {
+            if (!$statuses) {
+                $statuses = array();
+            } else {
+                foreach ($statuses as $key => &$value) {
+                    $value = trim($value);
+                    $value = strip_tags($value);
+                }
+            }
+        } catch (\Throwable $th) {
+        }
+
+        return $statuses;
+    }
 }

@@ -224,7 +224,7 @@ class Settings
                 }
 
                 if (isset($this->post["key"])) {
-                    @delete_transient('ukrsolution_upgrade_scanner_1.10.5'); //1.10.5
+                    @delete_transient('ukrsolution_upgrade_scanner_1.11.0');
                     $user_id = get_current_user_id();
                     update_option($user_id . '_' . basename(USBS_PLUGIN_BASE_PATH) . '_notice_dismissed', '', true);
                 }
@@ -395,29 +395,6 @@ class Settings
         } catch (\Throwable $th) {
             return "";
         }
-    }
-
-    public function getOrderStatuses()
-    {
-        if (!function_exists("wc_get_order_statuses")) {
-            return array();
-        }
-
-        $statuses = \wc_get_order_statuses();
-
-        try {
-            if (!$statuses) {
-                $statuses = array();
-            } else {
-                foreach ($statuses as $key => &$value) {
-                    $value = trim($value);
-                    $value = strip_tags($value);
-                }
-            }
-        } catch (\Throwable $th) {
-        }
-
-        return $statuses;
     }
 
     public function getCatalogVisibility()

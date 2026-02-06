@@ -33,6 +33,10 @@ a.usbs-btn:hover {
   background: #e7e7e7;
 }
 
+.bs-settings-roles-list tr:hover td {
+  background: #e0fde0;
+}
+
 .bs-settings-roles-list td {
   padding: 5px 10px 5px 0;
 }

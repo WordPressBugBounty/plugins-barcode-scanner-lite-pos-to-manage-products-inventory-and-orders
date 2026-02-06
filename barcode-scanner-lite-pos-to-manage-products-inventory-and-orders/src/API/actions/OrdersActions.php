@@ -145,6 +145,13 @@ class OrdersActions
 
         $result["updatedOrder"]["usbs_order_fulfillment_data"] = get_post_meta($orderId, "usbs_order_fulfillment_data", true);
 
+        $order = new \WC_Order($orderId);
+
+                $result["updatedOrder"]["data"] = array(
+            "status" => $order->get_status(),
+            "status_name" => wc_get_order_status_name($order->get_status()),
+        );
+
         return rest_ensure_response($result);
     }
 

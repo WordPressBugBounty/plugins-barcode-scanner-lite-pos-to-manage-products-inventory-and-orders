@@ -606,7 +606,6 @@ class HPOS
             "customer_country" => $customerCountry,
             "products" => $sortOrderItemsByCategories == "on" && !in_array($page, array('history', 'orders_list')) ? ProductsHelper::sortProductsByCategories($products) : $products,
             "currencySymbol" => $currencySymbol,
-            "statuses" => wc_get_order_statuses(),
             "postEditUrl" => admin_url('post.php?post=' . $post->ID) . '&action=edit',
             "postPayUrl" => $order->get_checkout_payment_url(),
             "updated" => time(),

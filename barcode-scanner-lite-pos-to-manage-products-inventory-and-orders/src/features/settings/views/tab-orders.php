@@ -1,3 +1,7 @@
+<?php
+use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
+?>
+
 <form class="bs-settings-input-conditions" id="bs-settings-orders-tab" method="POST" action="<?php echo esc_url($actualLink); ?>">
     <input type="hidden" name="tab" value="orders" />
     <input type="hidden" name="storage" value="table" />
@@ -78,7 +82,7 @@
                     <select name="autoStatusFulfilled">
                         <option value=""><?php echo esc_html__('Not selected', 'us-barcode-scanner'); ?></option>
                         <?php
-                        foreach ($settings->getOrderStatuses() as $key => $value) {
+                        foreach (SettingsHelper::getOrderStatuses() as $key => $value) {
                             $selected = "";
                             if ($defaultValue === $key) {
                                 $selected = ' selected=selected ';
@@ -335,7 +339,7 @@
                     ?>
                     <input type="hidden" name="orderStatusesAreStillNotCompleted" value="" />
                     <select name="orderStatusesAreStillNotCompleted[]" class="usbs_order_statuses_are_still_not_complected" multiple="true" style="width:300px;">
-                        <?php foreach ($settings->getOrderStatuses() as $key => $value) : ?>
+                        <?php foreach (SettingsHelper::getOrderStatuses() as $key => $value) : ?>
                             <option value="<?php echo esc_attr($key); ?>"><?php echo esc_html($value); ?></option>
                         <?php endforeach; ?>
                         <option value="trash"><?php echo esc_html__("Trash", "us-barcode-scanner"); ?></option>
@@ -361,7 +365,7 @@
                     ?>
                     <select name="defaultOrderStatus">
                         <?php
-                        foreach ($settings->getOrderStatuses() as $key => $value) {
+                        foreach (SettingsHelper::getOrderStatuses() as $key => $value) {
                             $selected = "";
                             if ($defaultValue === $key) {
                                 $selected = ' selected=selected ';

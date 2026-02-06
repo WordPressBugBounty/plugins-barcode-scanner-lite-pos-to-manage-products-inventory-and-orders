@@ -2,6 +2,7 @@
 
 use UkrSolution\BarcodeScanner\API\classes\SearchFilter;
 use UkrSolution\BarcodeScanner\API\classes\WPML;
+use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
 ?>
 <form class="bs-settings-input-conditions" id="bs-settings-search-tab" method="POST" action="<?php echo esc_url($actualLink); ?>">
     <input type="hidden" name="tab" value="search" />
@@ -65,7 +66,7 @@ use UkrSolution\BarcodeScanner\API\classes\WPML;
                     $orderStatusesValue = $field === null ? "wc-checkout-draft,trash" : $field->value;
                     ?>
                     <select name="orderStatuses[]" class="usbs_order_statuses" multiple="true" style="width:300px;">
-                        <?php foreach ($settings->getOrderStatuses() as $key => $value) : ?>
+                        <?php foreach (SettingsHelper::getOrderStatuses() as $key => $value) : ?>
                             <option value="<?php echo esc_attr($key); ?>"><?php echo esc_html($value); ?></option>
                         <?php endforeach; ?>
                         <option value="trash"><?php echo esc_html__("Trash", "us-barcode-scanner"); ?></option>

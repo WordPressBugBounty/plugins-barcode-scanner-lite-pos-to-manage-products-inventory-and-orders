@@ -25,7 +25,7 @@ class UsersActions
 
         try {
             $sql = "SELECT * FROM {$wpdb->users} as u ";
-            $sql .= " WHERE u.user_nicename LIKE %s OR u.user_email LIKE %s OR u.display_name LIKE %s ";
+            $sql .= " WHERE u.ID = %s OR u.user_nicename LIKE %s OR u.user_email LIKE %s OR u.display_name LIKE %s ";
 
             if (count($currentIds) > 0) {
                 $ids = implode(",",  $currentIds);
@@ -34,7 +34,7 @@ class UsersActions
 
             $sql .= " LIMIT 10 ;";
             $rows = $wpdb->get_results(
-                $wpdb->prepare($sql, '%' . $wpdb->esc_like($query) . '%', '%' . $wpdb->esc_like($query) . '%', '%' . $wpdb->esc_like($query) . '%')
+                $wpdb->prepare($sql, $wpdb->esc_like($query), '%' . $wpdb->esc_like($query) . '%', '%' . $wpdb->esc_like($query) . '%', '%' . $wpdb->esc_like($query) . '%')
             );
 
             foreach ($rows as $value) {
@@ -320,5 +320,35 @@ class UsersActions
         }
 
         return $users;
+    }
+
+    public function getUserMeta($userId) {
+        $fields = array("orderFulfillmentByDefault");
+        $fieldsData = array();
+
+        try {
+            foreach ($fields as $field) {
+                $fieldsData[$field] = get_user_meta($userId, $field, true);
+            }
+        } catch (\Throwable $th) {
+        }
+
+        return $fieldsData;
+    }
+
+    public function setUserMeta(WP_REST_Request $request) {
+        $userId = $request->get_param("userId");
+        $fields = $request->get_param("fields");
+        $errors = array();
+
+        try {
+            foreach ($fields as $field) {
+                \update_user_meta($userId, $field['meta_key'], $field['meta_value']);
+            }
+        } catch (\Throwable $th) {
+            $errors[] = $th->getMessage();
+        }
+
+        return rest_ensure_response(array("errors" => $errors, "fields" => $this->getUserMeta($userId)));
     }
 }

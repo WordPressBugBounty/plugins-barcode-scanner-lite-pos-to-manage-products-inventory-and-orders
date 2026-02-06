@@ -92,7 +92,7 @@ return array(
     "app_ff_tracking_code_from_order" => __("Tracking code is from this order. Please confirm it", 'us-barcode-scanner'),
 
     "tv_scan_to_pick_item" => __("Scan barcode to pick item", 'us-barcode-scanner'),
-    "tv_product_not_from_order" => __("Scanned product is not from this order!", 'us-barcode-scanner'),
+    "tv_product_not_from_order" => __("Scanned product is not correct!", 'us-barcode-scanner'),
     "tv_product_correct" => __("Correct product", 'us-barcode-scanner'),
     "tv_product_fully_picked" => __("Product fully picked", 'us-barcode-scanner'),
     "tv_tracking_code_correct" => __("Correct tracking code", 'us-barcode-scanner'),

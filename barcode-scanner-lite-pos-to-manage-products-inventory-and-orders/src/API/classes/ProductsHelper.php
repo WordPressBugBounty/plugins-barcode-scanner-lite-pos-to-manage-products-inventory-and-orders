@@ -160,12 +160,14 @@ class ProductsHelper
     public static function setSKU($productId, $sku)
     {
         try {
+            $fields = array("_sku" => $sku);
+            if (PostHelper::productSave($productId, $fields)) return true;
+
             $product = \wc_get_product($productId);
 
             if ($product) {
                 $product->set_sku($sku);
                 $product->save();
-
 
                 return true;
             } else {

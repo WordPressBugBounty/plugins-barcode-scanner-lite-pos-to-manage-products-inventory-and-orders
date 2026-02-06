@@ -26,6 +26,11 @@ class PermissionsHelper
         }
     }
 
+    public static function getUserPermissions()
+    {
+        return self::$userPermissions;
+    }
+
     public static function onePermRequired($permissions, $isReturn = false)
     {
         foreach ($permissions as $item) {

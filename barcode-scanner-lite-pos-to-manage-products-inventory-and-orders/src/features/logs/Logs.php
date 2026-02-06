@@ -50,7 +50,10 @@ class Logs
         $filterType = isset($_GET["type"]) ? sanitize_text_field($_GET["type"]) : "";
         $filterUp = isset($_GET["up"]) ? sanitize_text_field($_GET["up"]) : "";
 
-        if ($filterAction) {
+        if (preg_match('/^custom_field_(.*)$/', $filterAction, $matches) && count($matches) == 2) {
+            $where .= " AND L.field = '{$matches[1]}' ";
+        }
+        else if ($filterAction) {
             $where .= " AND L.action = '{$filterAction}' ";
         }
 

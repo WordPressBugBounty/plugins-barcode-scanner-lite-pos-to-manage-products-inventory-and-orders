@@ -1169,7 +1169,6 @@ class Results
             "customer_country" => $customerCountry,
             "products" => $sortOrderItemsByCategories == "on" && !in_array($page, array('history', 'orders_list')) ? ProductsHelper::sortProductsByCategories($products) : $products,
             "currencySymbol" => $currencySymbol,
-            "statuses" => wc_get_order_statuses(),
             "postEditUrl" => admin_url('post.php?post=' . $post->ID) . '&action=edit',
             "postPayUrl" => $order->get_checkout_payment_url(),
             "updated" => time(),
@@ -1401,6 +1400,15 @@ class Results
             $tax_rates_data = $this->getUserProductTaxRates($productTaxClass, $taxAddress);
 
             $tax_amounts = \WC_Tax::calc_tax($price, $tax_rates_data, $isPricesIncludeTax);
+
+            $decimals = get_option('woocommerce_price_num_decimals');
+            if (!$decimals) $decimals = 2;
+
+            if (is_array($tax_amounts) && $decimals) {
+                foreach ($tax_amounts as $key => $value) {
+                    $tax_amounts[$key] = round($value, $decimals);
+                }
+            }
 
             if ($returnSum) $tax = array_sum($tax_amounts);
             else $tax = $tax_amounts;

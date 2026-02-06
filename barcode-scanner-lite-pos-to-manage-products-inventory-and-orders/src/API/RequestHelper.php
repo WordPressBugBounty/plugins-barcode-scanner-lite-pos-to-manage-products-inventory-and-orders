@@ -16,4 +16,39 @@ class RequestHelper
 
         return $query ? trim($query) : "";
     }
+
+    public static function initMemoryLimit()
+    {
+        $memoryLimit = ini_get('memory_limit');
+
+        $memoryLimitBytes = self::convertToBytes($memoryLimit);
+
+        if ($memoryLimitBytes < 512 * 1024 * 1024) {
+            @ini_set('memory_limit', '512M');
+        }
+
+        return $memoryLimitBytes;
+    }
+
+    private static function convertToBytes($value)
+    {
+        if ($value === '-1') {
+            return PHP_INT_MAX;
+        }
+
+        $value = trim($value);
+        $last = strtolower($value[strlen($value) - 1]);
+        $numeric = (int) $value;
+
+        switch ($last) {
+            case 'g':
+                $numeric *= 1024;
+            case 'm':
+                $numeric *= 1024;
+            case 'k':
+                $numeric *= 1024;
+        }
+
+        return $numeric;
+    }
 }

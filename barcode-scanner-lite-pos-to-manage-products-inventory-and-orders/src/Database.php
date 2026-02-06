@@ -227,11 +227,7 @@ class Database
     {
         global $wpdb;
 
-        $table = $wpdb->prefix . self::$posts;
-        $wpdb->query("DROP TABLE IF EXISTS {$table};");
 
-        $table = $wpdb->prefix . self::$columns;
-        $wpdb->query("DROP TABLE IF EXISTS {$table};");
 
         $table = $wpdb->prefix . self::$settings;
         $wpdb->query("DROP TABLE IF EXISTS {$table};");

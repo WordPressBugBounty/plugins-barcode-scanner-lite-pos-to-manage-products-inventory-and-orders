@@ -4,7 +4,7 @@ Tags: barcode, scanner, inventory, POS, Point Of Sale
 Requires at least: 4.0.1 
 Tested up to: 6.8
 Stable tag: trunk
-Requires PHP: 5.6
+Requires PHP: 7.2
 License: GPLv2 or later 
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 

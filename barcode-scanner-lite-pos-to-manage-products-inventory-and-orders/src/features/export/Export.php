@@ -52,7 +52,21 @@ class Export
 
         foreach ($fieldsToExport as $key => $value) {
             add_filter('woocommerce_product_export_product_column_' . $key, function ($value, $product) use ($key) {
-                $value = $product->get_meta($key, true, 'edit');
+                $value = apply_filters('scanner_product_export_column_value', $value, $key, $product);
+
+                if ($value) return $value;
+
+                switch ($key) {
+                    case "_backorders":
+                        $value = $product->get_backorders();
+                        $value = "get_backorders";
+                        break;
+                    default:
+                        $value = $product->get_meta($key, true, 'edit');
+                        $value = "default";
+                        break;
+                }
+
                 return $value;
             }, 10, 2);
         }

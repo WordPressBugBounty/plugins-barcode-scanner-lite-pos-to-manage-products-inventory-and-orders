@@ -3,6 +3,7 @@
 namespace UkrSolution\BarcodeScanner\API\actions;
 
 use UkrSolution\BarcodeScanner\API\classes\Emails;
+use UkrSolution\BarcodeScanner\API\classes\PostHelper;
 use UkrSolution\BarcodeScanner\API\classes\ProductsHelper;
 use UkrSolution\BarcodeScanner\API\classes\Results;
 use UkrSolution\BarcodeScanner\API\classes\ResultsHelper;
@@ -351,11 +352,11 @@ class CartScannerActions
         return rest_ensure_response($result);
     }
 
-    public function getTaxAddress($userExtraData)
+    public function getTaxAddress($userExtraData, $tax_based_on = null)
     {
         if ($userExtraData && isset($userExtraData['address'])) $userExtraData = $userExtraData['address'];
 
-        $tax_based_on = get_option('woocommerce_tax_based_on', 'shipping');
+        $tax_based_on = $tax_based_on ? $tax_based_on : get_option('woocommerce_tax_based_on', 'shipping');
         $address = array("tax_based_on" => $tax_based_on, "country" => "", "state" => "", "city" => "", "postcode" => "");
 
         $shipping_as_billing = isset($userExtraData['shipping_as_billing']) ? $userExtraData['shipping_as_billing'] : 0;
@@ -410,7 +411,11 @@ class CartScannerActions
 
         $newOrderStatus = $request ? $request->get_param("newOrderStatus") : "";
 
-        $taxAddress = $this->getTaxAddress($userExtraData);
+        if ($shippingMethod == "pickup_location:") {
+            $taxAddress = $this->getTaxAddress($userExtraData, "base");
+        } else {
+            $taxAddress = $this->getTaxAddress($userExtraData);
+        }
 
         $userId = get_current_user_id();
 
@@ -778,8 +783,9 @@ class CartScannerActions
 
         if (!$coupon) return null;
 
-        if (preg_match('/^(\d+)\%$/', $coupon, $matches)) {
-            $couponPercent = $matches[1];
+        if (preg_match('/^(\d+)([\.,]\d+)?\%$/', $coupon, $matches)) {
+            $couponPercent = $matches[1] . $matches[2];
+            $couponPercent = str_replace(",", ".", $couponPercent);
             $customCoupon = array(
                 "id" => 999999999,
                 "code" => $coupon,
@@ -787,8 +793,21 @@ class CartScannerActions
                 "amount_discount" => 0,
                 "discount_type" => "percent",
             );
-
             $this->percentDiscount = $couponPercent;
+
+                        return $customCoupon;
+        }
+        else if (preg_match('/^(\d+)([\.,]\d+)?$/', $coupon, $matches)) {
+            $couponFixed = $matches[1] . $matches[2];
+            $couponFixed = str_replace(",", ".", $couponFixed);
+            $customCoupon = array(
+                "id" => 999999999,
+                "code" => $coupon,
+                "amount" => $couponFixed,
+                "amount_discount" => 0,
+                "discount_type" => "fixed_product",
+            );
+            $this->prodDiscount = $couponFixed;
 
                         return $customCoupon;
         }
@@ -1310,7 +1329,11 @@ class CartScannerActions
         $confirmed = $request->get_param("confirmed");
         $isPay = $request->get_param("isPay");
 
-        $taxAddress = $this->getTaxAddress($extraData);
+        if ($shippingMethod == "pickup_location:") {
+            $taxAddress = $this->getTaxAddress($extraData, "base");
+        } else {
+            $taxAddress = $this->getTaxAddress($extraData);
+        }
 
         if ($isPay) $orderStatus = "wc-pending";
 

@@ -40,6 +40,8 @@ class AjaxRoutes
                 return $price;
             }, 1, 3);
 
+            RequestHelper::initMemoryLimit();
+
 
             $settings = new Settings($this->coreInstance);
             $postActions = new PostActions();
@@ -76,7 +78,7 @@ class AjaxRoutes
                 }
             }
 
-            if (!key_exists('woocommerce/woocommerce.php', get_plugins())) {
+            if (!PluginsHelper::is_plugin_active('woocommerce/woocommerce.php')) {
                 $MobileRouter = new MobileRouter();
                 $platform = $this->getParam($get, "platform", "");
                 echo json_encode(array(
@@ -193,6 +195,7 @@ class AjaxRoutes
                 "note",
                 "resultSortBy",
                 "checkFulfillment",
+                "request_priority",
             );
             $keysArray = array(
                 "filter",
@@ -294,7 +297,7 @@ class AjaxRoutes
                     PermissionsHelper::onePermRequired(['inventory', 'newprod']);
                     $response = $managementActions->updateProductCustomPrice($request);
                     break;
-                case 'updateProductMeta':
+                case 'updateProductMeta':                    
                     PermissionsHelper::onePermRequired(['inventory', 'newprod']);
                     $response = $managementActions->productUpdateMeta($request);
                     break;
@@ -629,6 +632,10 @@ class AjaxRoutes
                     PermissionsHelper::onePermRequired(['plugin_settings']);
                     $response = $usersActions->updatePassword($request);
                     break;
+                case 'setUserMeta':
+                    PermissionsHelper::onePermRequired(['orders']);
+                    $response = $usersActions->setUserMeta($request);
+                    break;
                 case 'exportLog':
                     PermissionsHelper::onePermRequired(['plugin_logs']);
                     $logs = new Logs();
@@ -688,7 +695,9 @@ class AjaxRoutes
                 $settings->updateSettings('search_filter', json_encode($filter));
             }
 
-            if ($response && $response->data) {
+            PluginsHelper::responseHeaders();
+
+                        if ($response && $response->data) {
                 $updatedTimestamp = $settings->getSettings("updated_timestamp");
                 $response->data["settings_updated_timestamp"] = $updatedTimestamp ? $updatedTimestamp->value : "";
                 $response->data["microtime"] = microtime(true);

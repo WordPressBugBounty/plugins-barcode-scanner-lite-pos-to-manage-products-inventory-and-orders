@@ -7,6 +7,7 @@ use UkrSolution\BarcodeScanner\API\classes\BatchNumbersWebis;
 use UkrSolution\BarcodeScanner\API\classes\Emails;
 use UkrSolution\BarcodeScanner\API\classes\OrdersHelper;
 use UkrSolution\BarcodeScanner\API\classes\Post;
+use UkrSolution\BarcodeScanner\API\classes\PostHelper;
 use UkrSolution\BarcodeScanner\API\classes\PostsList;
 use UkrSolution\BarcodeScanner\API\classes\ProductsHelper;
 use UkrSolution\BarcodeScanner\API\classes\Results;
@@ -151,7 +152,6 @@ class ManagementActions
 
         Debug::addPoint("start Results()->productsPrepare");
 
-        $postCounter = $data["posts"] ? count($data["posts"]) : 0;
         $products = (new Results())->productsPrepare(
             $data["posts"],
             array(
@@ -166,6 +166,8 @@ class ManagementActions
         $sortBy = SettingsHelper::getSearchResultsSortBy($request);
         if ($sortBy == "relevance") $this->itemsLevenshtein($products, $query, $data);
         else if ($sortBy == "parent_product") $this->itemsParentProduct($products);
+        else if ($sortBy == "in_stock_first") $this->itemsInStockFirst($products);
+        else if ($sortBy == "out_of_stock_first") $this->itemsOutOfStockFirst($products);
 
         $customFilter["searchQuery"] = $query;
 
@@ -260,6 +262,8 @@ class ManagementActions
         $sortBy = SettingsHelper::getSearchResultsSortBy($request);
         if ($sortBy == "relevance") $this->itemsLevenshtein($products, $query, $data);
         else if ($sortBy == "parent_product") $this->itemsParentProduct($products);
+        else if ($sortBy == "in_stock_first") $this->itemsInStockFirst($products);
+        else if ($sortBy == "out_of_stock_first") $this->itemsOutOfStockFirst($products);
 
         $customFilter["searchQuery"] = $query;
 
@@ -586,6 +590,28 @@ class ManagementActions
         });
     }
 
+    private function itemsInStockFirst(&$items)
+    {
+        usort($items, function($a, $b) {
+            if (isset($a["_stock_status"]) && isset($b["_stock_status"])) {
+                return strcmp($a["_stock_status"], $b["_stock_status"]);
+            }
+
+            return 0;
+        });
+    }
+
+    private function itemsOutOfStockFirst(&$items)
+    {
+        usort($items, function($a, $b) {
+            if (isset($a["_stock_status"]) && isset($b["_stock_status"])) {
+                return strcmp($b["_stock_status"], $a["_stock_status"]);
+            }
+
+            return 0;
+        });
+    }
+
     private function findValueByField($postsSearchData, $item)
     {
         $field = array_search("1", (array)$postsSearchData[$item["ID"]]);
@@ -789,9 +815,13 @@ class ManagementActions
 
     private function setManageStock($productId)
     {
+        $fields = array("_manage_stock" => true);
+        if (PostHelper::productSave($productId, $fields)) return true;
+
         $product = \wc_get_product($productId);
 
         if ($product) {
+
             $product->set_manage_stock(true);
             $product->save();
 
@@ -860,12 +890,15 @@ class ManagementActions
     {
         if ($quantity !== "") $this->setManageStock($productId);
 
+        $fields = array("_stock_quantity" => $quantity);
+        if (PostHelper::productSave($productId, $fields)) return true;
+
         if (!$product) {
             $product = \wc_get_product($productId);
         }
 
         if ($product) {
-            Debug::addPoint("setQuantity productId: {$productId}, quantity: {$quantity}");
+            Debug::addPoint("start setQuantity productId: {$productId}, quantity: {$quantity}");
 
             $product->set_stock_quantity($quantity);
             $product->save();
@@ -878,8 +911,12 @@ class ManagementActions
                 update_post_meta($product->get_id(), "_stock", $quantity);
             }
 
+            Debug::addPoint("p 2");
+
             $filterName = str_replace("%field", "_stock", $this->filter_set_after);
             apply_filters($filterName, $quantity, "_stock", $product->get_id());
+
+            Debug::addPoint("p 3");
 
             if ($checkHershold) {
                 $manageStock = get_post_meta($productId, "_manage_stock", true);
@@ -896,6 +933,8 @@ class ManagementActions
                     Emails::sendLowStock($productId, $quantity, $product->get_name(), $lowStockHershold);
                 }
             }
+
+            Debug::addPoint("end setQuantity productId: {$productId}, quantity: {$quantity}");
 
             $this->productIndexation($productId, "setQuantity");
             return true;
@@ -1174,10 +1213,14 @@ class ManagementActions
 
     private function setRegularPrice($request, $productId, $price)
     {
+        $fields = array("_regular_price" => $price);
+        if (PostHelper::productSave($productId, $fields)) return true;
+
         $product = \wc_get_product($productId);
 
         if ($product ) {
             $oldValue = $product->get_regular_price();
+
             $product->set_regular_price($price);
             $product->save();
 
@@ -1281,6 +1324,8 @@ class ManagementActions
 
     public function productUpdateMeta(WP_REST_Request $request, $productId = null, $key = null, $value = null)
     {
+        Debug::addPoint("start productUpdateMeta");
+
         $customAction = $request->get_param("customAction");
         $withoutStatuses = $request->get_param("withoutStatuses");
 
@@ -1345,6 +1390,9 @@ class ManagementActions
             $this->clearProductCache($productId);
         } catch (\Throwable $th) {
         }
+
+        Debug::addPoint("end productUpdateMeta");
+
 
         if ($result === true) {
             return $this->productSearch($request, false, true, "", $withoutStatuses == "1");
@@ -1423,10 +1471,14 @@ class ManagementActions
 
     private function setSalePrice($request, $productId, $price)
     {
+        $fields = array("_sale_price" => $price);
+        if (PostHelper::productSave($productId, $fields)) return true;
+
         $product = \wc_get_product($productId);
 
         if ($product && !$product->is_type('variable')) {
             $oldValue = $product->get_sale_price();
+
             $product->set_sale_price($price);
             $product->save();
 
@@ -1691,6 +1743,7 @@ class ManagementActions
             "orders" => null,
             "findByTitle" => null,
             "post_status" => $order->get_status($orderId),
+            "post_status_name" => wc_get_order_status_name($order->get_status($orderId)),
             "debug" => Debug::getResult(true),
         );
 
@@ -1769,10 +1822,21 @@ class ManagementActions
             $customerName = get_user_meta($customerId, 'first_name', true) . ' ' . get_user_meta($customerId, 'last_name', true);
         }
 
+        $user = $order->get_user();
+        $userData = null;
+        $customerId = $order->get_customer_id();
+
+        if ($customerId && $user) {
+            $userData = $user->data;
+            $userData->phone = get_user_meta($customerId, 'billing_phone', true);
+            $userData->avatar = @get_avatar_url($customerId);
+        }
+
         $updatedOrder = array(
             "ID" => $orderId,
             "customer_id" => $order->get_customer_id(),
             "customer_name" => $customerName,
+            "user" => $userData,
             "data" =>  array(
                 "billing" => array(
                     'first_name' => $order->get_billing_first_name(),
@@ -2308,7 +2372,7 @@ class ManagementActions
                 "usbs_check_product" => \wc_get_order_item_meta($item->get_id(), 'usbs_check_product', true),
                 "usbs_check_product_scanned" => $usbs_check_product_scanned,
                 "quantity" => $qty,
-                "updatedAction" => "checked-" . time()
+                "updatedAction" => $usbs_check_product_scanned ? "checked-" . time() : ""
             );
         }
 
@@ -2334,8 +2398,6 @@ class ManagementActions
         $orderId = $orderId ? $orderId : $request->get_param("orderId");
         $itemId = $itemId ? $itemId : $request->get_param("itemId");
         $fields = $fields ? $fields : $request->get_param("fields");
-        $customFilter = $request->get_param("customFilter");
-        $quantity = $request->get_param("quantity");
         $confirmationLeftFulfillment = $request->get_param("confirmationLeftFulfillment");
 
         if (!$orderId || !$itemId || !$fields) {
@@ -2356,6 +2418,7 @@ class ManagementActions
 
         $isUpdated = false;
         $isFulfillmentChanged = false;
+        $isFulfillmentUnchecked = false;
         $isFulfillmentAlready = false;
 
         $orderItemsFulfillmentSuccess = 0;
@@ -2390,6 +2453,7 @@ class ManagementActions
                                 \wc_update_order_item_meta($itemId, "usbs_check_product_scanned", "");
                                 \wc_update_order_item_meta($itemId, "usbs_check_product", "");
                                 $isFulfillmentChanged = true;
+                                $isFulfillmentUnchecked = true;
                                 LogActions::add($orderId, LogActions::$actions["update_order_fulfillment"], "", 0, "", "order", $request);
                                 $isOrderFulfillmentReset = true;
                             }
@@ -2520,7 +2584,7 @@ class ManagementActions
                     "usbs_check_product" => \wc_get_order_item_meta($itemId, 'usbs_check_product', true),
                     "usbs_check_product_scanned" => $usbs_check_product_scanned,
                     "quantity" => $qty,
-                    "updatedAction" => "checked-" . time()
+                    "updatedAction" => $isFulfillmentUnchecked ? "unchecked-" . time() : "checked-" . time()
                 );
             } else if ($isFulfillmentAlready) {
                 $updatedItems[] = array(
@@ -4301,6 +4365,14 @@ class ManagementActions
                 @wc_delete_product_transients($productId);
 
                 do_action('litespeed_purge_all');
+
+                if (class_exists('\FlyingPress\Purge') && method_exists('\FlyingPress\Purge', 'purge_urls')) {
+                    \FlyingPress\Purge::purge_urls([get_permalink($productId)]);                    
+                }
+
+                if (class_exists('\FlyingPress\Preload') && method_exists('\FlyingPress\Preload', 'preload_urls')) {
+                    \FlyingPress\Preload::preload_urls([get_permalink($productId)], 0);
+                }
             }
         } catch (\Throwable $th) {
         }

@@ -47,6 +47,9 @@
                 <td style="padding-top: 5px;">
                     <?php $url = get_home_url() . "/barcode-scanner-front"; ?>
                     <a href="<?php echo esc_url($url); ?>" target="_blank"><?php echo esc_html($url); ?></a>
+                    <br/><?php echo esc_html__("or", "us-barcode-scanner"); ?><br/>
+                    <?php $url = get_home_url() . "/?barcode-scanner-front"; ?>
+                    <a href="<?php echo esc_url($url); ?>" target="_blank"><?php echo esc_html($url); ?></a>
                 </td>
             </tr>
             <tr id="bs_frontend_integration" <?php echo $allowToUseOnFrontend === "on" ? "" : wp_kses_post("style='display: none;'") ?>>

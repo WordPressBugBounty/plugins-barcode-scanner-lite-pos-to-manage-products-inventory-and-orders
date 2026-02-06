@@ -11,7 +11,10 @@ $button_js_default = '// Get product details
 // window.BarcodeScannerApp.productTab.setProductMeta({ "_sku", "NEW_SKU" });
 
 // Display prompt popup
-// const value = await window.BarcodeScannerApp.modals.prompt({ field_type: "number", title: "Prompt title" });';
+// const value = await window.BarcodeScannerApp.modals.prompt({ field_type: "number", title: "Prompt title" });
+
+// Open URL in browser or new tab
+// window.openBrowser("https://www.google.com");';
 
 ?>
 <tr class="settings_field_section field_<?php echo esc_attr($field["field_name"]); ?> <?php echo (isset($rootClass) && $rootClass) ? esc_attr($rootClass) : "" ?>">

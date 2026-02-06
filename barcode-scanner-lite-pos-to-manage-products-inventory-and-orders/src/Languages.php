@@ -308,7 +308,7 @@ return array(
     "For how much to %action stock qty per barcode scan?" => __("For how much to %action stock qty per barcode scan?", 'us-barcode-scanner'),
     "decrease" => __("decrease", 'us-barcode-scanner'),
     "increase" => __("increase", 'us-barcode-scanner'),
-    " - Fulfilled by %username" => __(" - Fulfilled by %username", 'us-barcode-scanner'),
+    " - Fulfilled by %username" => __("Fulfilled by %username", 'us-barcode-scanner'),
     "Search action" => __("Search action", 'us-barcode-scanner'),
     "Enter a number" => __("Enter a number", 'us-barcode-scanner'),
     "AUTO-DRAFT" => __("AUTO-DRAFT", 'us-barcode-scanner'),
@@ -340,4 +340,6 @@ return array(
     "no_internet_connection_title" => __("No internet connection", 'us-barcode-scanner'),
     "Relogin required" => __("Relogin required", 'us-barcode-scanner'),
     "Due to security reason you need to login again." => __("Due to security reason you need to login again.", 'us-barcode-scanner'),
+    "Amount:" => __("Amount:", 'us-barcode-scanner'),
+    "Amount to pick for product:" => __("Amount to pick for product:", 'us-barcode-scanner'),
 );

@@ -26,13 +26,23 @@ $filterUp = isset($_GET["up"]) ? sanitize_text_field($_GET["up"]) : "";
                             <?php $selected = $filterAction === $action ? "selected=" . $filterAction : ""; ?>
                             <option value="<?php echo esc_html_e($action); ?>" <?php echo esc_html_e($selected); ?>><?php echo esc_html_e($label); ?></option>
                         <?php endforeach; ?>
+                        <!-- group of custom fields -->
+                        <optgroup label="<?php echo esc_attr("Custom fields", "us-barcode-scanner"); ?>">
+                            <?php foreach ($interfaceData::getFields(false, "", false, "", false) as $field) : ?>
+                                <?php
+                                    if (!$field["field_name"]) continue;
+                                    $selected = $filterAction == "custom_field_" . $field["field_name"] ? "selected=" . $filterAction : "";
+                                    echo '<option value="custom_field_' . esc_attr($field["field_name"]) . '" ' . esc_html($selected) . '>' . esc_html($field["field_label"]) . '</option>';
+                                ?>
+                            <?php endforeach; ?>
+                        </optgroup>
                     </select>
                     <select name="user">
                         <option value=""><?php echo esc_html__("Any user", "us-barcode-scanner"); ?></option>
                         <?php foreach ($logs->users as $user) : ?>
                             <?php $selected = $filterUser == $user["ID"] ? "selected=" . $filterUser : ""; ?>
                             <option value="<?php echo esc_html_e($user["ID"]); ?>" <?php echo esc_html_e($selected); ?>><?php echo esc_html_e($user["name"]); ?></option>
-                        <?php endforeach; ?>
+                        <?php endforeach; ?>                        
                     </select>
                     <select name="type">
                         <option value=""><?php echo esc_html__("Any type", "us-barcode-scanner"); ?></option>

@@ -62,9 +62,17 @@ $tabsList = array(
 
                                         $parent = $permission['parent'] ? 'parent="' . $permission['parent'] . '"' : '';
                                         $group = $permission['group'] ? 'group="' . $permission['group'] . '"' : '';
+                                        $disabled =  '';
+                                        $value = '0';
+
+                                        if ($key == 'administrator' && $permissionKey == 'plugin_settings') {
+                                            $checked = ' checked=checked ';
+                                            $disabled =  'disabled="disabled"';
+                                            $value = '1';
+                                        }
                                         ?>
-                                        <input type="hidden" name="rolesPermissions[<?php echo esc_attr($key); ?>][<?php echo esc_attr($permissionKey); ?>]" value="0" />
-                                        <input type="checkbox" name="rolesPermissions[<?php echo esc_attr($key); ?>][<?php echo esc_attr($permissionKey); ?>]" value="1" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> <?php echo esc_attr($parent); ?> <?php echo esc_attr($group); ?> />
+                                        <input type="hidden" name="rolesPermissions[<?php echo esc_attr($key); ?>][<?php echo esc_attr($permissionKey); ?>]" value="<?php echo esc_attr($value); ?>" />
+                                        <input type="checkbox" name="rolesPermissions[<?php echo esc_attr($key); ?>][<?php echo esc_attr($permissionKey); ?>]" value="1" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> <?php echo esc_attr($parent); ?> <?php echo esc_attr($group); ?> <?php echo esc_attr($disabled); ?> />
                                     </td>
                                 <?php endforeach; ?>
                             </tr>

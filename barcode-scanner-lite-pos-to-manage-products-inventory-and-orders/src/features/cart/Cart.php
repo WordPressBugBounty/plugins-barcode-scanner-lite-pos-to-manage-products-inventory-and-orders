@@ -96,7 +96,42 @@ class Cart
             throw $th;
         }
 
-        return $shippingZoneMethods;
+
+        $legacyPickup = $this->get_pickup_location_status();
+
+                if ($legacyPickup['enabled']) {
+            $shippingZoneMethods[] = array(
+                'id' => $legacyPickup['method_id'],
+                'title' => $legacyPickup['title'],
+                'cost' => 0,
+                'instance_id' => '',
+            );
+        }
+
+                return $shippingZoneMethods;
+    }
+
+    function get_pickup_location_status() {
+        $shipping = \WC()->shipping();
+        $methods  = $shipping->get_shipping_methods();
+
+        if (isset($methods['pickup_location'])) {
+            $pickup = $methods['pickup_location'];
+
+            return [
+                'method_id' => "pickup_location",
+                'enabled' => $pickup->enabled === 'yes',
+                'method_title' => $pickup->method_title,
+                'title' => $pickup->title,
+            ];
+        }
+
+        return [
+            'method_id' => "",
+            'enabled' => false,
+            'method_title' => '',
+            'title' => '',
+        ];
     }
 
     public function getAllShippingMethods()

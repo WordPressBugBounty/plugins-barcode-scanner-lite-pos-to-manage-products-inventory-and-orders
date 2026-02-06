@@ -10,6 +10,7 @@ use UkrSolution\BarcodeScanner\API\classes\Users;
 use UkrSolution\BarcodeScanner\features\settings\Settings;
 use UkrSolution\BarcodeScanner\features\sounds\Sounds;
 use UkrSolution\BarcodeScanner\API\classes\WPML;
+use UkrSolution\BarcodeScanner\API\PluginsHelper;
 use UkrSolution\BarcodeScanner\features\cart\Cart;
 use UkrSolution\BarcodeScanner\features\history\History;
 use UkrSolution\BarcodeScanner\features\interfaceData\InterfaceData;
@@ -29,7 +30,7 @@ class MobileRouter
 
         add_filter('init', function () use ($urlData) {
             $this->mobilePagesByUrl($urlData);
-        });
+        }, 999999);
 
         return $urlData;
     }
@@ -44,7 +45,15 @@ class MobileRouter
 
                 if (!$key) return null;
 
-                if (preg_match("/^(.*?)mobile-barcode-scanner\/(plugin|android|ios)\/(checker|display|auth)\/?(.*?)?$/", $key, $m)) {
+                if (preg_match("/^(.*?)mobile-barcode-scanner_(plugin|android|ios)_(checker|display|auth)(.*?)?$/", $key, $m)) {
+                    if (count($m) >= 4) {
+                        $data = array(
+                            "route" => str_replace("_", "", $m[2]),
+                            "params" => str_replace("_", "", $m[3]),
+                        );
+                    }
+                }
+                else if (preg_match("/^(.*?)mobile-barcode-scanner\/(plugin|android|ios)\/(checker|display|auth)\/?(.*?)?$/", $key, $m)) {
                     if (count($m) >= 4) {
                         $data = array(
                             "route" => str_replace("/", "", $m[2]),
@@ -85,6 +94,8 @@ class MobileRouter
         header("Cache-Control: post-check=0, pre-check=0", false);
         header("Pragma: no-cache");
 
+        PluginsHelper::responseHeaders();
+
         require __DIR__ . '/checker.php';
         exit();
     }
@@ -96,6 +107,8 @@ class MobileRouter
         header("Cache-Control: no-store, no-cache, must-revalidate");
         header("Cache-Control: post-check=0, pre-check=0", false);
         header("Pragma: no-cache");
+
+        PluginsHelper::responseHeaders();
 
         $auth = new Auth();
         $auth->loginOtp();
@@ -110,6 +123,8 @@ class MobileRouter
         header("Cache-Control: no-store, no-cache, must-revalidate");
         header("Cache-Control: post-check=0, pre-check=0", false);
         header("Pragma: no-cache");
+
+        PluginsHelper::responseHeaders();
 
         include_once(ABSPATH . 'wp-admin/includes/plugin.php');
 
