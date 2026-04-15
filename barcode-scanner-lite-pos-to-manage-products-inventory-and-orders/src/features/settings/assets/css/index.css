@@ -188,11 +188,13 @@ a.usbs-btn:hover {
   display: block;
 }
 
-#bs-settings-fields-tab .settings_field_add_new {
+#bs-settings-fields-tab .settings_field_add_new,
+#bs-settings-fields-tab .settings_order_field_add_new {
   float: right;
 }
 
-#bs-settings-fields-tab .new_field_template {
+#bs-settings-fields-tab .new_field_template,
+#bs-settings-fields-tab .new_field_template_order {
   display: none;
 }
 

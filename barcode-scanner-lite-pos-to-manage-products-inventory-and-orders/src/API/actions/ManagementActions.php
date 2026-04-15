@@ -2,6 +2,7 @@
 
 namespace UkrSolution\BarcodeScanner\API\actions;
 
+use UkrSolution\BarcodeScanner\API\classes\ACFRepeater;
 use UkrSolution\BarcodeScanner\API\classes\BatchNumbers;
 use UkrSolution\BarcodeScanner\API\classes\BatchNumbersWebis;
 use UkrSolution\BarcodeScanner\API\classes\Emails;
@@ -49,6 +50,7 @@ class ManagementActions
     public $scanner_created_product = 'scanner_created_product';
     public $filter_fulfillment_step = 'scanner_fulfillment_step';
     public $filter_order_ff_data = 'scanner_order_ff_data';
+    public $filter_orders_available_statuses = 'scanner_orders_available_statuses';
 
     public function productSearch(WP_REST_Request $request, $actions = true, $findById = false, $actionError = "", $withoutStatuses = false, $tab = "products")
     {
@@ -60,7 +62,8 @@ class ManagementActions
         $query = RequestHelper::getQuery($request, "product");
         $postAutoAction = $request->get_param("postAutoAction");
         $postAutoActionQtyStep = $request->get_param("postAutoActionQtyStep");
-        if (!$postAutoActionQtyStep) $postAutoActionQtyStep = 1;
+        if (!$postAutoActionQtyStep)
+            $postAutoActionQtyStep = 1;
         $platform = $request->get_param("platform");
         $limit = null;
 
@@ -104,8 +107,8 @@ class ManagementActions
         Debug::addPoint("end Post()->find");
 
         $postsCount = $data && isset($data["posts"]) ? count($data["posts"]) : 0;
-        $total =  $data && isset($data["total"]) ? $data["total"] : 0;
-        $limit =  $data && isset($data["limit"]) ? $data["limit"] : 0;
+        $total = $data && isset($data["total"]) ? $data["total"] : 0;
+        $limit = $data && isset($data["limit"]) ? $data["limit"] : 0;
 
         $result["total"] = $total >= $limit ? $total : 0;
 
@@ -114,7 +117,7 @@ class ManagementActions
 
             if ($_post) {
                 $variationId = $_post->post_parent ? $_post->ID : 0;
-                $productData  = array(
+                $productData = array(
                     "ID" => $_post->ID,
                     "variation_id" => $variationId,
                     "number_field_step" => get_post_meta($_post->ID, "number_field_step", true)
@@ -164,10 +167,14 @@ class ManagementActions
         Debug::addPoint("end Results()->productsPrepare");
 
         $sortBy = SettingsHelper::getSearchResultsSortBy($request);
-        if ($sortBy == "relevance") $this->itemsLevenshtein($products, $query, $data);
-        else if ($sortBy == "parent_product") $this->itemsParentProduct($products);
-        else if ($sortBy == "in_stock_first") $this->itemsInStockFirst($products);
-        else if ($sortBy == "out_of_stock_first") $this->itemsOutOfStockFirst($products);
+        if ($sortBy == "relevance")
+            $this->itemsLevenshtein($products, $query, $data);
+        else if ($sortBy == "parent_product")
+            $this->itemsParentProduct($products);
+        else if ($sortBy == "in_stock_first")
+            $this->itemsInStockFirst($products);
+        else if ($sortBy == "out_of_stock_first")
+            $this->itemsOutOfStockFirst($products);
 
         $customFilter["searchQuery"] = $query;
 
@@ -249,7 +256,8 @@ class ManagementActions
         );
 
         $filterExcludes = array();
-        if ($postTypes && in_array('variable', $postTypes)) $filterExcludes[] = 'orders';
+        if ($postTypes && in_array('variable', $postTypes))
+            $filterExcludes[] = 'orders';
 
         Debug::addPoint("start Post()->find");
         $data = (new Post())->find($query, $filter, false, false, null, "product", $filterExcludes, false, $postTypes);
@@ -260,10 +268,14 @@ class ManagementActions
         Debug::addPoint("end Results()->productsPrepare");
 
         $sortBy = SettingsHelper::getSearchResultsSortBy($request);
-        if ($sortBy == "relevance") $this->itemsLevenshtein($products, $query, $data);
-        else if ($sortBy == "parent_product") $this->itemsParentProduct($products);
-        else if ($sortBy == "in_stock_first") $this->itemsInStockFirst($products);
-        else if ($sortBy == "out_of_stock_first") $this->itemsOutOfStockFirst($products);
+        if ($sortBy == "relevance")
+            $this->itemsLevenshtein($products, $query, $data);
+        else if ($sortBy == "parent_product")
+            $this->itemsParentProduct($products);
+        else if ($sortBy == "in_stock_first")
+            $this->itemsInStockFirst($products);
+        else if ($sortBy == "out_of_stock_first")
+            $this->itemsOutOfStockFirst($products);
 
         $customFilter["searchQuery"] = $query;
 
@@ -296,18 +308,19 @@ class ManagementActions
         foreach ($order->get_items() as $itemId => $value) {
             $pid = $value->get_variation_id() ? $value->get_variation_id() : $value->get_product_id();
 
-            if (!isset($infoData[$pid])) $infoData[$pid] = array();
+            if (!isset($infoData[$pid]))
+                $infoData[$pid] = array();
 
             $isItemFound = $pid == $product["ID"] && ($value->get_variation_id() == $product["variation_id"] || $value->get_variation_id() == 0);
             $isItemFound = !$isItemFound ? $orderItemId == $itemId : $isItemFound;
 
             if ($isItemFound) {
-                $qty = (float)\wc_get_order_item_meta($itemId, '_qty', true);
+                $qty = (float) \wc_get_order_item_meta($itemId, '_qty', true);
 
                 $refund_data = OrdersHelper::getOrderItemRefundData($order, $value);
                 $qty += $refund_data["_qty"];
 
-                $scanned = (float)\wc_get_order_item_meta($itemId, 'usbs_check_product_scanned', true);
+                $scanned = (float) \wc_get_order_item_meta($itemId, 'usbs_check_product_scanned', true);
 
                 if ($qty && $scanned < $qty) {
                     $result = $this->orderUpdateItemMeta($request, $orderId, $itemId, array(array("key" => "usbs_check_product", "value" => time())), $product, $order);
@@ -338,7 +351,7 @@ class ManagementActions
         $items = $order->get_items("line_item");
         $items = apply_filters('scanner_order_ff_get_items', $items, $orderId);
 
-          $products = array();
+        $products = array();
 
         foreach ($items as $item) {
             $id = $item->get_variation_id();
@@ -361,8 +374,8 @@ class ManagementActions
             "ID" => $orderId,
             "products" => $products,
             "post_type" => $order->get_type(),
-            "usbs_fulfillment_objects" => get_post_meta($orderId, "usbs_fulfillment_objects", true),
-            "usbs_order_fulfillment_data" => get_post_meta($orderId, "usbs_order_fulfillment_data", true),
+            "usbs_fulfillment_objects" => OrdersHelper::get_meta_value($order, $orderId, "usbs_fulfillment_objects"),
+            "usbs_order_fulfillment_data" => OrdersHelper::get_meta_value($order, $orderId, "usbs_order_fulfillment_data"),
             "data" => array(
                 "billing" => array(
                     "country" => $order->get_billing_country(),
@@ -388,12 +401,16 @@ class ManagementActions
         $orders = apply_filters($this->filter_search_result, array($orderData), array());
         $orderData = $orders && count($orders) ? $orders[0] : $orderData;
 
-        $infoData = $this->isOrderFulfillment($orderData);
+        $FFexcludeIds = $settings->getSettings("FFexcludeIds");
+        $FFexcludeIds = $FFexcludeIds === null ? "" : $FFexcludeIds->value;
+        $FFexcludeIds = array_map('trim', explode(',', $FFexcludeIds));
+
+        $infoData = $this->isOrderFulfillment($orderData, $FFexcludeIds);
 
         $infoData = apply_filters($this->filter_order_ff_data, $infoData, $orderId);
 
         if ($infoData) {
-            update_post_meta($orderId, "usbs_order_fulfillment_data", $infoData);
+            OrdersHelper::set_meta_value($order, $orderId, "usbs_order_fulfillment_data", $infoData);
 
             if ($infoData["totalScanned"] && $infoData["totalQty"] == $infoData["totalScanned"] && $isCheckFulfilledStatus == true) {
                 $this->updateOrderStatusByFulFillment($orderData, $result, $order, null);
@@ -423,7 +440,6 @@ class ManagementActions
                 $order = new \WC_Order($orderId);
                 $order->update_status($autoStatusFulfilled);
 
-
                 if ($result && $result->data && isset($result->data["orders"])) {
                     $result->data["orders"][0]["data"]["status"] = $order->get_status();
                 }
@@ -436,21 +452,24 @@ class ManagementActions
         }
     }
 
-    private function isOrderFulfillment($order)
+    private function isOrderFulfillment($order, $excludedIds = array())
     {
         $data = array("items" => array(), "codes" => array(), "totalQty" => 0, "totalScanned" => 0, "dateFulfilled" => "");
 
-        if (!isset($order["products"])) return $data;
+        if (!isset($order["products"]))
+            return $data;
 
         foreach ($order["products"] as $value) {
-            $qty = isset($value["quantity"]) ? $value["quantity"] : 1;
-            $qty = apply_filters('scanner_order_ff_get_item_qty', $qty, $value["item_id"], $order["ID"]);
-            $scanned = isset($value["usbs_check_product_scanned"]) ? $value["usbs_check_product_scanned"] : 1;
+            if (!in_array($value["ID"], $excludedIds)) {
+                $qty = isset($value["quantity"]) ? $value["quantity"] : 1;
+                $qty = apply_filters('scanner_order_ff_get_item_qty', $qty, $value["item_id"], $order["ID"]);
+                $scanned = isset($value["usbs_check_product_scanned"]) ? $value["usbs_check_product_scanned"] : 1;
 
-            $data["items"][] = array("qty" => $qty, "scanned" => $scanned, "item_id" => $value["item_id"], "ID" => $value["ID"]);
+                $data["items"][] = array("qty" => $qty, "scanned" => $scanned, "item_id" => $value["item_id"], "ID" => $value["ID"]);
 
-            $data["totalQty"] += $qty;
-            $data["totalScanned"] += $scanned;
+                $data["totalQty"] += $qty;
+                $data["totalScanned"] += $scanned;
+            }
         }
 
         $settings = new Settings();
@@ -521,7 +540,7 @@ class ManagementActions
 
                     $levDiff = levenshtein($_q, $valueA) - levenshtein($_q, $valueB);
 
-                    if ($levDiff === 0 && isset($a["post_modified"]) && isset($b["post_modified"])) {
+                    if ($levDiff === 0 && is_array($a) && is_array($b) && array_key_exists("post_modified", $a) && array_key_exists("post_modified", $b)) {
                         $timeA = strtotime($a["post_modified"]);
                         $timeB = strtotime($b["post_modified"]);
                         return $timeB - $timeA; 
@@ -535,7 +554,7 @@ class ManagementActions
                         continue;
                     }
 
-                    $field = array_search("1", (array)$postsSearchData[$value["ID"]]);
+                    $field = array_search("1", (array) $postsSearchData[$value["ID"]]);
                     $field = $this->getColumnName($field);
                     $items[$key]["found_by_field"] = $field;
                 }
@@ -555,27 +574,31 @@ class ManagementActions
                                 $word = preg_quote($word, '/');
 
                                 if (!preg_match('/(?<=[\s,.:;"\']|^)' . $word . '(?=[\s,.:;"\']|$)/', strtolower($str))) {
-                                    if (isset($items[$key]["rs"])) $items[$key]["rs"]--;
-                                    else $items[$key]["rs"] = -1;
+                                    if (isset($items[$key]["rs"]))
+                                        $items[$key]["rs"]--;
+                                    else
+                                        $items[$key]["rs"] = -1;
                                 } else {
-                                    if (isset($items[$key]["rs"])) $items[$key]["rs"]++;
-                                    else $items[$key]["rs"] = 0;
+                                    if (isset($items[$key]["rs"]))
+                                        $items[$key]["rs"]++;
+                                    else
+                                        $items[$key]["rs"] = 0;
                                 }
                             }
                         }
                     }
 
-                    usort($items, function($a, $b) {
+                    usort($items, function ($a, $b) {
                         $rsA = isset($a["rs"]) ? $a["rs"] : 0;
                         $rsB = isset($b["rs"]) ? $b["rs"] : 0;
 
-                                                if ($rsA === $rsB && isset($a["post_modified"]) && isset($b["post_modified"])) {
+                        if ($rsA === $rsB && is_array($a) && is_array($b) && array_key_exists("post_modified", $a) && array_key_exists("post_modified", $b)) {
                             $timeA = strtotime($a["post_modified"]);
                             $timeB = strtotime($b["post_modified"]);
                             return $timeB - $timeA; 
                         }
 
-                                                return $rsB - $rsA;
+                        return $rsB - $rsA;
                     });
                 }
             }
@@ -585,14 +608,14 @@ class ManagementActions
 
     private function itemsParentProduct(&$items)
     {
-        usort($items, function($a, $b) {
+        usort($items, function ($a, $b) {
             return $b["post_parent"] - $a["post_parent"];
         });
     }
 
     private function itemsInStockFirst(&$items)
     {
-        usort($items, function($a, $b) {
+        usort($items, function ($a, $b) {
             if (isset($a["_stock_status"]) && isset($b["_stock_status"])) {
                 return strcmp($a["_stock_status"], $b["_stock_status"]);
             }
@@ -603,7 +626,7 @@ class ManagementActions
 
     private function itemsOutOfStockFirst(&$items)
     {
-        usort($items, function($a, $b) {
+        usort($items, function ($a, $b) {
             if (isset($a["_stock_status"]) && isset($b["_stock_status"])) {
                 return strcmp($b["_stock_status"], $a["_stock_status"]);
             }
@@ -614,7 +637,7 @@ class ManagementActions
 
     private function findValueByField($postsSearchData, $item)
     {
-        $field = array_search("1", (array)$postsSearchData[$item["ID"]]);
+        $field = array_search("1", (array) $postsSearchData[$item["ID"]]);
         $field = $this->getColumnName($field);
 
         if ($field) {
@@ -629,8 +652,10 @@ class ManagementActions
         global $wpdb;
 
         if ($this->tableColumns == null) {
+            // @codingStandardsIgnoreStart
             $tableColumns = $wpdb->prefix . Database::$columns;
             $this->tableColumns = $wpdb->get_results("SELECT * FROM {$tableColumns}");
+            // @codingStandardsIgnoreEnd
         }
 
         if (preg_match("/^column_.*?/", $name)) {
@@ -673,12 +698,16 @@ class ManagementActions
             if ($fieldName == "_stock") {
                 if (isset($product["product_manage_stock"]) && isset($product["post_parent"]) && $product["product_manage_stock"] === "parent" && $product["post_parent"]) {
                     $ms = get_post_meta($product["post_parent"], "_manage_stock", true);
-                    if ($ms == "yes" || true) $this->productUpdateQuantityPlus($request, $product["post_parent"]);
-                    else $actionError = $this->postAutoAction["AUTO_INCREASING"];
+                    if ($ms == "yes" || true)
+                        $this->productUpdateQuantityPlus($request, $product["post_parent"]);
+                    else
+                        $actionError = $this->postAutoAction["AUTO_INCREASING"];
                 } else {
                     $ms = get_post_meta($product["ID"], "_manage_stock", true);
-                    if ($ms == "yes" || true) $this->productUpdateQuantityPlus($request, $product["ID"]);
-                    else $actionError = $this->postAutoAction["AUTO_INCREASING"];
+                    if ($ms == "yes" || true)
+                        $this->productUpdateQuantityPlus($request, $product["ID"]);
+                    else
+                        $actionError = $this->postAutoAction["AUTO_INCREASING"];
                 }
             }
             else {
@@ -697,12 +726,16 @@ class ManagementActions
             if ($fieldName == "_stock") {
                 if (isset($product["product_manage_stock"]) && isset($product["post_parent"]) && $product["product_manage_stock"] === "parent" && $product["post_parent"]) {
                     $ms = get_post_meta($product["post_parent"], "_manage_stock", true);
-                    if ($ms == "yes") $this->productUpdateQuantityMinus($request, $product["post_parent"]);
-                    else $actionError = $this->postAutoAction["AUTO_DECREASING"];
+                    if ($ms == "yes")
+                        $this->productUpdateQuantityMinus($request, $product["post_parent"]);
+                    else
+                        $actionError = $this->postAutoAction["AUTO_DECREASING"];
                 } else {
                     $ms = get_post_meta($product["ID"], "_manage_stock", true);
-                    if ($ms == "yes") $this->productUpdateQuantityMinus($request, $product["ID"]);
-                    else $actionError = $this->postAutoAction["AUTO_DECREASING"];
+                    if ($ms == "yes")
+                        $this->productUpdateQuantityMinus($request, $product["ID"]);
+                    else
+                        $actionError = $this->postAutoAction["AUTO_DECREASING"];
                 }
             }
             else {
@@ -762,23 +795,23 @@ class ManagementActions
 
         switch ($orderAutoAction) {
             case $this->orderAutoAction["ORDER_STATUS"]: {
-                    $order = new \WC_Order($orderId);
+                $order = new \WC_Order($orderId);
 
-                    if ($order) {
-                        $oldValue = $order->get_status();
-                        $order->update_status($orderAutoStatus);
-                        $this->productIndexation($orderId, "orderChangeStatus");
-                        LogActions::add($orderId, LogActions::$actions["update_order_status"], "post_status", $orderAutoStatus, $oldValue, "order", $request);
-                    }
-
-
-                    if ($request && $orderId) {
-                        $request->set_param("query", $orderId);
-                    }
-
-                    return $this->orderSearch($request, false, true, true);
-                    break;
+                if ($order) {
+                    $oldValue = $order->get_status();
+                    $order->update_status($orderAutoStatus);
+                    $this->productIndexation($orderId, "orderChangeStatus");
+                    LogActions::add($orderId, LogActions::$actions["update_order_status"], "post_status", $orderAutoStatus, $oldValue, "order", $request);
                 }
+
+
+                if ($request && $orderId) {
+                    $request->set_param("query", $orderId);
+                }
+
+                return $this->orderSearch($request, false, true, true);
+                break;
+            }
         }
 
         return false;
@@ -791,7 +824,7 @@ class ManagementActions
         $result = true;
 
         try {
-            $productsIds = (array)$request->get_param("products");
+            $productsIds = (array) $request->get_param("products");
 
             if (count($productsIds) === 0) {
                 $productsIds = array($productId);
@@ -816,7 +849,9 @@ class ManagementActions
     private function setManageStock($productId)
     {
         $fields = array("_manage_stock" => true);
-        if (PostHelper::productSave($productId, $fields)) return true;
+        if (PostHelper::productSave($productId, $fields)) {
+            return true;
+        }
 
         $product = \wc_get_product($productId);
 
@@ -841,7 +876,7 @@ class ManagementActions
         $query = RequestHelper::getQuery($request, "product");
         $productId = $postId ? $postId : $query;
 
-        if (!$quantity && (int)$quantity != 0) {
+        if (!$quantity && (int) $quantity != 0) {
             $quantity = $request->get_param("quantity");
         }
 
@@ -856,7 +891,7 @@ class ManagementActions
 
         if (($isUpdateAllProds === "on" || true) && $filteredData !== null) {
             try {
-                $productsIds = (array)$request->get_param("products");
+                $productsIds = (array) $request->get_param("products");
 
                 if (count($productsIds) === 0) {
                     $productsIds = array($productId);
@@ -877,7 +912,7 @@ class ManagementActions
             LogActions::add($productId, LogActions::$actions["update_qty"], "_stock", $quantity, $oldValue, "product", $request);
         }
 
-                $this->clearProductCache($productId);
+        $this->clearProductCache($productId);
 
         if ($result === true) {
             return $this->productSearch($request, true, true);
@@ -888,10 +923,14 @@ class ManagementActions
 
     public function setQuantity($productId, $quantity, $product = null, $checkHershold = false)
     {
-        if ($quantity !== "") $this->setManageStock($productId);
+        if ($quantity !== "") {
+            $this->setManageStock($productId);
+        }
 
         $fields = array("_stock_quantity" => $quantity);
-        if (PostHelper::productSave($productId, $fields)) return true;
+        if (PostHelper::productSave($productId, $fields)) {
+            return true;
+        }
 
         if (!$product) {
             $product = \wc_get_product($productId);
@@ -969,7 +1008,7 @@ class ManagementActions
         if (($isUpdateAllProds === "on" || true) && $filteredData !== null) {
 
             try {
-                $productsIds = (array)$request->get_param("products");
+                $productsIds = (array) $request->get_param("products");
 
                 if (count($productsIds) === 0) {
                     $translations = WPML::getProductTranslations($productId);
@@ -991,9 +1030,9 @@ class ManagementActions
                             $step = apply_filters($this->filter_auto_action_step, 1, $id);
 
                             if ($step == 1) {
-                                $curQuantity = (float)$product->get_stock_quantity();
+                                $curQuantity = (float) $product->get_stock_quantity();
                             } else {
-                                $curQuantity = (float)get_post_meta($productId, "_stock", true);
+                                $curQuantity = (float) get_post_meta($productId, "_stock", true);
                             }
                         }
 
@@ -1002,13 +1041,13 @@ class ManagementActions
                         $result = $this->setQuantityPlus($request, $id, $curQuantity, $step);
                     }
                 } else if ($productId) {
-                    $this->qtyBeforeUpdate[$productId] = (float)get_post_meta($productId, "_stock", true);
+                    $this->qtyBeforeUpdate[$productId] = (float) get_post_meta($productId, "_stock", true);
                     $result = $this->setQuantityPlus($request, $productId);
                 }
             } catch (\Throwable $th) {
             }
         } else if ($filteredData !== null) {
-            $this->qtyBeforeUpdate[$productId] = (float)get_post_meta($productId, "_stock", true);
+            $this->qtyBeforeUpdate[$productId] = (float) get_post_meta($productId, "_stock", true);
             $result = $this->setQuantityPlus($request, $productId);
         }
 
@@ -1032,9 +1071,9 @@ class ManagementActions
                 $step = apply_filters($this->filter_auto_action_step, 1, $productId);
 
                 if ($step == 1) {
-                    $qty = (float)$product->get_stock_quantity();
+                    $qty = (float) $product->get_stock_quantity();
                 } else {
-                    $qty = (float)get_post_meta($productId, "_stock", true);
+                    $qty = (float) get_post_meta($productId, "_stock", true);
                 }
             } else {
                 $step = apply_filters($this->filter_auto_action_step, 1, $productId);
@@ -1084,7 +1123,7 @@ class ManagementActions
 
         if (($isUpdateAllProds === "on" || true) && $filteredData !== null) {
             try {
-                $productsIds = (array)$request->get_param("products");
+                $productsIds = (array) $request->get_param("products");
 
                 if (count($productsIds) === 0) {
                     $translations = WPML::getProductTranslations($productId);
@@ -1108,30 +1147,30 @@ class ManagementActions
                             $step = apply_filters($this->filter_auto_action_step, 1, $id);
 
                             if ($step == 1) {
-                                $curQuantity = (float)$product->get_stock_quantity();
+                                $curQuantity = (float) $product->get_stock_quantity();
                             } else {
-                                $curQuantity = (float)get_post_meta($productId, "_stock", true);
+                                $curQuantity = (float) get_post_meta($productId, "_stock", true);
                             }
-                        }                        
+                        }
 
                         $this->qtyBeforeUpdate[$productId] = $curQuantity;
 
                         $result = $this->setQuantityMinus($request, $id, $curQuantity, $step);
                     }
                 } else if ($productId) {
-                    $this->qtyBeforeUpdate[$productId] = (float)get_post_meta($productId, "_stock", true);
+                    $this->qtyBeforeUpdate[$productId] = (float) get_post_meta($productId, "_stock", true);
                     $result = $this->setQuantityMinus($request, $productId);
                 }
             } catch (\Throwable $th) {
             }
         } else if ($filteredData !== null) {
-            $this->qtyBeforeUpdate[$productId] = (float)get_post_meta($productId, "_stock", true);
+            $this->qtyBeforeUpdate[$productId] = (float) get_post_meta($productId, "_stock", true);
             $result = $this->setQuantityMinus($request, $productId);
         }
 
         $this->clearProductCache($productId);
 
-                if ($result === true) {
+        if ($result === true) {
             return $this->productSearch($request, false, true);
         } else {
             return $result;
@@ -1152,9 +1191,9 @@ class ManagementActions
                 $step = apply_filters($this->filter_auto_action_step, 1, $productId);
 
                 if ($step == 1) {
-                    $qty = (float)$product->get_stock_quantity();
+                    $qty = (float) $product->get_stock_quantity();
                 } else {
-                    $qty = (float)get_post_meta($productId, "_stock", true);
+                    $qty = (float) get_post_meta($productId, "_stock", true);
                 }
 
                 $this->qtyBeforeUpdate[$productId] = $qty;
@@ -1190,7 +1229,7 @@ class ManagementActions
         $result = true;
 
         try {
-            $productsIds = (array)$request->get_param("products");
+            $productsIds = (array) $request->get_param("products");
 
             if (count($productsIds) === 0) {
                 $productsIds = array($productId);
@@ -1214,7 +1253,9 @@ class ManagementActions
     private function setRegularPrice($request, $productId, $price)
     {
         $fields = array("_regular_price" => $price);
-        if (PostHelper::productSave($productId, $fields)) return true;
+        if (PostHelper::productSave($productId, $fields)) {
+            return true;
+        }
 
         $product = \wc_get_product($productId);
 
@@ -1250,7 +1291,7 @@ class ManagementActions
         $result = true;
 
         try {
-            $productsIds = (array)$request->get_param("products");
+            $productsIds = (array) $request->get_param("products");
 
             if (count($productsIds) === 0) {
                 $productsIds = array($productId);
@@ -1280,7 +1321,7 @@ class ManagementActions
         $productId = $postId ? $postId : $query;
         $price = $salePrice ? $salePrice : $price;
 
-        $productsIds = (array)$request->get_param("products");
+        $productsIds = (array) $request->get_param("products");
 
 
 
@@ -1336,12 +1377,13 @@ class ManagementActions
             $productId = RequestHelper::getQuery($request, "product");
         }
 
-        if ($value && is_string($value) || is_numeric($value)) $value = trim($value);
+        if ($value && is_string($value) || is_numeric($value))
+            $value = trim($value);
 
         $result = true;
 
         try {
-            $productsIds = (array)$request->get_param("products");
+            $productsIds = (array) $request->get_param("products");
 
             if (count($productsIds) === 0) {
                 $productsIds = array($productId);
@@ -1354,7 +1396,18 @@ class ManagementActions
 
                     $this->checkAutoDraftStatus($id);
 
-                    if ($key === "_sku") {
+                    if (preg_match('/^taxonomy_term___(.*?)___(.*?)$/', $key, $m)) {
+                        if (count($m) === 3) {
+                            $taxonomy = $m[1];
+                            $term = $m[2];
+                            if ($value == 1) {
+                                wp_set_object_terms($id, $term, $taxonomy, true);
+                            }
+                            else {
+                                wp_remove_object_terms($id, $term, $taxonomy);
+                            }
+                        }
+                    } else if ($key === "_sku") {
                         $oldValue = \get_post_meta($id, "_sku", true);
                         $result = ProductsHelper::setSKU($id, $filteredValue);
                         LogActions::add($id, LogActions::$actions["sku"], "_sku", $filteredValue, $oldValue, "product", $request);
@@ -1472,7 +1525,9 @@ class ManagementActions
     private function setSalePrice($request, $productId, $price)
     {
         $fields = array("_sale_price" => $price);
-        if (PostHelper::productSave($productId, $fields)) return true;
+        if (PostHelper::productSave($productId, $fields)) {
+            return true;
+        }
 
         $product = \wc_get_product($productId);
 
@@ -1632,7 +1687,7 @@ class ManagementActions
             }
 
 
-                        $result['orders'] = $orders;
+            $result['orders'] = $orders;
             $result['findByTitle'] = $data["findByTitle"];
         }
         else {
@@ -1664,7 +1719,8 @@ class ManagementActions
     private function checkIfOrderAlreadyFulfilled($fulfillmentOrderId)
     {
         if ($fulfillmentOrderId) {
-            $orderFulfillmentData = get_post_meta($fulfillmentOrderId, "usbs_order_fulfillment_data", true);
+            $order = wc_get_order($fulfillmentOrderId);
+            $orderFulfillmentData = $order ? OrdersHelper::get_meta_value($order, $fulfillmentOrderId, "usbs_order_fulfillment_data") : null;
 
             if ($orderFulfillmentData && $orderFulfillmentData["totalQty"] && $orderFulfillmentData["totalScanned"] && $orderFulfillmentData["totalQty"] == $orderFulfillmentData["totalScanned"]) {
                 return rest_ensure_response(array(
@@ -1686,7 +1742,8 @@ class ManagementActions
     private function checkIfCanSwitchOrder($fulfillmentOrderId)
     {
         if ($fulfillmentOrderId) {
-            $orderFulfillmentData = get_post_meta($fulfillmentOrderId, "usbs_order_fulfillment_data", true);
+            $order = wc_get_order($fulfillmentOrderId);
+            $orderFulfillmentData = $order ? OrdersHelper::get_meta_value($order, $fulfillmentOrderId, "usbs_order_fulfillment_data") : null;
 
             $settings = new Settings();
             $dontAllowSwitchOrder = $settings->getSettings("dontAllowSwitchOrder");
@@ -1729,11 +1786,9 @@ class ManagementActions
             $oldValue = $order->get_status();
             Debug::addPoint(" - orderChangeStatus get current status");
 
-            $order->update_status($status);
+            $order->update_status($status, "", true);
             Debug::addPoint(" - orderChangeStatus status changed");
 
-            $this->productIndexation($orderId, "orderChangeStatus");
-            Debug::addPoint(" - orderChangeStatus indexation");
 
             LogActions::add($orderId, LogActions::$actions["update_order_status"], "post_status", $status, $oldValue, "order", $request);
             Debug::addPoint(" - orderChangeStatus logged");
@@ -1745,6 +1800,7 @@ class ManagementActions
             "post_status" => $order->get_status($orderId),
             "post_status_name" => wc_get_order_status_name($order->get_status($orderId)),
             "debug" => Debug::getResult(true),
+            "order_notes" => OrdersHelper::getOrderNotes($order),
         );
 
         return rest_ensure_response($result);
@@ -1769,40 +1825,45 @@ class ManagementActions
         if ($order) {
             $oldValue = $order->get_customer_id();
 
-            $order->set_customer_id($customerId);
+            $hook_result = apply_filters("barcode_scanner_order_change_customer", null, $order, $customerId);
 
-            $address = array(
-                'first_name' => get_user_meta($customerId, "billing_first_name", true),
-                'last_name'  => get_user_meta($customerId, "billing_last_name", true),
-                'company'    => get_user_meta($customerId, "billing_company", true),
-                'email'      => get_user_meta($customerId, "billing_email", true),
-                'phone'      => get_user_meta($customerId, "billing_phone", true),
-                'address_1'  => get_user_meta($customerId, "billing_address_1", true),
-                'address_2'  => get_user_meta($customerId, "billing_address_2", true),
-                'city'       => get_user_meta($customerId, "billing_city", true),
-                'state'      => get_user_meta($customerId, "billing_state", true),
-                'postcode'   => get_user_meta($customerId, "billing_postcode", true),
-                'country'    => get_user_meta($customerId, "billing_country", true),
-            );
-            $order->set_address($address, 'billing');
+            if ($hook_result === null) {
 
-            $prefix = true ? "billing" : "shipping";
-            $address = array(
-                'first_name' => get_user_meta($customerId, $prefix . "_first_name", true),
-                'last_name'  => get_user_meta($customerId, $prefix . "_last_name", true),
-                'company'    => get_user_meta($customerId, $prefix . "_company", true),
-                'phone'      => get_user_meta($customerId, $prefix . "_phone", true),
-                'address_1'  => get_user_meta($customerId, $prefix . "_address_1", true),
-                'address_2'  => get_user_meta($customerId, $prefix . "_address_2", true),
-                'city'       => get_user_meta($customerId, $prefix . "_city", true),
-                'state'      => get_user_meta($customerId, $prefix . "_state", true),
-                'postcode'   => get_user_meta($customerId, $prefix . "_postcode", true),
-                'country'    => get_user_meta($customerId, $prefix . "_country", true),
-            );
-            $order->set_address($address, 'shipping');
+                $order->set_customer_id($customerId);
+
+                $address = array(
+                    'first_name' => get_user_meta($customerId, "billing_first_name", true),
+                    'last_name' => get_user_meta($customerId, "billing_last_name", true),
+                    'company' => get_user_meta($customerId, "billing_company", true),
+                    'email' => get_user_meta($customerId, "billing_email", true),
+                    'phone' => get_user_meta($customerId, "billing_phone", true),
+                    'address_1' => get_user_meta($customerId, "billing_address_1", true),
+                    'address_2' => get_user_meta($customerId, "billing_address_2", true),
+                    'city' => get_user_meta($customerId, "billing_city", true),
+                    'state' => get_user_meta($customerId, "billing_state", true),
+                    'postcode' => get_user_meta($customerId, "billing_postcode", true),
+                    'country' => get_user_meta($customerId, "billing_country", true),
+                );
+                $order->set_address($address, 'billing');
+
+                $prefix = true ? "billing" : "shipping";
+                $address = array(
+                    'first_name' => get_user_meta($customerId, $prefix . "_first_name", true),
+                    'last_name' => get_user_meta($customerId, $prefix . "_last_name", true),
+                    'company' => get_user_meta($customerId, $prefix . "_company", true),
+                    'phone' => get_user_meta($customerId, $prefix . "_phone", true),
+                    'address_1' => get_user_meta($customerId, $prefix . "_address_1", true),
+                    'address_2' => get_user_meta($customerId, $prefix . "_address_2", true),
+                    'city' => get_user_meta($customerId, $prefix . "_city", true),
+                    'state' => get_user_meta($customerId, $prefix . "_state", true),
+                    'postcode' => get_user_meta($customerId, $prefix . "_postcode", true),
+                    'country' => get_user_meta($customerId, $prefix . "_country", true),
+                );
+                $order->set_address($address, 'shipping');
 
 
-            $order->save();
+                $order->save();
+            }
 
             LogActions::add($orderId, LogActions::$actions["update_order_customer"], "_customer_user", $customerId, $oldValue, "order", $request);
 
@@ -1810,10 +1871,10 @@ class ManagementActions
         }
 
         $bStates = WC()->countries->get_states($order->get_billing_country());
-        $bState  = !empty($bStates[$order->get_billing_state()]) ? $bStates[$order->get_billing_state()] : '';
+        $bState = !empty($bStates[$order->get_billing_state()]) ? $bStates[$order->get_billing_state()] : '';
 
         $sStates = WC()->countries->get_states($order->get_shipping_country());
-        $sState  = !empty($sStates[$order->get_shipping_state()]) ? $sStates[$order->get_shipping_state()] : '';
+        $sState = !empty($sStates[$order->get_shipping_state()]) ? $sStates[$order->get_shipping_state()] : '';
 
         $customerName = $order->get_billing_first_name() . " " . $order->get_billing_last_name();
         $customerName = trim($customerName);
@@ -1837,7 +1898,7 @@ class ManagementActions
             "customer_id" => $order->get_customer_id(),
             "customer_name" => $customerName,
             "user" => $userData,
-            "data" =>  array(
+            "data" => array(
                 "billing" => array(
                     'first_name' => $order->get_billing_first_name(),
                     'last_name' => $order->get_billing_last_name(),
@@ -1898,31 +1959,31 @@ class ManagementActions
             $shippAsBill = isset($address['shipping_as_billing']) && $address['shipping_as_billing'] ? true : false;
             $bAddress = array(
                 'first_name' => isset($address['billing_first_name']) ? $address['billing_first_name'] : "",
-                'last_name'  => isset($address['billing_last_name']) ? $address['billing_last_name'] : "",
-                'company'    => isset($address['billing_company']) ? $address['billing_company'] : "",
-                'email'      => isset($address['billing_email']) ? $address['billing_email'] : "",
-                'phone'      => isset($address['billing_phone']) ? $address['billing_phone'] : "",
-                'address_1'  => isset($address['billing_address_1']) ? $address['billing_address_1'] : "",
-                'address_2'  => isset($address['billing_address_2']) ? $address['billing_address_2'] : "",
-                'city'       => isset($address['billing_city']) ? $address['billing_city'] : "",
-                'state'      => isset($address['billing_state']) ? $address['billing_state'] : "",
-                'postcode'   => isset($address['billing_postcode']) ? $address['billing_postcode'] : "",
-                'country'    => isset($address['billing_country']) ? $address['billing_country'] : ""
+                'last_name' => isset($address['billing_last_name']) ? $address['billing_last_name'] : "",
+                'company' => isset($address['billing_company']) ? $address['billing_company'] : "",
+                'email' => isset($address['billing_email']) ? $address['billing_email'] : "",
+                'phone' => isset($address['billing_phone']) ? $address['billing_phone'] : "",
+                'address_1' => isset($address['billing_address_1']) ? $address['billing_address_1'] : "",
+                'address_2' => isset($address['billing_address_2']) ? $address['billing_address_2'] : "",
+                'city' => isset($address['billing_city']) ? $address['billing_city'] : "",
+                'state' => isset($address['billing_state']) ? $address['billing_state'] : "",
+                'postcode' => isset($address['billing_postcode']) ? $address['billing_postcode'] : "",
+                'country' => isset($address['billing_country']) ? $address['billing_country'] : ""
             );
             $order->set_address($bAddress, 'billing');
 
             $prefix = $shippAsBill ? "billing" : "shipping";
             $sAddress = array(
                 'first_name' => isset($address[$prefix . '_first_name']) ? $address[$prefix . '_first_name'] : "",
-                'last_name'  => isset($address[$prefix . '_last_name']) ? $address[$prefix . '_last_name'] : "",
-                'company'    => isset($address[$prefix . '_company']) ? $address[$prefix . '_company'] : "",
-                'phone'      => isset($address[$prefix . '_phone']) ? $address[$prefix . '_phone'] : "",
-                'address_1'  => isset($address[$prefix . '_address_1']) ? $address[$prefix . '_address_1'] : "",
-                'address_2'  => isset($address[$prefix . '_address_2']) ? $address[$prefix . '_address_2'] : "",
-                'city'       => isset($address[$prefix . '_city']) ? $address[$prefix . '_city'] : "",
-                'state'      => isset($address[$prefix . '_state']) ? $address[$prefix . '_state'] : "",
-                'postcode'   => isset($address[$prefix . '_postcode']) ? $address[$prefix . '_postcode'] : "",
-                'country'    => isset($address[$prefix . '_country']) ? $address[$prefix . '_country'] : ""
+                'last_name' => isset($address[$prefix . '_last_name']) ? $address[$prefix . '_last_name'] : "",
+                'company' => isset($address[$prefix . '_company']) ? $address[$prefix . '_company'] : "",
+                'phone' => isset($address[$prefix . '_phone']) ? $address[$prefix . '_phone'] : "",
+                'address_1' => isset($address[$prefix . '_address_1']) ? $address[$prefix . '_address_1'] : "",
+                'address_2' => isset($address[$prefix . '_address_2']) ? $address[$prefix . '_address_2'] : "",
+                'city' => isset($address[$prefix . '_city']) ? $address[$prefix . '_city'] : "",
+                'state' => isset($address[$prefix . '_state']) ? $address[$prefix . '_state'] : "",
+                'postcode' => isset($address[$prefix . '_postcode']) ? $address[$prefix . '_postcode'] : "",
+                'country' => isset($address[$prefix . '_country']) ? $address[$prefix . '_country'] : ""
             );
 
             $order->set_address($sAddress, 'shipping');
@@ -1947,14 +2008,14 @@ class ManagementActions
         }
 
         $bStates = WC()->countries->get_states($order->get_billing_country());
-        $bState  = !empty($bStates[$order->get_billing_state()]) ? $bStates[$order->get_billing_state()] : '';
+        $bState = !empty($bStates[$order->get_billing_state()]) ? $bStates[$order->get_billing_state()] : '';
 
         $sStates = WC()->countries->get_states($order->get_shipping_country());
-        $sState  = !empty($sStates[$order->get_shipping_state()]) ? $sStates[$order->get_shipping_state()] : '';
+        $sState = !empty($sStates[$order->get_shipping_state()]) ? $sStates[$order->get_shipping_state()] : '';
 
         $updatedOrder = array(
             "ID" => $orderId,
-            "data" =>  array(
+            "data" => array(
                 "billing" => array(
                     'first_name' => $order->get_billing_first_name(),
                     'last_name' => $order->get_billing_last_name(),
@@ -1995,32 +2056,32 @@ class ManagementActions
         return rest_ensure_response(array("updatedOrder" => $updatedOrder));
     }
 
-    public function orderChangePrices(WP_REST_Request $request)
+    public function orderItemUpdate(WP_REST_Request $request)
     {
         global $wpdb;
 
         $orderId = $request->get_param("orderId");
-        $prices = $request->get_param("prices");
+        $values = $request->get_param("values");
 
         $result = array(
             "orders" => null,
             "findByTitle" => null,
         );
 
-        if (!$orderId || !$prices) {
+        if (!$orderId || !$values) {
             return rest_ensure_response(array("error" => "Incorrect data."));
         }
 
         $order = new \WC_Order($orderId);
 
         if ($order) {
-            foreach ($prices as $price) {
-                $type = $price["type"];
-                $value = $price["price"];
+            foreach ($values as $data) {
+                $type = $data["type"];
+                $value = $data["value"];
 
                 if ($type == "total") {
                     $order->set_total($value);
-                } 
+                }
                 else if ($type == "shipping") {
                     $shippingItems = $order->get_items('shipping');
 
@@ -2033,7 +2094,7 @@ class ManagementActions
                     }
                 }
                 else if ($type == "item") {
-                    $itemId = $price["itemId"];
+                    $itemId = $data["itemId"];
                     $items = $order->get_items();
 
                     foreach ($items as $item) {
@@ -2047,11 +2108,17 @@ class ManagementActions
                     }
                 }
                 else if ($type == "item-qty") {
-                    $itemId = $price["itemId"];
+                    $itemId = $data["itemId"];
                     $items = $order->get_items();
 
                     foreach ($items as $item) {
                         if ($item->get_id() == $itemId) {
+
+
+
+
+
+
                             $pricePerItem = $item->get_total() > 0 && $item->get_quantity() > 0 ? $item->get_total() / $item->get_quantity() : $item->get_total();
                             $item->set_subtotal($pricePerItem * $value);
                             $item->set_total($pricePerItem * $value);
@@ -2118,14 +2185,15 @@ class ManagementActions
         $orderId = $request->get_param("orderId");
         $paymentMethod = $request->get_param("paymentMethod");
 
-        if (!$orderId || !$paymentMethod) {
+        if ($paymentMethod == "") {
+        } else if (!$orderId || !$paymentMethod) {
             return rest_ensure_response(array("error" => "Incorrect data."));
         }
 
         $order = new \WC_Order($orderId);
 
         if ($order) {
-            if ($paymentMethod) {
+            if ($paymentMethod || $paymentMethod == "") {
                 $order->set_payment_method($paymentMethod);
             }
 
@@ -2244,7 +2312,7 @@ class ManagementActions
 
             $this->productIndexation($orderId, "orderChangeCustomer");
 
-                    $orderRequest = new WP_REST_Request("", "");
+            $orderRequest = new WP_REST_Request("", "");
             $orderRequest->set_param("query", $orderId);
 
             return $this->orderSearch($orderRequest, false, true);
@@ -2292,7 +2360,7 @@ class ManagementActions
             $order->calculate_totals(true);
             $order->save();
 
-            foreach ( $coupon_codes as $coupon_code ) {
+            foreach ($coupon_codes as $coupon_code) {
                 $coupon = new \WC_Coupon($coupon_code);
 
                 if ($coupon->get_id()) {
@@ -2354,10 +2422,15 @@ class ManagementActions
         }
 
         if ($isOrderFulfillmentObjectsReset) {
-            update_post_meta($orderId, "usbs_fulfillment_objects", "");
-            update_post_meta($orderId, "usbs_order_fulfillment_data", "");
+            OrdersHelper::set_meta_value($order, $orderId, "usbs_fulfillment_objects", "");
+            OrdersHelper::set_meta_value($order, $orderId, "usbs_order_fulfillment_data", "");
 
             OrdersHelper::checkOrderFulfillment($orderId);
+
+            $order = wc_get_order($orderId);
+            if ($order) {
+                $order->add_order_note('Order Fulfillment was canceled', false, Users::userId());
+            }
         }
 
         $updatedItems = array();
@@ -2365,7 +2438,7 @@ class ManagementActions
         foreach ($items as $item) {
             $usbs_check_product_scanned = \wc_get_order_item_meta($item->get_id(), 'usbs_check_product_scanned', true);
             $usbs_check_product_scanned = $usbs_check_product_scanned == "" ? 0 : $usbs_check_product_scanned;
-            $qty = (float)\wc_get_order_item_meta($item->get_id(), '_qty', true);
+            $qty = (float) \wc_get_order_item_meta($item->get_id(), '_qty', true);
 
             $updatedItems[] = array(
                 "item_id" => $item->get_id(),
@@ -2378,11 +2451,15 @@ class ManagementActions
 
         $order = wc_get_order($orderId);
 
+        $ffUserData = OrdersHelper::getCustomerName($order, true);
+
         $updatedOrder = array(
             "ID" => $orderId,
-            "usbs_fulfillment_objects" => get_post_meta($orderId, "usbs_fulfillment_objects", true),
-            "usbs_order_fulfillment_data" => get_post_meta($orderId, "usbs_order_fulfillment_data", true),
-            "fulfillment_user_name" => OrdersHelper::getCustomerName($order, true),
+            "usbs_fulfillment_objects" => OrdersHelper::get_meta_value($order, $orderId, "usbs_fulfillment_objects"),
+            "usbs_order_fulfillment_data" => OrdersHelper::get_meta_value($order, $orderId, "usbs_order_fulfillment_data"),
+            "fulfillment_user_name" => $ffUserData["name"],
+            "fulfillment_user_id" => $ffUserData["id"],
+            "order_notes" => OrdersHelper::getOrderNotes($order),
             "order_status" => $order->get_status(),
         );
 
@@ -2424,6 +2501,8 @@ class ManagementActions
         $orderItemsFulfillmentSuccess = 0;
         $isOrderFulfillmentReset = false;
 
+        $updatedItems = array();
+
         $query = RequestHelper::getQuery($request, "product");
 
         Debug::addPoint(" - orderUpdateItemMeta get settings");
@@ -2439,7 +2518,7 @@ class ManagementActions
 
 
                 if ($usbs_qty_step && is_numeric($usbs_qty_step)) {
-                    $step = (float)$usbs_qty_step;
+                    $step = (float) $usbs_qty_step;
                 }
 
                 $step = apply_filters($this->filter_fulfillment_step, $step, $orderId, $pid, $itemId, $query);
@@ -2473,13 +2552,13 @@ class ManagementActions
                             }
                         }
                         else if ($fulfillmentScanItemQty) {
-                            $qty = (float)\wc_get_order_item_meta($itemId, '_qty', true);
+                            $qty = (float) \wc_get_order_item_meta($itemId, '_qty', true);
                             $qty = apply_filters('scanner_order_ff_get_item_qty', $qty, $itemId, $orderId);
 
                             $refund_data = OrdersHelper::getOrderItemRefundData($order, $item);
                             $qty += $refund_data["_qty"];
 
-                            $scanned = (float)\wc_get_order_item_meta($itemId, 'usbs_check_product_scanned', true);
+                            $scanned = (float) \wc_get_order_item_meta($itemId, 'usbs_check_product_scanned', true);
 
                             if ($confirmationLeftFulfillment) {
                                 $step = $qty - $scanned;
@@ -2527,7 +2606,7 @@ class ManagementActions
                             $scanned = \wc_get_order_item_meta($itemId, 'usbs_check_product', true);
 
                             if (!$scanned) {
-                                $qty = (float)\wc_get_order_item_meta($itemId, '_qty', true);
+                                $qty = (float) \wc_get_order_item_meta($itemId, '_qty', true);
                                 $qty = apply_filters('scanner_order_ff_get_item_qty', $qty, $itemId, $orderId);
 
                                 $refund_data = OrdersHelper::getOrderItemRefundData($order, $item);
@@ -2542,6 +2621,10 @@ class ManagementActions
                         }
                     } else {
                         \wc_update_order_item_meta($itemId, $field["key"], $field["value"]);
+
+                        $_metaField = array("item_id" => $itemId);
+                        $_metaField[$field["key"]] = $field["value"];
+                        $updatedItems[] = $_metaField;
                     }
                 }
 
@@ -2558,7 +2641,7 @@ class ManagementActions
 
         $checker = $this->getFulfillmentOrderData($orderId);
 
-           Debug::addPoint(" - orderUpdateItemMeta checker");
+        Debug::addPoint(" - orderUpdateItemMeta checker");
 
         if ($checker && $checker["totalQty"] == $checker["totalScanned"]) {
             $logId = LogActions::add($orderId, LogActions::$actions["update_order_fulfillment"], "", 1, "", "order", $request);
@@ -2566,7 +2649,6 @@ class ManagementActions
 
 
 
-        $updatedItems = array();
         $updatedOrder = array();
         $fulfillmentResult = false;
         $error = "";
@@ -2575,7 +2657,7 @@ class ManagementActions
         if ($isFulfillmentChanged || $isFulfillmentAlready) {
             $usbs_check_product_scanned = \wc_get_order_item_meta($itemId, 'usbs_check_product_scanned', true);
             $usbs_check_product_scanned = $usbs_check_product_scanned == "" ? 0 : $usbs_check_product_scanned;
-            $qty = (float)\wc_get_order_item_meta($itemId, '_qty', true);
+            $qty = (float) \wc_get_order_item_meta($itemId, '_qty', true);
             $qty = apply_filters('scanner_order_ff_get_item_qty', $qty, $itemId, $orderId);
 
             if ($isFulfillmentChanged) {
@@ -2600,11 +2682,14 @@ class ManagementActions
 
             $order = wc_get_order($orderId);
 
+            $ffUserData = OrdersHelper::getCustomerName($order, true);
+
             $updatedOrder = array(
                 "ID" => $orderId,
-                "usbs_fulfillment_objects" => get_post_meta($orderId, "usbs_fulfillment_objects", true),
-                "usbs_order_fulfillment_data" => get_post_meta($orderId, "usbs_order_fulfillment_data", true),
-                "fulfillment_user_name" => OrdersHelper::getCustomerName($order, true),
+                "usbs_fulfillment_objects" => OrdersHelper::get_meta_value($order, $orderId, "usbs_fulfillment_objects"),
+                "usbs_order_fulfillment_data" => OrdersHelper::get_meta_value($order, $orderId, "usbs_order_fulfillment_data"),
+                "fulfillment_user_name" => $ffUserData["name"],
+                "fulfillment_user_id" => $ffUserData["id"],
                 "order_status" => $order->get_status(),
             );
 
@@ -2619,6 +2704,7 @@ class ManagementActions
             "orders" => null,
             "updatedItems" => $updatedItems,
             "updatedOrder" => $updatedOrder,
+            "order_notes" => OrdersHelper::getOrderNotes($order),
             "fulfillmentResult" => $fulfillmentResult,
             "fulfillment" => 1,
             "error" => $error,
@@ -2626,6 +2712,23 @@ class ManagementActions
             "checkOrderFulfilledSound" => $isFulfillmentChanged ? true : false,
             "debug" => Debug::getResult(true)
         );
+
+        if ($result["updatedItems"]) {
+            if ($order) {
+                $order_fulfillment = OrdersHelper::get_meta_value($order, $orderId, "usbs_order_fulfillment_data");
+            } else {
+                $order = wc_get_order($orderId);
+                $order_fulfillment = $order ? OrdersHelper::get_meta_value($order, $orderId, "usbs_order_fulfillment_data") : null;
+            }
+
+            foreach ($result["updatedItems"] as $item) {
+                do_action("barcode_scanner_order_item_fulfillment", $item["item_id"], $orderId, $order_fulfillment);
+            }
+
+            if ($order_fulfillment && $order_fulfillment["totalScanned"] && $order_fulfillment["totalQty"] == $order_fulfillment["totalScanned"]) {
+                do_action("barcode_scanner_order_fulfillment", $orderId, $order_fulfillment);
+            }
+        }
 
         return $result;
     }
@@ -2790,7 +2893,7 @@ class ManagementActions
 
             $this->setManageStock($variation_id);
 
-            if ($qty !== "" && (int)$qty) {
+            if ($qty !== "" && (int) $qty) {
                 $this->setQuantity($variation_id, $qty, null, true);
             } else {
                 $this->setQuantity($variation_id, 0, null, true);
@@ -2824,7 +2927,7 @@ class ManagementActions
                     $this->productUpdateMeta($request, $productId, $fieldNameValue, $query);
                 }
 
-                if ($qty !== "" && (int)$qty) {
+                if ($qty !== "" && (int) $qty) {
                     $this->setQuantity($product->get_id(), $qty, null, true);
                 } else {
                     $this->setQuantity($product->get_id(), 0, null, true);
@@ -2857,7 +2960,7 @@ class ManagementActions
 
             WPML::addTranslations($products);
 
-                       $result["products"] = $products;
+            $result["products"] = $products;
 
             if (isset($data["query"])) {
                 $result["foundBy"] = $data["query"];
@@ -2952,8 +3055,18 @@ class ManagementActions
                         break;
                     case 'post_title':
                     case 'postTitle':
-                        $post = array('ID' => $postId, 'post_title' => $value,);
+                        $post = array('ID' => $postId, 'post_title' => $value, );
                         wp_update_post($post);
+                        break;
+                    case 'acf_repeater':
+                        $acf_repeater = $fields && isset($fields['acf_repeater']) ? $fields['acf_repeater'] : null;
+
+                        if ($acf_repeater) {
+                            $acfRequest = new WP_REST_Request("", "");
+                            $acfRequest->set_param("postId", $postId);
+                            $acfRequest->set_param("data", $acf_repeater);
+                            ACFRepeater::update($acfRequest);
+                        }
                         break;
                     default:
                         $response = $this->productUpdateMeta($request, $postId, $key, $value);
@@ -2994,7 +3107,7 @@ class ManagementActions
     public function uploadPostImage(WP_REST_Request $request)
     {
         $postId = $request->get_param("postId");
-        $parentId = (int)$request->get_param("parentId");
+        $parentId = (int) $request->get_param("parentId");
         $str = $request->get_param("str");
         $isMainImage = $request->get_param("isMainImage");
         $attachmentId = $request->get_param("id");
@@ -3062,8 +3175,8 @@ class ManagementActions
 
     public function sortProductGallery(WP_REST_Request $request)
     {
-        $postId = (int)$request->get_param("postId");
-        $parentId = (int)$request->get_param("parentId");
+        $postId = (int) $request->get_param("postId");
+        $parentId = (int) $request->get_param("parentId");
         $currentIds = $request->get_param("currentIds");
         $currentIds = $currentIds ? $currentIds : array();
 
@@ -3227,8 +3340,10 @@ class ManagementActions
             require_once(ABSPATH . 'wp-admin/includes/media.php');
         }
 
-        if (!$postId) return;
-        if (!isset($_FILES["image"])) return;
+        if (!$postId)
+            return;
+        if (!isset($_FILES["image"]))
+            return;
 
         return \media_handle_upload('image', $postId);
     }
@@ -3266,7 +3381,7 @@ class ManagementActions
 
                     if ($order && $order->get_id()) {
                         $count = OrdersHelper::get_meta_value($order, $postId, "usbs_found_counter");
-                        $newCount = $count ? (int)$count + 1 : 1;
+                        $newCount = $count ? (int) $count + 1 : 1;
 
 
                         \update_post_meta($order->get_id(), "usbs_found_counter", $newCount);
@@ -3277,7 +3392,7 @@ class ManagementActions
 
                 if (!$isOrder) {
                     $count = \get_post_meta($postId, "usbs_found_counter", true);
-                    $newCount = $count ? (int)$count + 1 : 1;
+                    $newCount = $count ? (int) $count + 1 : 1;
                     \update_post_meta($postId, "usbs_found_counter", $newCount);
                 }
 
@@ -3326,8 +3441,10 @@ class ManagementActions
             $id = $request->get_param("postId");
         }
 
-        if (!$id) return;
-        if (!isset($_FILES["image"])) return;
+        if (!$id)
+            return;
+        if (!isset($_FILES["image"]))
+            return;
 
         $attachmentId = $this->uploadImageFile($id);
 
@@ -3419,7 +3536,7 @@ class ManagementActions
         $result = true;
 
         try {
-            $productsIds = (array)$request->get_param("products");
+            $productsIds = (array) $request->get_param("products");
 
             if (count($productsIds) === 0) {
                 $productsIds = array($postId);
@@ -3468,7 +3585,7 @@ class ManagementActions
         $result = true;
 
         try {
-            $productsIds = (array)$request->get_param("products");
+            $productsIds = (array) $request->get_param("products");
 
             if (count($productsIds) === 0) {
                 $productsIds = array($postId);
@@ -3509,7 +3626,7 @@ class ManagementActions
         $customOptions = $request->get_param("customOptions");
 
         try {
-            $productsIds = (array)$request->get_param("products");
+            $productsIds = (array) $request->get_param("products");
 
             if (count($productsIds) === 0) {
                 $productsIds = array($postId);
@@ -3656,7 +3773,8 @@ class ManagementActions
             $createdCodes = array();
 
             foreach ($importData as $key => $value) {
-                if (!isset($value["isImport"]) || $value["isImport"] != 1) continue;
+                if (!isset($value["isImport"]) || $value["isImport"] != 1)
+                    continue;
 
                 $id = isset($value["id"]) ? $value["id"] : null;
                 $code = isset($value["code"]) ? $value["code"] : null;
@@ -3712,12 +3830,12 @@ class ManagementActions
             return rest_ensure_response(array("error" => "Incorrect data"));
         }
 
-        $cartDecimalQuantity = false;
+        $cartDecimalQuantity = true;
 
         try {
             $settings = new Settings();
             $field = $settings->getSettings("cartDecimalQuantity");
-            $value = $field === null ? "off" : $field->value;
+            $value = $field === null ? "on" : $field->value;
             $cartDecimalQuantity = $value === "on";
         } catch (\Throwable $th) {
         }
@@ -3725,21 +3843,21 @@ class ManagementActions
         foreach ($items as $value) {
             if ($value["post_id"]) {
                 if ($cartDecimalQuantity) {
-                    $quantity = (float)$value["quantity"];
-                    $increase = isset($value["_stock"]) ? (float)$value["_stock"] : 0;
+                    $quantity = (float) $value["quantity"];
+                    $increase = isset($value["_stock"]) ? (float) $value["_stock"] : 0;
                 }
                 else {
-                    $quantity = (int)$value["quantity"];
-                    $increase = isset($value["_stock"]) ? (int)$value["_stock"] : 0;
+                    $quantity = (int) $value["quantity"];
+                    $increase = isset($value["_stock"]) ? (int) $value["_stock"] : 0;
                 }
 
                 $this->setManageStock($value["post_id"]);
 
                 if ($cartDecimalQuantity) {
-                    $currentQty = (float)get_post_meta($value["post_id"], '_stock', true);
+                    $currentQty = (float) get_post_meta($value["post_id"], '_stock', true);
                 }
                 else {
-                    $currentQty = (int)get_post_meta($value["post_id"], '_stock', true);
+                    $currentQty = (int) get_post_meta($value["post_id"], '_stock', true);
                 }
                 $qty = $currentQty;
 
@@ -3768,7 +3886,7 @@ class ManagementActions
 
     public function removeItemsListRecord(WP_REST_Request $request)
     {
-        $recordId = (int)$request->get_param("recordId");
+        $recordId = (int) $request->get_param("recordId");
 
         if (!$recordId) {
             return rest_ensure_response(array("error" => "Incorrect data"));
@@ -3792,7 +3910,43 @@ class ManagementActions
         return rest_ensure_response(array("success" => 1, "productsList" => PostsList::getList($userId), "uid" => $userId));
     }
 
-    public function getOrdersList(WP_REST_Request $request)
+    public function getNextOrder(WP_REST_Request $request)
+    {
+        $currOrderId = $request->get_param("orderId");
+        $filter = $request->get_param("filter");
+
+        $nextId = $this->getOrdersList($request, true, false);
+
+        if ($nextId) {
+            $orderRequest = new WP_REST_Request("", "");
+            $orderRequest->set_param("query", $nextId);
+
+            return $this->orderSearch($orderRequest, false, true);
+        }
+        else {
+            return rest_ensure_response(array("success" => 0));
+        }
+    }
+
+    public function getPrevOrder(WP_REST_Request $request)
+    {
+        $currOrderId = $request->get_param("orderId");
+        $filter = $request->get_param("filter");
+
+        $prevId = $this->getOrdersList($request, false, true);
+
+        if ($prevId) {
+            $orderRequest = new WP_REST_Request("", "");
+            $orderRequest->set_param("query", $prevId);
+
+            return $this->orderSearch($orderRequest, false, true);
+        }
+        else {
+            return rest_ensure_response(array("success" => 0));
+        }
+    }
+
+    public function getOrdersList(WP_REST_Request $request, $isNext = false, $isPrev = false)
     {
         global $wpdb;
 
@@ -3800,6 +3954,7 @@ class ManagementActions
 
         $userId = Users::getUserId($request);
 
+        $currOrderId = (int) $request->get_param("orderId");
         $filter = $request->get_param("filter");
 
         $type = isset($filter["type"]) ? $filter["type"] : "";
@@ -3807,18 +3962,23 @@ class ManagementActions
         $statuses = isset($filter["statuses"]) ? $filter["statuses"] : array();
         $from = isset($filter["from"]) ? $filter["from"] : "";
         $to = isset($filter["to"]) ? $filter["to"] : "";
-        $page = isset($filter["page"]) ? (int)$filter["page"] : "";
-        $perPage = isset($filter["perPage"]) ? (int)$filter["perPage"] : 10;
-        $customerId = isset($filter["customerId"]) ? (int)$filter["customerId"] : "";
+        $page = isset($filter["page"]) ? (int) $filter["page"] : "";
+        $perPage = isset($filter["perPage"]) ? (int) $filter["perPage"] : 10;
+        $customerId = isset($filter["customerId"]) ? (int) $filter["customerId"] : "";
         $customerName = isset($filter["customerName"]) ? $filter["customerName"] : "";
         $sort = isset($filter["sort"]) ? $filter["sort"] : "";
+        $customFields = isset($filter["customFields"]) ? $filter["customFields"] : array();
 
         $excludeOrderStatuses = $settings->getSettings("orderStatuses");
         $excludeOrderStatuses = $excludeOrderStatuses === null ? "wc-checkout-draft,trash" : $excludeOrderStatuses->value;
         $excludeOrderStatuses = $excludeOrderStatuses ? explode(",", $excludeOrderStatuses) : array();
         $excludeOrderStatuses = array_merge($excludeOrderStatuses, SettingsHelper::$excludeOrderStatuses);
 
-        if ($statuses) $statuses = array_filter($statuses);
+        $availableStatuses = apply_filters($this->filter_orders_available_statuses, array());
+
+        if ($statuses) {
+            $statuses = array_filter($statuses);
+        }
 
         if ($userId) {
             $permissions = $settings->getUserRolePermissions($userId);
@@ -3836,15 +3996,15 @@ class ManagementActions
                 "customerId" => $customerId,
                 "customerName" => $customerName,
                 "sort" => $sort,
+                "customFields" => $customFields,
             ));
 
         }
 
         $orders = array();
 
-        $hposOrdersTable = "{$wpdb->prefix}wc_orders";
 
-        $paged = $page ? (int)$page : 1;
+        $paged = $page ? (int) $page : 1;
         $offset = ($paged - 1) * $perPage;
         $fromTables = '';
         $where = '';
@@ -3855,31 +4015,52 @@ class ManagementActions
         }
 
         if ($status) {
-            if (HPOS::getStatus()) {
-                $where .= " AND P.post_status = '{$status}' ";
-                $where .= " AND (SELECT _O.id FROM {$hposOrdersTable} AS _O WHERE _O.type = 'shop_order' AND _O.id = P.post_id AND _O.status = '{$status}') IS NOT NULL ";
-            } else {
-                $where .= " AND P.post_status = '{$status}' ";
-            }
+            $where .= " AND P.post_status = '{$status}' ";
         }
 
         if ($statuses && count($statuses)) {
             $statusesList = implode("','", $statuses);
 
-            if (HPOS::getStatus()) {
-                $where .= " AND (SELECT _O.id FROM {$hposOrdersTable} AS _O WHERE _O.id = P.post_id AND _O.status IN ('{$statusesList}')) IS NOT NULL ";
-            } else {
-                $where .= " AND P.post_status IN ('{$statusesList}') ";
+            if ($statusesList) {
+                $_list = array();
+
+                foreach ($statuses as $status) {
+                    if (preg_match("/^wc-/", $status)) {
+                        $_list[] = $status;
+                        $_list[] = str_replace("wc-", "", $status);
+                    } else {
+                        $_list[] = $status;
+                    }
+                }
+
+                $statusesList = implode("','", $_list);
             }
+
+
+            $where .= " AND P.post_status IN ('{$statusesList}') ";
         }
         else if ($excludeOrderStatuses && count($excludeOrderStatuses)) {
             $statusesList = implode("','", $excludeOrderStatuses);
 
-            if (HPOS::getStatus()) {
-                $where .= " AND (SELECT _O.id FROM {$hposOrdersTable} AS _O WHERE _O.id = P.post_id AND _O.status NOT IN ('{$statusesList}')) IS NOT NULL ";
-            } else {
-                $where .= " AND P.post_status NOT IN ('{$statusesList}') ";
+            $_list = array();
+
+            foreach ($excludeOrderStatuses as $status) {
+                if (preg_match("/^wc-/", $status)) {
+                    $_list[] = $status;
+                    $_list[] = str_replace("wc-", "", $status);
+                } else {
+                    $_list[] = $status;
+                }
             }
+
+            $statusesList = implode("','", $_list);
+
+            $where .= " AND P.post_status NOT IN ('{$statusesList}') ";
+        }
+
+        if ($availableStatuses && is_array($availableStatuses) && count($availableStatuses)) {
+            $availableStatusesSql = implode("','", $availableStatuses);
+            $where .= " AND P.post_status IN ('{$availableStatusesSql}') ";
         }
 
         if ($from) {
@@ -3893,12 +4074,7 @@ class ManagementActions
         }
 
         if (trim($customerId) && is_numeric($customerId)) {
-            if (HPOS::getStatus()) {
-                $hposOrdersTable = "{$wpdb->prefix}wc_orders";
-                $where .= " AND (SELECT _O.id FROM {$hposOrdersTable} AS _O WHERE _O.type = 'shop_order' AND _O.id = P.post_id AND _O.customer_id = {$customerId}) IS NOT NULL ";
-            } else {
-                $where .= " AND (SELECT _PM.meta_id FROM {$wpdb->postmeta} AS _PM WHERE _PM.post_id = P.post_id AND _PM.meta_key = '_customer_user' AND _PM.meta_value = {$customerId}) IS NOT NULL ";
-            }
+            $where .= " AND P.customer_id = {$customerId} ";
         }
 
         $order = " ORDER BY P.post_date DESC, P.post_id DESC ";
@@ -3914,14 +4090,67 @@ class ManagementActions
             }
         }
 
+        if ($customFields && count($customFields)) {
+            $table = $wpdb->prefix . Database::$columns;
+            $filterColumns = $wpdb->get_results("SELECT `name`, `column` FROM {$table};");
+            $mainMetaFields = Database::$postMetaFields;
+
+            foreach ($customFields as $field => $value) {
+                if (trim($value)) {
+                    $value = $wpdb->prepare(trim($value));
+                    foreach ($mainMetaFields as $mainMetaField) {
+                        if ($field == str_replace("`", "", $mainMetaField)) {
+                            $where .= " AND P.{$field} LIKE '%{$value}%' ";
+                            continue 2;
+                        }
+                    }
+
+                    if ($filterColumns && count($filterColumns)) {
+                        foreach ($filterColumns as $filterColumn) {
+                            if ($field == $filterColumn->name) {
+                                $where .= " AND P.{$filterColumn->column} LIKE '%{$value}%' ";
+                                continue 2;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if ($isNext || $isPrev) {
+            $current = $wpdb->get_row($wpdb->prepare("SELECT post_id, post_date FROM {$wpdb->prefix}barcode_scanner_posts WHERE post_id = %d", $currOrderId));
+
+            if ($isNext) {
+                $compare = $get_posts_order == "ASC" ? '>' : '<';
+            }
+            else {
+                $compare = $get_posts_order == "ASC" ? '<' : '>';
+                if ($get_posts_order == "ASC") {
+                    $order = str_replace("ASC", "DESC", $order);
+                } else {
+                    $order = str_replace("DESC", "ASC", $order);
+                }
+            }
+
+            $where .= $wpdb->prepare(" AND (P.post_date {$compare} %s OR (P.post_date = %s AND P.post_id {$compare} %d))", $current->post_date, $current->post_date, $current->post_id);
+            $sql = "SELECT P.post_id FROM {$wpdb->prefix}barcode_scanner_posts AS P {$fromTables} WHERE P.post_type = 'shop_order' {$where} {$order} LIMIT 1";
+            $nextPrevId = $wpdb->get_var($sql);
+
+            return $nextPrevId;
+        }
+
         $sql = "SELECT SQL_CALC_FOUND_ROWS P.post_id FROM {$wpdb->prefix}barcode_scanner_posts AS P {$fromTables} WHERE P.post_type = 'shop_order' {$where} {$order} {$limit};";
 
+        // @codingStandardsIgnoreStart
         $orders = $wpdb->get_results($sql);
         $total = $wpdb->get_row("SELECT FOUND_ROWS() as `total`");
+        // @codingStandardsIgnoreEnd
+
 
         $ids = array_map(function ($object) {
             return $object->post_id;
         }, $orders);
+
 
         if (HPOS::getStatus()) {
             $post_type = array('shop_order', 'shop_order_placehold');
@@ -3955,9 +4184,11 @@ class ManagementActions
         foreach ($orders as $order) {
             $date = $order["order_date"]->format("Y-m-d");
 
-            if (!isset($groups[$date])) $groups[$date] = array();
+            if (!isset($groups[$date]))
+                $groups[$date] = array();
 
-            if (!in_array($order["ID"], $groups[$date])) $groups[$date][] = $order["ID"];
+            if (!in_array($order["ID"], $groups[$date]))
+                $groups[$date][] = $order["ID"];
         }
 
         return rest_ensure_response(array(
@@ -3972,62 +4203,63 @@ class ManagementActions
         $data = (new Post())->find($productId, array("products" => array("ID" => true)), true, false, null, "product", array());
         $products = (new Results())->productsPrepare($data["posts"], array("useAction" => false));
 
-        if (!$products || count($products) > 1) return;
+        if (!$products || count($products) > 1)
+            return;
 
         $product = $products[0];
 
         switch ($autoAction) {
             case $this->postAutoAction["AUTO_INCREASING"]: { 
-                    if ($autoActionField == "_stock") {
-                        if (isset($product["product_manage_stock"]) && isset($product["post_parent"]) && $product["product_manage_stock"] === "parent" && $product["post_parent"]) {
-                            if ($autoActionField == "_stock") {
-                                $this->setManageStock($product["post_parent"]);
-                            }
-                            $this->productUpdateQuantityPlus($request, $product["post_parent"]);
-                        } else {
-                            if ($autoActionField == "_stock") {
-                                $this->setManageStock($product["ID"]);
-                            }
-                            $this->productUpdateQuantityPlus($request, $product["ID"]);
+                if ($autoActionField == "_stock") {
+                    if (isset($product["product_manage_stock"]) && isset($product["post_parent"]) && $product["product_manage_stock"] === "parent" && $product["post_parent"]) {
+                        if ($autoActionField == "_stock") {
+                            $this->setManageStock($product["post_parent"]);
                         }
+                        $this->productUpdateQuantityPlus($request, $product["post_parent"]);
+                    } else {
+                        if ($autoActionField == "_stock") {
+                            $this->setManageStock($product["ID"]);
+                        }
+                        $this->productUpdateQuantityPlus($request, $product["ID"]);
                     }
-                    else {
-                        $value = get_post_meta($product["ID"], $autoActionField, true);
-                        $value = $value && is_numeric($value) ? $value : 0;
-                        update_post_meta($product["ID"], $autoActionField, $value + 1);
-                        LogActions::add($product["ID"], LogActions::$actions["quantity_plus"], $autoActionField, $value + 1, $value, "product", $request);
-                    }
-                    break;
                 }
+                else {
+                    $value = get_post_meta($product["ID"], $autoActionField, true);
+                    $value = $value && is_numeric($value) ? $value : 0;
+                    update_post_meta($product["ID"], $autoActionField, $value + 1);
+                    LogActions::add($product["ID"], LogActions::$actions["quantity_plus"], $autoActionField, $value + 1, $value, "product", $request);
+                }
+                break;
+            }
             case $this->postAutoAction["AUTO_DECREASING"]: { 
-                    if ($autoActionField == "_stock") {
-                        if (isset($product["product_manage_stock"]) && isset($product["post_parent"]) && $product["product_manage_stock"] === "parent" && $product["post_parent"]) {
-                            if ($autoActionField == "_stock") {
-                                $this->setManageStock($product["post_parent"]);
-                            }
-                            $this->productUpdateQuantityMinus($request, $product["post_parent"]);
-                        } else {
-                            if ($autoActionField == "_stock") {
-                                $this->setManageStock($product["ID"]);
-                            }
-                            $this->productUpdateQuantityMinus($request, $product["ID"]);
+                if ($autoActionField == "_stock") {
+                    if (isset($product["product_manage_stock"]) && isset($product["post_parent"]) && $product["product_manage_stock"] === "parent" && $product["post_parent"]) {
+                        if ($autoActionField == "_stock") {
+                            $this->setManageStock($product["post_parent"]);
                         }
-                    }
-                    else {
-                        $settings = new Settings();
-                        $allowNegativeStock = $settings->getSettings("allowNegativeStock");
-                        $allowNegativeStock = $allowNegativeStock ? $allowNegativeStock->value : "";
-
-                        $value = get_post_meta($product["ID"], $autoActionField, true);
-                        $value = $value && is_numeric($value) ? $value : 0;
-
-                        if ($value > 0 || $allowNegativeStock == "on") {
-                            update_post_meta($product["ID"], $autoActionField, $value - 1);
-                            LogActions::add($product["ID"], LogActions::$actions["quantity_minus"], $autoActionField, $value - 1, $value, "product", $request);
+                        $this->productUpdateQuantityMinus($request, $product["post_parent"]);
+                    } else {
+                        if ($autoActionField == "_stock") {
+                            $this->setManageStock($product["ID"]);
                         }
+                        $this->productUpdateQuantityMinus($request, $product["ID"]);
                     }
-                    break;
                 }
+                else {
+                    $settings = new Settings();
+                    $allowNegativeStock = $settings->getSettings("allowNegativeStock");
+                    $allowNegativeStock = $allowNegativeStock ? $allowNegativeStock->value : "";
+
+                    $value = get_post_meta($product["ID"], $autoActionField, true);
+                    $value = $value && is_numeric($value) ? $value : 0;
+
+                    if ($value > 0 || $allowNegativeStock == "on") {
+                        update_post_meta($product["ID"], $autoActionField, $value - 1);
+                        LogActions::add($product["ID"], LogActions::$actions["quantity_minus"], $autoActionField, $value - 1, $value, "product", $request);
+                    }
+                }
+                break;
+            }
         }
     }
 
@@ -4048,17 +4280,25 @@ class ManagementActions
 
         if ($id && $key) {
             $currentValue = get_post_meta($id, $key, true);
+            $order = wc_get_order($id);
+
+            if ($order) {
+                $currentValue = $order->get_meta($key, true);
+                $order->update_meta_data($key, $value);
+                $order->save();
+            }
 
             update_post_meta($id, $key, $value);
 
             if ($checkFulfillment && !$currentValue) {
-                $usbs_fulfillment_objects = get_post_meta($id, "usbs_fulfillment_objects", true);
-                $usbs_order_fulfillment_data = get_post_meta($id, "usbs_order_fulfillment_data", true);
+                $usbs_fulfillment_objects = $order ? OrdersHelper::get_meta_value($order, $id, "usbs_fulfillment_objects") : null;
+                $usbs_order_fulfillment_data = $order ? OrdersHelper::get_meta_value($order, $id, "usbs_order_fulfillment_data") : null;
 
-                if (!$usbs_fulfillment_objects) $usbs_fulfillment_objects = array();
+                if (!$usbs_fulfillment_objects)
+                    $usbs_fulfillment_objects = array();
 
                 $usbs_fulfillment_objects[$key] = array("value" => $value, "type" => "tracking-code");
-                update_post_meta($id, "usbs_fulfillment_objects", $usbs_fulfillment_objects);
+                OrdersHelper::set_meta_value($order, $id, "usbs_fulfillment_objects", $usbs_fulfillment_objects);
 
                 if ($usbs_order_fulfillment_data && isset($usbs_order_fulfillment_data['codes']) && is_array($usbs_order_fulfillment_data['codes'])) {
                     $usbs_order_fulfillment_data_updated = false;
@@ -4072,8 +4312,7 @@ class ManagementActions
 
                     if ($usbs_order_fulfillment_data_updated) {
                         OrdersHelper::setOrderFulfillmentDate($usbs_order_fulfillment_data, $id);
-
-                        update_post_meta($id, "usbs_order_fulfillment_data", $usbs_order_fulfillment_data);
+                        OrdersHelper::set_meta_value($order, $id, "usbs_order_fulfillment_data", $usbs_order_fulfillment_data);
                     }
                 }
 
@@ -4090,24 +4329,54 @@ class ManagementActions
         return $this->orderSearch($orderRequest, false, true);
     }
 
+    public function updateOrderMetaFields(WP_REST_Request $request)
+    {
+        $orderId = $request->get_param("orderId");
+        $fields = $request->get_param("fields");
+
+        if ($orderId && $fields && is_array($fields)) {
+            foreach ($fields as $key => $value) {
+                $currentValue = get_post_meta($orderId, $key, true);
+                $order = wc_get_order($orderId);
+
+                if ($order) {
+                    $currentValue = $order->get_meta($key, true);
+                    $order->update_meta_data($key, $value);
+                    $order->save();
+                }
+
+                update_post_meta($orderId, $key, $value);
+            }
+        }
+
+        $orderRequest = new WP_REST_Request("", "");
+        $orderRequest->set_param("query", $orderId);
+
+        return $this->orderSearch($orderRequest, false, true);
+    }
+
     public function updateOrderFulfilledObject(WP_REST_Request $request)
     {
         $id = $request->get_param("id");
         $fieldData = $request->get_param("field");
 
-        $data = get_post_meta($id, "usbs_fulfillment_objects", true);
+        $data = OrdersHelper::get_meta_value(null, $id, "usbs_fulfillment_objects");
 
-        if (!$data) $data = array();
+        if (!$data) {
+            $data = array();
+        }
 
         $field = isset($fieldData["field"]) ? trim($fieldData["field"]) : "";
         $value = isset($fieldData["value"]) ? trim($fieldData["value"]) : "";
         $type = isset($fieldData["type"]) ? trim($fieldData["type"]) : "";
 
         if ($field) {
-            $data[$field] = array("value" => $value, "type" => $type);
-            update_post_meta($id, "usbs_fulfillment_objects", $data);
+            $order = wc_get_order($id);
 
-            $usbs_order_fulfillment_data = get_post_meta($id, "usbs_order_fulfillment_data", true);
+            $data[$field] = array("value" => $value, "type" => $type);
+            OrdersHelper::set_meta_value($order, $id, "usbs_fulfillment_objects", $data);
+
+            $usbs_order_fulfillment_data = $order ? OrdersHelper::get_meta_value($order, $id, "usbs_order_fulfillment_data") : null;
 
             if ($usbs_order_fulfillment_data && isset($usbs_order_fulfillment_data['codes']) && is_array($usbs_order_fulfillment_data['codes'])) {
                 $usbs_order_fulfillment_data_updated = false;
@@ -4121,8 +4390,7 @@ class ManagementActions
 
                 if ($usbs_order_fulfillment_data_updated) {
                     OrdersHelper::setOrderFulfillmentDate($usbs_order_fulfillment_data, $id);
-
-                    update_post_meta($id, "usbs_order_fulfillment_data", $usbs_order_fulfillment_data);
+                    OrdersHelper::set_meta_value($order, $id, "usbs_order_fulfillment_data", $usbs_order_fulfillment_data);
                 }
             }
         }
@@ -4141,16 +4409,20 @@ class ManagementActions
         $id = $request->get_param("id");
         $fieldName = $request->get_param("fieldName");
 
-        $data = get_post_meta($id, "usbs_fulfillment_objects", true);
+        $data = OrdersHelper::get_meta_value(null, $id, "usbs_fulfillment_objects");
 
-        if (!$data) $data = array();
+        if (!$data) {
+            $data = array();
+        }
 
         if ($id && $fieldName && isset($data[$fieldName])) {
             unset($data[$fieldName]);
 
-            update_post_meta($id, "usbs_fulfillment_objects", $data);
+            $order = wc_get_order($id);
 
-            $usbs_order_fulfillment_data = get_post_meta($id, "usbs_order_fulfillment_data", true);
+            OrdersHelper::set_meta_value($order, $id, "usbs_fulfillment_objects", $data);
+
+            $usbs_order_fulfillment_data = $order ? OrdersHelper::get_meta_value($order, $id, "usbs_order_fulfillment_data") : null;
 
             if ($usbs_order_fulfillment_data && isset($usbs_order_fulfillment_data['codes']) && is_array($usbs_order_fulfillment_data['codes'])) {
                 $usbs_order_fulfillment_data_updated = false;
@@ -4164,8 +4436,7 @@ class ManagementActions
 
                 if ($usbs_order_fulfillment_data_updated) {
                     OrdersHelper::setOrderFulfillmentDate($usbs_order_fulfillment_data, $id);
-
-                    update_post_meta($id, "usbs_order_fulfillment_data", $usbs_order_fulfillment_data);
+                    OrdersHelper::set_meta_value($order, $id, "usbs_order_fulfillment_data", $usbs_order_fulfillment_data);
                 }
             }
         }
@@ -4253,7 +4524,8 @@ class ManagementActions
         if ($orderId) {
             $wcShipmentTrackingItems = get_post_meta($orderId, "_wc_shipment_tracking_items", true);
 
-            if (!$wcShipmentTrackingItems) $wcShipmentTrackingItems = array();
+            if (!$wcShipmentTrackingItems)
+                $wcShipmentTrackingItems = array();
 
             $wcShipmentTrackingItems[] = array(
                 'tracking_provider' => '',
@@ -4367,7 +4639,7 @@ class ManagementActions
                 do_action('litespeed_purge_all');
 
                 if (class_exists('\FlyingPress\Purge') && method_exists('\FlyingPress\Purge', 'purge_urls')) {
-                    \FlyingPress\Purge::purge_urls([get_permalink($productId)]);                    
+                    \FlyingPress\Purge::purge_urls([get_permalink($productId)]);
                 }
 
                 if (class_exists('\FlyingPress\Preload') && method_exists('\FlyingPress\Preload', 'preload_urls')) {

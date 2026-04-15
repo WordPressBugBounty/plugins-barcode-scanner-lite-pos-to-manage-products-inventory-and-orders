@@ -20,7 +20,9 @@ class Results
     {
         $result = array();
 
-        if (!$posts) return $result;
+        if (!$posts) {
+            return $result;
+        }
 
         if (count($posts) > 1) {
             foreach ($posts as $post) {
@@ -30,7 +32,9 @@ class Results
                     $post = $this->formatPostToRedirect($post, $withVariation);
                 }
 
-                if ($post) $result[] = $post;
+                if ($post) {
+                    $result[] = $post;
+                }
             }
         } elseif (count($posts)) {
             $post = $posts[0];
@@ -41,7 +45,9 @@ class Results
                 $post = $this->formatPostToRedirect($post, $withVariation);
             }
 
-            if ($post) $result[] = $post;
+            if ($post) {
+                $result[] = $post;
+            }
         }
 
         return $result;
@@ -52,18 +58,22 @@ class Results
         $this->autoFill = $autoFill;
         $products = array();
 
-        if (!$posts) return $products;
+        if (!$posts) {
+            return $products;
+        }
 
         if (count($posts) > 1) {
             foreach ($posts as $post) {
                 $product = $this->formatProduct($post, $additionalFields, false, true);
 
-                if ($product) $products[] = $product;
+                if ($product)
+                    $products[] = $product;
             }
         } elseif (count($posts)) {
             $product = $this->formatProduct($posts[0], $additionalFields);
 
-            if ($product) $products[] = $product;
+            if ($product)
+                $products[] = $product;
         }
 
         return $products;
@@ -74,18 +84,24 @@ class Results
         $this->autoFill = $autoFill;
         $orders = array();
 
-        if (!$posts) return $orders;
+        if (!$posts) {
+            return $orders;
+        }
 
         if (count($posts) > 1) {
             foreach ($posts as $post) {
                 $order = $this->formatOrder($post, $additionalFields, 'orders_list');
 
-                if ($order) $orders[] = $order;
+                if ($order) {
+                    $orders[] = $order;
+                }
             }
         } elseif (count($posts)) {
             $order = $this->formatOrder($posts[0], $additionalFields, $page);
 
-            if ($order) $orders[] = $order;
+            if ($order) {
+                $orders[] = $order;
+            }
         }
 
         return $orders;
@@ -175,19 +191,17 @@ class Results
         $customPrice = $item->custom_price || $item->custom_price == "0" ? $item->custom_price : null;
         $customPrice = $cartActions->formatPriceForUpdate($customPrice);
 
-        if (!$customPrice && $priceField) {
+        if (!$customPrice) {
             $productData = $this->formatProduct(get_post($post->ID));
 
-            if ($productData && isset($productData[$priceField]) && $productData[$priceField]) {
-                $customPrice = $productData[$priceField];
-                $customPrice = apply_filters("scanner_new_order_item_price", $customPrice, $item->quantity, $post->ID, $customerUserId);
+            if ($productData) {
+                $price = (new Results())->getProductPrice($product, null, null, $customerUserId, $item->quantity);
+                $customPrice = apply_filters("scanner_new_order_item_price", $price, $item->quantity, $post->ID, $customerUserId);
             }
         }
 
-        $linePrice = (float)$item->quantity ? (float)$item->price / $item->quantity : 0;
-        $use_custom_price = $customPrice != "" && $customPrice != (float)$item->price ? 1 : 0;
-
-        $priceField = (new Results())->getFieldPrice($customerUserId);
+        $linePrice = (float) $item->quantity ? (float) $item->price / $item->quantity : 0;
+        $use_custom_price = $customPrice != "" && $customPrice != (float) $item->price ? 1 : 0;
 
         if ($customPrice != null || $customPrice == "0") {
             $linePrice = $customPrice;
@@ -197,30 +211,36 @@ class Results
         }
 
         if (!$customPrice) {
-            if ($priceField) {
-                $_id = $item->variation_id ? $item->variation_id : $item->product_id;
-                $linePrice = (new Results())->getProductPrice(null, $priceField, $_id, $customerUserId);
-            }
+            $_id = $item->variation_id ? $item->variation_id : $item->product_id;
+            $linePrice = (new Results())->getProductPrice(null, null, $_id, $customerUserId);
         }
 
         $linePrice = strip_tags(wc_price($linePrice, array("currency" => " ", "price_format" => '%2$s')));
         $linePrice = trim(str_replace("&nbsp;", "", $linePrice));
         $linePriceC = strip_tags(wc_price($linePrice));
 
-        $_price = $customPrice || $customPrice == "0" ? $customPrice : (float)$item->price;
+        $_price = $customPrice || $customPrice == "0" ? $customPrice : (float) $item->price;
 
         $lineSubtotal = ($_price * $item->quantity);
-        if (in_array(mb_substr($lineSubtotal, -1), array(".", ""))) $lineSubtotal = mb_substr($lineSubtotal, 0, -1);
+        if (in_array(mb_substr($lineSubtotal, -1), array(".", ""))) {
+            $lineSubtotal = mb_substr($lineSubtotal, 0, -1);
+        }
 
         $lineSubtotalC = strip_tags(wc_price($_price * $item->quantity));
-        if (in_array(mb_substr($lineSubtotalC, -1), array(".", ""))) $lineSubtotalC = mb_substr($lineSubtotalC, 0, -1);
+        if (in_array(mb_substr($lineSubtotalC, -1), array(".", ""))) {
+            $lineSubtotalC = mb_substr($lineSubtotalC, 0, -1);
+        }
 
 
         $lineTotal = ($_price * $item->quantity);
-        if (in_array(mb_substr($lineTotal, -1), array(".", ""))) $lineTotal = mb_substr($lineTotal, 0, -1);
+        if (in_array(mb_substr($lineTotal, -1), array(".", ""))) {
+            $lineTotal = mb_substr($lineTotal, 0, -1);
+        }
 
         $lineTotalC = strip_tags(wc_price($_price * $item->quantity));
-        if (in_array(mb_substr($lineTotalC, -1), array(".", ""))) $lineTotalC = mb_substr($lineTotalC, 0, -1);
+        if (in_array(mb_substr($lineTotalC, -1), array(".", ""))) {
+            $lineTotalC = mb_substr($lineTotalC, 0, -1);
+        }
 
         $attributes = @json_decode($item->attributes, false);
         $attributes = $attributes ? $attributes : array();
@@ -320,15 +340,15 @@ class Results
             $translationProductsIds = $post->translationProductsIds;
         }
 
-        $product_regular_price = strip_tags(wc_price($product->get_regular_price(), array("currency" => " ",)));
+        $product_regular_price = strip_tags(wc_price($product->get_regular_price(), array("currency" => " ", )));
         $product_regular_price = trim(str_replace("&nbsp;", "", $product_regular_price));
         $product_regular_price_c = html_entity_decode(strip_tags(wc_price($product->get_regular_price())), ENT_COMPAT | ENT_HTML5, 'UTF-8');
 
-        $product_sale_price = strip_tags(wc_price($product->get_sale_price(), array("currency" => " ",)));
+        $product_sale_price = strip_tags(wc_price($product->get_sale_price(), array("currency" => " ", )));
         $product_sale_price = trim(str_replace("&nbsp;", "", $product_sale_price));
         $product_sale_price_c = html_entity_decode(strip_tags(wc_price($product->get_sale_price())), ENT_COMPAT | ENT_HTML5, 'UTF-8');
 
-        $product_price = strip_tags(wc_price($product->get_price(), array("currency" => " ",)));
+        $product_price = strip_tags(wc_price($product->get_price(), array("currency" => " ", )));
         $product_price = trim(str_replace("&nbsp;", "", $product_price));
         $product_price_c = html_entity_decode(strip_tags(wc_price($product->get_price())), ENT_COMPAT | ENT_HTML5, 'UTF-8');
 
@@ -405,6 +425,7 @@ class Results
             "attributesLabels" => $this->autoFill == false ? $this->getAttributesLabels($attributes, $product->get_type()) : array(),
             "requiredAttributes" => $this->autoFill == false ? $this->getRequiredProductAttributes($product) : array(),
             "linkedAttributes" => $product->get_parent_id() ? $this->getLinkedAttributes($product->get_parent_id()) : $this->getLinkedAttributes($post->ID),
+            "itemMetaFields" => OrdersHelper::getOrderItemMetaFields($post)
         );
 
         $props["categories"] = $post->post_parent ? get_the_terms($post->post_parent, 'product_cat') : get_the_terms($post->ID, 'product_cat');
@@ -421,16 +442,19 @@ class Results
             BatchNumbersWebis::addProductProps($props);
         }
 
+        ACFRepeater::getProductData($props);
+
         if ($this->autoFill == false) {
             try {
                 foreach (InterfaceData::getFields(true, "", false, Users::userRole()) as $value) {
-                    if (!$value['field_name']) continue;
+                    if (!$value['field_name'])
+                        continue;
                     $filterName = str_replace("%field", $value['field_name'], $this->filter_get_after);
                     $defaultValue = \get_post_meta($post->ID, $value['field_name'], true);
                     $filteredValue = apply_filters($filterName, $defaultValue, $value['field_name'], $props["ID"]);
-                    $filteredValue = $value['field_name'] == "_stock" && $filteredValue ? sprintf('%g', $filteredValue) :  $filteredValue;
+                    $filteredValue = $value['field_name'] == "_stock" && $filteredValue ? sprintf('%g', $filteredValue) : $filteredValue;
 
-                        $props[$value['field_name']] = $filteredValue;
+                    $props[$value['field_name']] = $filteredValue;
 
                     if ($value['field_name'] == "_yith_pos_multistock" && $filteredValue && is_array($filteredValue)) {
                         $storesData = array();
@@ -446,24 +470,22 @@ class Results
                         $props[$value['field_name'] . "_stores"] = $storesData;
                     } else if ($value['type'] == "taxonomy") {
                         $props["taxonomy_" . $value['field_name']] = $post->post_parent ? get_the_terms($post->post_parent, $value['field_name']) : get_the_terms($post->ID, $value['field_name']);
+                    } else if ($value['type'] == "taxonomy_term") {
+                        if (has_term($value['term'], $value['field_name'], $post)) {
+                            $termObj = get_term_by('slug', $value['term'], $value['field_name']);
+                            $props["_term_" . $value['field_name'] . "_" . $value['term']] = $termObj;
+                        }
                     }
                 }
 
                 $props['_yith_pos_multistock_enabled'] = \get_post_meta($post->ID, '_yith_pos_multistock_enabled', true);
             } catch (\Throwable $th) {
             }
-
-
-
         }
 
         foreach ($additionalFields as $key => $value) {
             $props[$key] = $value;
         }
-
-
-
-
 
         return $props;
     }
@@ -502,15 +524,15 @@ class Results
             $translationProductsIds = $post->translationProductsIds;
         }
 
-        $product_regular_price = strip_tags(wc_price($product->get_regular_price(), array("currency" => " ",)));
+        $product_regular_price = strip_tags(wc_price($product->get_regular_price(), array("currency" => " ", )));
         $product_regular_price = trim(str_replace("&nbsp;", "", $product_regular_price));
         $product_regular_price_c = html_entity_decode(strip_tags(wc_price($product->get_regular_price())), ENT_COMPAT | ENT_HTML5, 'UTF-8');
 
-        $product_sale_price = strip_tags(wc_price($product->get_sale_price(), array("currency" => " ",)));
+        $product_sale_price = strip_tags(wc_price($product->get_sale_price(), array("currency" => " ", )));
         $product_sale_price = trim(str_replace("&nbsp;", "", $product_sale_price));
         $product_sale_price_c = html_entity_decode(strip_tags(wc_price($product->get_sale_price())), ENT_COMPAT | ENT_HTML5, 'UTF-8');
 
-        $product_price = strip_tags(wc_price($product->get_price(), array("currency" => " ",)));
+        $product_price = strip_tags(wc_price($product->get_price(), array("currency" => " ", )));
         $product_price = trim(str_replace("&nbsp;", "", $product_price));
         $product_price_c = html_entity_decode(strip_tags(wc_price($product->get_price())), ENT_COMPAT | ENT_HTML5, 'UTF-8');
 
@@ -529,6 +551,7 @@ class Results
             "post_type_tooltip" => $product ? $product->get_type() : 'product',
             "post_status" => $post->post_status,
             "post_author" => $post->post_author,
+            "post_modified" => $post->post_modified,
             "product_desc" => urlencode($product->get_description()),
             "product_type" => $product->get_type(),
             "product_quantity" => $product->get_stock_quantity(),
@@ -554,12 +577,12 @@ class Results
             "postEditUrl" => isset($_POST["bsInstanceFrontendStatus"]) && $_POST["bsInstanceFrontendStatus"] ? get_permalink($post) : admin_url('post.php?post=' . $postUrlId) . '&action=edit' . $postSuffix,
             "updated" => time(),
             "attributes" => $attributes,
-            "attributesLabels" =>  array(),
-            "requiredAttributes" =>  array(),
-            "children" =>  array(),
+            "attributesLabels" => array(),
+            "requiredAttributes" => array(),
+            "children" => array(),
             "translation" => $translation,
             "translationProductsIds" => $translationProductsIds,
-            "foundCounter" =>  "",
+            "foundCounter" => "",
             "locations" => array(),
             "categories" => array(),
             "tags" => array(),
@@ -602,11 +625,16 @@ class Results
         global $wpdb;
 
         try {
-            $classes = $wpdb->get_results("SELECT T.* 
+            // @codingStandardsIgnoreStart
+            $classes = $wpdb->get_results($wpdb->prepare(
+                "SELECT T.* 
                 FROM {$wpdb->prefix}term_relationships AS R, {$wpdb->prefix}term_taxonomy AS TT, {$wpdb->prefix}terms AS T
-                WHERE R.object_id = '{$productId}' 
+                WHERE R.object_id = %d
                     AND TT.term_taxonomy_id = R.term_taxonomy_id AND TT.taxonomy = 'product_shipping_class'
-                    AND T.term_id = TT.term_id;");
+                    AND T.term_id = TT.term_id;",
+                $productId
+            ));
+            // @codingStandardsIgnoreEnd
 
             if ($classes && count($classes) > 0) {
                 return $classes[0]->slug;
@@ -635,6 +663,7 @@ class Results
         $result = array();
 
         if ($product->get_type() == "variable") {
+            // @codingStandardsIgnoreStart
             $result = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT P.post_id, P.post_parent, P.post_title, P.attributes, P.post_type, P.postmeta__sku AS 'product_sku', P.post_id AS 'ID' FROM {$table} AS P WHERE P.post_id = %d OR P.post_parent = %d;",
@@ -642,7 +671,9 @@ class Results
                     $product->get_id()
                 )
             );
+            // @codingStandardsIgnoreEnd
         } else if ($product->get_type() == "variation" && $product->get_parent_id()) {
+            // @codingStandardsIgnoreStart
             $result = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT P.post_id, P.post_parent, P.post_title, P.attributes, P.post_type, P.postmeta__sku AS 'product_sku', P.post_id AS 'ID' FROM {$table} AS P WHERE P.post_id = %d OR P.post_parent = %d;",
@@ -650,6 +681,7 @@ class Results
                     $product->get_parent_id()
                 )
             );
+            // @codingStandardsIgnoreEnd
         }
 
         return $result;
@@ -675,10 +707,10 @@ class Results
                     $name = \wc_attribute_label($key);
 
                     if ($name !== $key) {
-                        $result[$key] =  $name;
+                        $result[$key] = $name;
                     } else {
-                        $name =  str_replace("-", " ", $key);
-                        $result[$key] =  ucfirst($name);
+                        $name = str_replace("-", " ", $key);
+                        $result[$key] = ucfirst($name);
                     }
                 }
             }
@@ -693,13 +725,13 @@ class Results
         $product = \wc_get_product($productId);
 
         if (!$product) {
-            return (object)array();
+            return (object) array();
         }
 
         $attributes = $product->get_attributes();
 
         if (empty($attributes)) {
-            return (object)array();
+            return (object) array();
         }
 
         $attributesData = array("global" => array(), "custom" => array());
@@ -783,6 +815,7 @@ class Results
         $products = array();
         $items = $order->get_items("line_item");
         $currencySymbol = get_woocommerce_currency_symbol(get_woocommerce_currency());
+        $currencyLabel = get_woocommerce_currency();
 
         $order_subtotal_taxes = array();
         $order_subtotal_tax = 0;
@@ -849,7 +882,7 @@ class Results
 
 
             if (!$_post) {
-                $_post = (object)array("ID" => "", "post_parent" => "", "post_type" => "");
+                $_post = (object) array("ID" => "", "post_parent" => "", "post_type" => "");
             }
 
             $product_thumbnail_url = $this->getThumbnailUrl($_post->ID);
@@ -869,9 +902,15 @@ class Results
             $usbs_check_product_scanned = \wc_get_order_item_meta($item->get_id(), 'usbs_check_product_scanned', true);
             $usbs_check_product_scanned = $usbs_check_product_scanned == "" ? 0 : $usbs_check_product_scanned;
 
-            $logRecord = $wpdb->get_row("SELECT * FROM {$wpdb->prefix}barcode_scanner_logs AS L WHERE L.post_id = '{$item->get_id()}' AND L.field = 'usbs_check_product' AND L.action = 'update_order_item_meta' ORDER BY L.id DESC LIMIT 1");
+            // @codingStandardsIgnoreStart
+            $logRecord = $wpdb->get_row($wpdb->prepare(
+                "SELECT * FROM {$wpdb->prefix}barcode_scanner_logs AS L WHERE L.post_id = %d AND L.field = 'usbs_check_product' AND L.action = 'update_order_item_meta' ORDER BY L.id DESC LIMIT 1",
+                $item->get_id()
+            ));
+            // @codingStandardsIgnoreEnd
             $fulfillment_user_name = "";
             $fulfillment_user_email = "";
+            $fulfillment_user_id = "";
 
             if ($logRecord && $logRecord->user_id) {
                 $user = get_user_by("ID", $logRecord->user_id);
@@ -879,6 +918,7 @@ class Results
                 if ($user) {
                     $fulfillment_user_name = $user->display_name ? $user->display_name : $user->user_nicename;
                     $fulfillment_user_email = $user->user_email;
+                    $fulfillment_user_id = $user->ID;
                 }
             }
 
@@ -898,13 +938,16 @@ class Results
                 $price_c = html_entity_decode(strip_tags(wc_price($item->get_total())), ENT_COMPAT | ENT_HTML5, 'UTF-8');
             }
 
-                        $item_regular_price_c = html_entity_decode(strip_tags(wc_price(get_post_meta($id, "_regular_price", true))), ENT_COMPAT | ENT_HTML5, 'UTF-8');
+            $item_regular_price_c = html_entity_decode(strip_tags(wc_price(get_post_meta($id, "_regular_price", true))), ENT_COMPAT | ENT_HTML5, 'UTF-8');
             $subtotal_c = html_entity_decode(strip_tags(wc_price($item->get_subtotal())), ENT_COMPAT | ENT_HTML5, 'UTF-8');
             $total_c = html_entity_decode(strip_tags(wc_price($item->get_total())), ENT_COMPAT | ENT_HTML5, 'UTF-8');
             $subtotal_tax_c = html_entity_decode(strip_tags(wc_price($item->get_subtotal_tax())), ENT_COMPAT | ENT_HTML5, 'UTF-8');
             $total_tax_c = html_entity_decode(strip_tags(wc_price($item->get_total_tax())), ENT_COMPAT | ENT_HTML5, 'UTF-8');
             $item_price_tax_total_c = html_entity_decode(strip_tags(wc_price($item->get_total() + $item->get_total_tax())), ENT_COMPAT | ENT_HTML5, 'UTF-8');
             $item_price_tax_c = html_entity_decode(strip_tags(wc_price(($item->get_subtotal() / $quantity) + $item->get_total_tax())), ENT_COMPAT | ENT_HTML5, 'UTF-8');
+
+            $one_item_tax = $quantity ? self::clearPrice(($item->get_subtotal_tax() / $quantity), $args) : self::clearPrice($item->get_total_tax(), $args);
+            $one_item_tax_c = $one_item_tax ? html_entity_decode(strip_tags(wc_price($one_item_tax)), ENT_COMPAT | ENT_HTML5, 'UTF-8') : $one_item_tax;
 
             $receiptShortcodes = ResultsHelper::getReceiptShortcodesOrderItem($settings, $order, $item);
 
@@ -913,7 +956,7 @@ class Results
                 "variation_id" => $variationId,
                 "post_type" => $_post->post_type,
                 "name" => strip_tags($item->get_name()),
-                "quantity" => (float)$quantity,
+                "quantity" => (float) $quantity,
                 "price" => $quantity ? self::clearPrice($item->get_total() / $quantity, $args) : self::clearPrice($item->get_total(), $args),
                 "price_c" => $price_c,
                 "subtotal" => $this->clearPrice($item->get_subtotal(), $args),
@@ -928,8 +971,11 @@ class Results
                 "item_price_tax_c" => $item_price_tax_c,
                 "item_price_tax_total" => $this->clearPrice($item->get_subtotal() + $item->get_total_tax(), $args),
                 "item_price_tax_total_c" => $item_price_tax_total_c,
-                "item_regular_price" => $this->clearPrice(get_post_meta($id, "_regular_price", true)), 
-                "item_regular_price_c" => $item_regular_price_c, 
+                "item_qty" => (float) $quantity,
+                "item_price_qty" => $total_c,
+                "item_price_qty_tax_total" => $item_price_tax_total_c,
+                "item_regular_price" => $this->clearPrice(get_post_meta($id, "_regular_price", true)),
+                "item_regular_price_c" => $item_regular_price_c,
                 "taxes" => strip_tags(wc_price($item->get_taxes())),
                 "product_thumbnail_url" => $product_thumbnail_url,
                 "product_large_thumbnail_url" => $product_large_thumbnail_url,
@@ -942,15 +988,21 @@ class Results
                 "usbs_check_product_scanned" => $usbs_check_product_scanned,
                 "fulfillment_user_name" => $fulfillment_user_name,
                 "fulfillment_user_email" => $fulfillment_user_email,
+                "fulfillment_user_id" => $fulfillment_user_id,
                 "product_categories" => wp_get_post_terms($item->get_product_id(), 'product_cat'),
                 "variationForPreview" => $variationForPreview,
                 "refund_data" => OrdersHelper::getOrderItemRefundData($order, $item),
+                "one_item_tax" => $one_item_tax,
+                "one_item_tax_c" => $one_item_tax_c,
                 "receiptShortcodes" => $receiptShortcodes,
-                "search_data" => InterfaceData::getIndexedData($_post->ID)
+                "search_data" => InterfaceData::getIndexedData($_post->ID),
+                "current_edit_data" => $order->get_meta("_bs_user_edit_data"),
             );
 
             foreach (InterfaceData::getFields(true, "", false, Users::userRole()) as $value) {
-                if (!isset($value['field_name']) || !$value['field_name']) continue;
+                if (!isset($value['field_name']) || !$value['field_name']) {
+                    continue;
+                }
                 $filterName = str_replace("%field", $value['field_name'], $this->filter_get_after);
                 $defaultValue = \get_post_meta($_productData["ID"], $value['field_name'], true);
                 $filteredValue = apply_filters($filterName, $defaultValue, $value['field_name'], $_productData["ID"]);
@@ -964,9 +1016,6 @@ class Results
                 foreach ($filter['products'] as $key => $value) {
                     if (strpos($key, 'custom-') !== false) {
                         if (!isset($_productData[$value])) {
-                            $defaultValue = \get_post_meta($_productData["ID"], $value, true);
-                            $filteredValue = apply_filters($filterName, $defaultValue, $value, $_productData["ID"]);
-                            $_productData[$value] = $filteredValue;
                         }
                     }
                 }
@@ -974,8 +1023,8 @@ class Results
 
             $number_field_step = get_post_meta($_productData["ID"], "number_field_step", true);
 
-                        if ($number_field_step && is_numeric($number_field_step)) {
-                $_productData["number_field_step"] = (float)$number_field_step;
+            if ($number_field_step && is_numeric($number_field_step)) {
+                $_productData["number_field_step"] = (float) $number_field_step;
             } else {
                 $_productData["number_field_step"] = 1;
             }
@@ -985,7 +1034,9 @@ class Results
 
             if ($ffQtyStep) {
                 $_productData['ffQtyStep'] = get_post_meta($_productData["ID"], $ffQtyStep, true);
-                if ($_productData['ffQtyStep']) $_productData['ffQtyStep'] = (float)$_productData['ffQtyStep'];
+                if ($_productData['ffQtyStep']) {
+                    $_productData['ffQtyStep'] = (float) $_productData['ffQtyStep'];
+                }
             }
 
             $products[] = $_productData;
@@ -1033,7 +1084,7 @@ class Results
         $wpFormat = get_option("date_format", "F j, Y") . " " . get_option("time_format", "g:i a");
         $orderDate = new \DateTime($order->get_date_created());
         $date_format = $order->get_date_created();
-        $date_format->setTimezone(new \DateTimeZone( \wp_timezone_string()));
+        $date_format->setTimezone(new \DateTimeZone(\wp_timezone_string()));
         $date_format = $date_format->format("Y-m-d H:i:s");
 
         if ($order->get_billing_first_name() || $order->get_billing_last_name()) {
@@ -1057,9 +1108,15 @@ class Results
         }
 
 
-        $logRecord = $wpdb->get_row("SELECT * FROM {$wpdb->prefix}barcode_scanner_logs AS L WHERE L.post_id = '{$order->get_id()}' AND L.action = 'update_order_fulfillment' AND L.value = '1' ORDER BY L.id DESC LIMIT 1");
+        // @codingStandardsIgnoreStart
+        $logRecord = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$wpdb->prefix}barcode_scanner_logs AS L WHERE L.post_id = %d AND L.action = 'update_order_fulfillment' AND L.value = '1' ORDER BY L.id DESC LIMIT 1",
+            $order->get_id()
+        ));
+        // @codingStandardsIgnoreEnd
         $fulfillment_user_name = "";
         $fulfillment_user_email = "";
+        $fulfillment_user_id = "";
 
         if ($logRecord && $logRecord->user_id) {
             $_user = get_user_by("ID", $logRecord->user_id);
@@ -1067,6 +1124,7 @@ class Results
             if ($_user) {
                 $fulfillment_user_name = $_user->display_name ? $_user->display_name : $_user->user_nicename;
                 $fulfillment_user_email = $_user->user_email;
+                $fulfillment_user_id = $_user->ID;
             }
         }
 
@@ -1080,10 +1138,10 @@ class Results
         $sortOrderItemsByCategories = $sortOrderItemsByCategories === null ? "" : $sortOrderItemsByCategories->value;
 
         $bStates = WC()->countries->get_states($order->get_billing_country());
-        $bState  = !empty($bStates[$order->get_billing_state()]) ? $bStates[$order->get_billing_state()] : '';
+        $bState = !empty($bStates[$order->get_billing_state()]) ? $bStates[$order->get_billing_state()] : '';
 
         $sStates = WC()->countries->get_states($order->get_shipping_country());
-        $sState  = !empty($sStates[$order->get_shipping_state()]) ? $sStates[$order->get_shipping_state()] : '';
+        $sState = !empty($sStates[$order->get_shipping_state()]) ? $sStates[$order->get_shipping_state()] : '';
 
         $receiptShortcodes = ResultsHelper::getReceiptShortcodesOrder($settings, $order->get_id());
 
@@ -1091,10 +1149,14 @@ class Results
 
         foreach ($order->get_items('shipping') as $shipping_item) {
             $method_id = $shipping_item->get_method_id();
-            if (!$method_id && $method_id != 0) $method_id = "";
+            if (!$method_id && $method_id != 0) {
+                $method_id = "";
+            }
 
             $instance_id = $shipping_item->get_instance_id();
-            if (!$instance_id) $instance_id = 0;
+            if (!$instance_id) {
+                $instance_id = 0;
+            }
 
             $shipping_method = $method_id;
         }
@@ -1142,8 +1204,8 @@ class Results
             "order_date" => $order->get_date_created(),
             "date_format" => $date_format,
             "preview_date_format" => $previewDateFormat,
-            "usbs_fulfillment_objects" => get_post_meta($order->get_id(), "usbs_fulfillment_objects", true),
-            "usbs_order_fulfillment_data" => get_post_meta($order->get_id(), "usbs_order_fulfillment_data", true),
+            "usbs_fulfillment_objects" => OrdersHelper::get_meta_value($order, $post->ID, "usbs_fulfillment_objects"),
+            "usbs_order_fulfillment_data" => OrdersHelper::get_meta_value($order, $post->ID, "usbs_order_fulfillment_data"),
             "user" => $userData,
             "order_tax" => $order->get_total_tax(),
             "order_tax_c" => strip_tags(wc_price($order->get_total_tax())),
@@ -1169,13 +1231,15 @@ class Results
             "customer_country" => $customerCountry,
             "products" => $sortOrderItemsByCategories == "on" && !in_array($page, array('history', 'orders_list')) ? ProductsHelper::sortProductsByCategories($products) : $products,
             "currencySymbol" => $currencySymbol,
+            'currencyLabel' => $currencyLabel,
             "postEditUrl" => admin_url('post.php?post=' . $post->ID) . '&action=edit',
             "postPayUrl" => $order->get_checkout_payment_url(),
             "updated" => time(),
             "foundCounter" => \get_post_meta($post->ID, "usbs_found_counter", true),
             "fulfillment_user_name" => $fulfillment_user_name,
             "fulfillment_user_email" => $fulfillment_user_email,
-            "discount" => $order->get_discount_total() ?  strip_tags($order->get_discount_to_display()) : "",
+            "fulfillment_user_id" => $fulfillment_user_id,
+            "discount" => $order->get_discount_total() ? strip_tags($order->get_discount_to_display()) : "",
             "coupons" => $order->get_coupon_codes(),
             "shop" => ResultsHelper::getStoreData(),
             "receiptShortcodes" => $receiptShortcodes,
@@ -1185,15 +1249,19 @@ class Results
             "refund_data" => OrdersHelper::getOrderRefundData($order),
             "shipping_method" => $shipping_method,
             "payment_method" => $order_payment,
+            "order_notes" => OrdersHelper::getOrderNotes($order),
+            "pos_data" => OrdersHelper::getPosData($order),
         );
 
         OrdersHelper::addOrderData($order->get_id(), $props);
 
         if ($customerId) {
+            // @codingStandardsIgnoreStart
             $customerOrders = $wpdb->get_row($wpdb->prepare(
                 "SELECT COUNT(P.ID) AS 'count' FROM {$wpdb->prefix}posts AS P, {$wpdb->prefix}postmeta AS PM WHERE P.ID = PM.post_id AND P.post_type = 'shop_order' AND PM.meta_key = '_customer_user' AND PM.meta_value = %d;",
                 $customerId
             ));
+            // @codingStandardsIgnoreEnd
 
             $props["customer_orders_count"] = $customerOrders ? $customerOrders->count : 0;
 
@@ -1226,10 +1294,29 @@ class Results
         $_aftership_tracking_items = "";
         if ($aftershipTrackingItems && is_array($aftershipTrackingItems)) {
             foreach ($aftershipTrackingItems as $value) {
-                if (isset($value["tracking_number"])) $_aftership_tracking_items .= " " . $value["tracking_number"];
+                if (isset($value["tracking_number"])) {
+                    $_aftership_tracking_items .= " " . $value["tracking_number"];
+                }
             }
         }
         $props["_aftership_tracking_items"] = trim($_aftership_tracking_items);
+
+        if ($this->autoFill == false) {
+            try {
+                foreach (InterfaceData::getFields(true, "", false, Users::userRole()) as $value) {
+                    if (!$value['field_name'] && !in_array($value['position'], array('before-product', 'before-product-right', 'after-product', 'after-product-right'))) {
+                        continue;
+                    }
+
+
+                    $filterName = str_replace("%field", $value['field_name'], $this->filter_get_after);
+                    $defaultValue = OrdersHelper::get_meta_value($order, $post->ID, $value['field_name']);
+                    $filteredValue = apply_filters($filterName, $defaultValue, $value['field_name'], $props["ID"]);
+                    $props[$value['field_name']] = $filteredValue;
+                }
+            } catch (\Throwable $th) {
+            }
+        }
 
         foreach ($additionalFields as $key => $value) {
             $props[$key] = $value;
@@ -1257,7 +1344,7 @@ class Results
         $wpFormat = get_option("date_format", "F j, Y") . " " . get_option("time_format", "g:i a");
         $orderDate = new \DateTime($order->get_date_created());
         $date_format = $order->get_date_created();
-        $date_format->setTimezone(new \DateTimeZone( \wp_timezone_string()));
+        $date_format->setTimezone(new \DateTimeZone(\wp_timezone_string()));
         $date_format = $date_format->format("Y-m-d H:i:s");
 
         if ($order->get_billing_first_name() || $order->get_billing_last_name()) {
@@ -1298,13 +1385,14 @@ class Results
             "order_date" => $order->get_date_created(),
             "date_format" => $date_format,
             "preview_date_format" => $previewDateFormat,
-            "usbs_fulfillment_objects" => get_post_meta($order->get_id(), "usbs_fulfillment_objects", true),
-            "usbs_order_fulfillment_data" => get_post_meta($order->get_id(), "usbs_order_fulfillment_data", true),
+            "usbs_fulfillment_objects" => OrdersHelper::get_meta_value($order, $post->ID, "usbs_fulfillment_objects"),
+            "usbs_order_fulfillment_data" => OrdersHelper::get_meta_value($order, $post->ID, "usbs_order_fulfillment_data"),
             "order_total" => $order->get_total(),
             "order_total_c" => strip_tags(wc_price($order->get_total())),
             "customer_name" => trim($customerName),
             "products" => array(),
             "total_products" => count($order->get_items("line_item")),
+            "current_edit_data" => $order->get_meta("_bs_user_edit_data"),
             "updated" => time(),
             "customer_orders_count" => 0,
             "user" => $userData,
@@ -1348,7 +1436,9 @@ class Results
         $fields = InterfaceData::getOrderFields();
         $result = array();
 
-        if (!$fields || !$orderId) return $result;
+        if (!$fields || !$orderId) {
+            return $result;
+        }
 
         foreach ($fields as $key => $value) {
             if (isset($value['name'])) {
@@ -1402,7 +1492,9 @@ class Results
             $tax_amounts = \WC_Tax::calc_tax($price, $tax_rates_data, $isPricesIncludeTax);
 
             $decimals = get_option('woocommerce_price_num_decimals');
-            if (!$decimals) $decimals = 2;
+            if (!$decimals) {
+                $decimals = 2;
+            }
 
             if (is_array($tax_amounts) && $decimals) {
                 foreach ($tax_amounts as $key => $value) {
@@ -1410,8 +1502,11 @@ class Results
                 }
             }
 
-            if ($returnSum) $tax = array_sum($tax_amounts);
-            else $tax = $tax_amounts;
+            if ($returnSum) {
+                $tax = array_sum($tax_amounts);
+            } else {
+                $tax = $tax_amounts;
+            }
         } catch (\Throwable $th) {
         }
 
@@ -1432,10 +1527,10 @@ class Results
 
             $tax_rates_data = $tax_obj->find_rates(array(
                 'country' => $country ? $country : "*",
-                'state' =>  $state ? $state : "*",
+                'state' => $state ? $state : "*",
                 'city' => $city ? $city : "*",
-                'postcode' =>  $postcode ? $postcode : "*",
-                'tax_class' =>  $productTaxClass
+                'postcode' => $postcode ? $postcode : "*",
+                'tax_class' => $productTaxClass
             ));
 
             return $tax_rates_data;
@@ -1552,9 +1647,9 @@ class Results
         }
 
         if ($product) {
-            if ($field) {
-                $price = get_post_meta($product->get_id(), $field, true);
-            } else {
+            $price = ProductsHelper::findProductPrice($product, $customerId);
+
+            if (!$price) {
                 $price = $product->get_price();
             }
 

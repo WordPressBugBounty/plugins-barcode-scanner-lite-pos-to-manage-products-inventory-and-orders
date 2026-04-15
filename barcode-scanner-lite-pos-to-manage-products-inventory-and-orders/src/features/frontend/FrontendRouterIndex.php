@@ -15,6 +15,7 @@ $usbsWooShippmentProviders = $jsData && isset($jsData['usbsWooShippmentProviders
 $usbsLangs = $jsData && isset($jsData['usbsLangs']) ? $jsData['usbsLangs'] : array();
 $usbsInterface = $jsData && isset($jsData['usbsInterface']) ? $jsData['usbsInterface'] : array();
 $cartExtraData = $jsData && isset($jsData['cartExtraData']) ? $jsData['cartExtraData'] : array();
+$usbsOrdersListFilter = $jsData && isset($jsData['usbsOrdersListFilter']) ? $jsData['usbsOrdersListFilter'] : array();
 
 $userId = $usbs && isset($usbs['userId']) ? $usbs['userId'] : "";
 $userRole = $userId ? Users::getUserRole($userId) : '';
@@ -91,6 +92,9 @@ $userRole = $userId ? Users::getUserRole($userId) : '';
 <script>
     window.cartExtraData = <?php echo json_encode($cartExtraData); ?>;
 </script>
+<script>
+    window.usbsOrdersListFilter = <?php echo json_encode($usbsOrdersListFilter); ?>;
+</script>
 <script src="<?php echo esc_url(home_url()); ?>/wp-includes/js/jquery/jquery.min.js"></script>
 <script src="<?php echo esc_url(home_url()); ?>/wp-includes/js/jquery/jquery-migrate.min.js"></script>
 
@@ -98,8 +102,27 @@ $userRole = $userId ? Users::getUserRole($userId) : '';
 if (function_exists('BSPrintLabelJsHook')) {
     BSPrintLabelJsHook();
 } 
+
+if (function_exists('BSFrontendJsHook')) {
+    BSFrontendJsHook();
+} 
+
+if (function_exists('wp_enqueue_media')) wp_enqueue_media();
+if (function_exists('wp_enqueue_style')) {
+    wp_enqueue_style('dashicons');
+    wp_enqueue_style('common');
+    wp_enqueue_style('forms');
+    wp_enqueue_style('buttons');
+    wp_enqueue_style('media');
+    wp_enqueue_style('media-views');
+    wp_enqueue_style('wp-pointer');
+}
+if (function_exists('wp_print_styles')) wp_print_styles();
+if (function_exists('wp_print_media_templates')) wp_print_media_templates();
+if (function_exists('wp_print_scripts')) wp_print_scripts();
+
 ?>
 
-<script src="<?php echo esc_url($path); ?>assets/js/index-business-1.11.0-1762270461249.js"></script>
+<script src="<?php echo esc_url($path); ?>assets/js/index-business-1.12.0-1776150596682.js"></script>
 
 <?php

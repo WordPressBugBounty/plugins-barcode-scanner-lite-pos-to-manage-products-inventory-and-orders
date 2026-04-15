@@ -22,14 +22,14 @@ class SettingsHelper
         }
     }
 
-    public static function stripslashesDeep(&$value, $dq = true)
+    public static function stripslashesDeep(&$value, $dq = true, $field = "")
     {
         if (!$dq && is_string($value)) {
-            $value = str_replace('"', "'", $value);
+            if (!in_array($field, array("afterSearchJavaScript", "modifyPreProcessSearchString"))) $value = str_replace('"', "'", $value);
             $value = str_replace('\\', "", $value);
         } else if (!$dq && is_array($value)) {
             foreach ($value as $key => &$val) {
-                if (!in_array($key, array("receipt-template"))) self::stripslashesDeep($val, $dq);
+                if (!in_array($key, array("receipt-template"))) self::stripslashesDeep($val, $dq, $key);
             }
         }
 
@@ -55,7 +55,9 @@ class SettingsHelper
 
         if (!self::$settingsFields || $reSelectData) {
             $table = $wpdb->prefix . Database::$settings;
+            // @codingStandardsIgnoreStart
             self::$settingsFields = $wpdb->get_results("SELECT * FROM {$table} AS S;");
+            // @codingStandardsIgnoreEnd
         }
 
         $result = array();
@@ -159,7 +161,9 @@ class SettingsHelper
         $roles = $wp_roles ? $wp_roles->roles : array();
 
         $table = $wpdb->prefix . Database::$interface;
+        // @codingStandardsIgnoreStart
         $rolesFields = $wpdb->get_results("SELECT * FROM {$table} AS I GROUP BY I.role;");
+        // @codingStandardsIgnoreEnd
 
         foreach ($roles as $role => &$value) {
             foreach ($rolesFields as $field) {

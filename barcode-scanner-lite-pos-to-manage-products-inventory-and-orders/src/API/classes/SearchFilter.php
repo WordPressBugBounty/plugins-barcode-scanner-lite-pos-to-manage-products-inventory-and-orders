@@ -30,6 +30,7 @@ class SearchFilter
             "atum_supplier_sku" => "1",
             "atum_barcode" => "1",
             "uegen_code" => "1",
+            "postmeta__global_unique_id" => "1",
         ),
         "orders" => array(
             "ID" => "1",
@@ -38,6 +39,7 @@ class SearchFilter
             "client_email" => "1",
             "custom" => "",
             "_order_number" => "1",
+            "hook_order_number" => "1",
             "_billing_address_index" => "2",
             "_shipping_address_index" => "2",
             "ywot_tracking_code" => "2",

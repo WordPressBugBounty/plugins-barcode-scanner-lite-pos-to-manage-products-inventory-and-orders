@@ -55,6 +55,7 @@ class Locations
         $user = $userId ? get_user_by('id', $userId) : null;
         $role = $user ? $user->roles[0] : null;
 
+        // @codingStandardsIgnoreStart
         if ($role) {
             $rows = $wpdb->get_results($wpdb->prepare("SELECT * FROM {$interface} AS I WHERE I.field_name LIKE 'usbs_stock_location_level_%' AND I.status = 1 AND I.role = %s ORDER BY I.`order` DESC;", $role));
 
@@ -65,6 +66,7 @@ class Locations
         } else {
             $rows = $wpdb->get_results("SELECT * FROM {$interface} AS I WHERE I.field_name LIKE 'usbs_stock_location_level_%' AND I.status = 1 ORDER BY I.`order` DESC;");
         }
+        // @codingStandardsIgnoreEnd
         $fields = array();
 
 
@@ -95,7 +97,9 @@ class Locations
         $table = $wpdb->prefix . Database::$locations;
 
         foreach ($data as $key => $value) {
+            // @codingStandardsIgnoreStart
             $wpdb->update($table, array('name' => trim($value)), array('slug' => $key));
+            // @codingStandardsIgnoreEnd
         }
     }
 

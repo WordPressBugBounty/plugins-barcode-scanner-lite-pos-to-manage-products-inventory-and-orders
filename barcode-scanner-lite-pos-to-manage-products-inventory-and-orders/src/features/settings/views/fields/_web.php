@@ -63,6 +63,7 @@ $productColumn4Width = $productColumn4Width === null ? '260' : $productColumn4Wi
             $field = array(
                 "id" => 0,
                 "field_name" => "",
+                "term" => "",
                 "field_label" => "New field",
                 "label_position" => "top",
                 "field_height" => "",
@@ -71,14 +72,15 @@ $productColumn4Width = $productColumn4Width === null ? '260' : $productColumn4Wi
                 "type" => "text",
                 "order" => "",
                 "order_mobile" => "",
-                "status" => "0",
-                "mobile_status" => "0",
+                "status" => "1",
+                "mobile_status" => "1",
                 "show_in_create_order" => "0",
                 "show_in_products_list" => "0",
                 "read_only" => "0",
                 "use_for_auto_action" => "0",
                 "attribute_id" => "",
                 "button_width" => "",
+                "show_on_mobile_preview" => "0",
             );
             $rootClass = "new_field_template";
             require __DIR__ . "/field.php";

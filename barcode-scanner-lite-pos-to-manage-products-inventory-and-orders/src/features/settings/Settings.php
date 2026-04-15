@@ -50,16 +50,16 @@ class Settings
     {
         global $wpdb;
 
+        // @codingStandardsIgnoreStart
         $table = $wpdb->prefix . Database::$settings;
-        $row = $wpdb->get_row(
-            $wpdb->prepare("SELECT S.id FROM {$table} AS S WHERE S.field_name = '%s' LIMIT 1;", $key)
-        );
+        $row = $wpdb->get_row($wpdb->prepare("SELECT S.id FROM {$table} AS S WHERE S.field_name = '%s' LIMIT 1;", $key));
 
         if ($row) {
             $wpdb->update($table, array("value" => $value, "type" => $type), array("id" => $row->id));
         } else {
             $wpdb->insert($table, array("field_name" => $key, "value" => $value, "type" => $type), array('%s', '%s', '%s'));
         }
+        // @codingStandardsIgnoreEnd
 
         $row = null;
     }
@@ -104,7 +104,7 @@ class Settings
                     'price_2_label',
                     'price_3_label',
                     'cartDecimalQuantity',
-                    'defaultPriceField',
+                    'priceFieldPriority',
                     'sendAdminEmailCreatedOrder',
                     'sendClientEmailCreatedOrder',
                     'price_1_field',
@@ -114,6 +114,7 @@ class Settings
                     'orderStatuses',
                     'productsCatalogVisibility',
                     'displayPayButton',
+                    'autoGenInvoice',
                     'orderStatusesAreStillNotCompleted',
                     'addAppUsersPermissions',
                     'removeAppUsersPermissions',
@@ -136,6 +137,7 @@ class Settings
                     'receipt-width',
                     'receipt-template',
                     'modifyPreProcessSearchString',
+                    'afterSearchJavaScript',
                     'receiptOrderPreview',
                     'autoStatusFulfilled',
                     'delayBetweenScanning',
@@ -147,6 +149,10 @@ class Settings
                     'productMiddleRightWidth',
                     'productMiddleLeftWidth',
                     'productColumn4Width',
+                    'beforeProductWidth',
+                    'beforeProductRightWidth',
+                    'afterProductWidth',
+                    'afterProductRightWidth',
                     'defaultPaymentMethod',
                     'fulfilledNotAllowStatus',
                     'fulfilledCloseOrderAfter',
@@ -168,20 +174,29 @@ class Settings
                     'fulfillmentFrontendSearch',
                     'appLoginMethods',
                     'defaultLoginMethod',
+                    'FFrestrictOrderOpening',
+                    'FFexcludeIds',
+                    'FFerrorsInPopup',
+                    'stripeApiSecretKey',
+                    'stripeApiEnabled',
+                    'stripeDefaultTerminalId',
+                    'displayTaxesForItems',
                 );
 
                 foreach ($keys as $key) {
                     if (isset($_POST[$key])) {
                         $this->post[$key] = $this->getRequestData($_POST[$key], $key);
 
-                        if (in_array($key, array(
-                            "productStatuses",
-                            "orderStatuses",
-                            "orderStatusesAreStillNotCompleted",
-                            'productsCatalogVisibility',
-                            "notifyUsersStock",
-                            'defaultShippingMethods'
-                        )) && is_array($this->post[$key])) {
+                        if (
+                            in_array($key, array(
+                                "productStatuses",
+                                "orderStatuses",
+                                "orderStatusesAreStillNotCompleted",
+                                'productsCatalogVisibility',
+                                "notifyUsersStock",
+                                'defaultShippingMethods',
+                            )) && is_array($this->post[$key])
+                        ) {
                             $this->post[$key] = implode(",", $this->post[$key]);
                         }
                     }
@@ -192,7 +207,8 @@ class Settings
                 $this->updateSettings("updated_timestamp", time(), "text");
 
                 $isIndexed = $this->getField("indexing", "indexed", false);
-                if (!$isIndexed) $this->updateField("indexing", "indexed", false);
+                if (!$isIndexed)
+                    $this->updateField("indexing", "indexed", false);
 
                 $this->formSubmitSounds();
 
@@ -224,7 +240,7 @@ class Settings
                 }
 
                 if (isset($this->post["key"])) {
-                    @delete_transient('ukrsolution_upgrade_scanner_1.11.0');
+                    @delete_transient('ukrsolution_upgrade_scanner_1.12.0');
                     $user_id = get_current_user_id();
                     update_option($user_id . '_' . basename(USBS_PLUGIN_BASE_PATH) . '_notice_dismissed', '', true);
                 }
@@ -249,7 +265,7 @@ class Settings
                 if (is_array($_value)) {
                     $data[$key] = $this->getRequestData($_value);
                 } else {
-                    if (in_array($key, array("customCss", 'customCssMobile', "receipt-template", "modifyPreProcessSearchString", 'fields', 'button_js'))) {
+                    if (in_array($key, array("customCss", 'customCssMobile', "receipt-template", "modifyPreProcessSearchString", "afterSearchJavaScript", 'fields', 'button_js'))) {
                         $data[$key] = $_value;
                     } else {
                         $data[$key] = sanitize_text_field($_value);
@@ -259,7 +275,7 @@ class Settings
 
             return $data;
         } else {
-            if (in_array($key, array("customCss", 'customCssMobile', "receipt-template", "modifyPreProcessSearchString", 'fields', 'button_js'))) {
+            if (in_array($key, array("customCss", 'customCssMobile', "receipt-template", "modifyPreProcessSearchString", "afterSearchJavaScript", 'fields', 'button_js'))) {
                 return $value;
             } else {
                 return sanitize_text_field($value);
@@ -275,13 +291,14 @@ class Settings
             if (!$tab) {
                 $settingsTable = $this->getSettings("", false, $reSelectData);
 
-                $settings["prices"] = (object)array();
+                $settings["prices"] = (object) array();
                 $settings["modalShowLocations"] = 0;
                 $settings["directDbSearch"] = "on";
                 $settings["receipt-width"] = "55";
                 $settings["displayCouponField"] = "on";
                 $settings["displayNoteField"] = "on";
                 $settings["displayPayButton"] = "on";
+                $settings["autoGenInvoice"] = "on";
                 $settings["orderFulfillmentEnabled"] = "on";
                 $settings["productLeftSidebarWidth"] = "235";
                 $settings["productMiddleLeftWidth"] = "320";
@@ -298,72 +315,94 @@ class Settings
                 $settings["uslpBtnAutoCreate"] = "off";
                 $settings["allowNegativeStock"] = "on";
                 $settings["uslpUseReceiptToPrint"] = "off";
+                $settings["cartDecimalQuantity"] = "on";
+                $settings["stripeApiEnabled"] = "on";
+                $settings["priceFieldPriority"] = "wc_default";
 
-                                if (!isset($setting['sortOrderItemsByCategories'])) $settings["fulfillmentFrontendSearch"] = "on";
+                if (!isset($setting['sortOrderItemsByCategories']))
+                    $settings["fulfillmentFrontendSearch"] = "on";
 
-                if (!isset($setting['appLoginMethods'])) $settings["appLoginMethods"] = "both";
-                if (!isset($setting['defaultLoginMethod'])) $settings["defaultLoginMethod"] = "login_pass";
+                if (!isset($setting['appLoginMethods']))
+                    $settings["appLoginMethods"] = "both";
+                if (!isset($setting['defaultLoginMethod']))
+                    $settings["defaultLoginMethod"] = "login_pass";
 
                 foreach ($settingsTable as $key => $setting) {
-                    if (in_array($setting->field_name, $excludes)) continue;
+                    if (in_array($setting->field_name, $excludes))
+                        continue;
 
                     if ($setting->field_name === "settings_prices") {
                         if ($setting->value) {
-                            $settings["prices"] = (array)$setting->value;
+                            $settings["prices"] = (array) $setting->value;
                         }
-                    } else if (in_array($setting->field_name, array(
-                        "modalShowLocations",
-                        "directDbUpdate",
-                        "directDbSearch",
-                        "cartDecimalQuantity",
-                        "newOrderUserRequired",
-                        "fulfillmentScanItemQty",
-                        "nowOrderDefaultUser",
-                        'displaySearchCounter',
-                        'openOrderAfterCreation',
-                        'shippingRequired',
-                        'paymentRequired',
-                        "fieldForNewProduct",
-                        'orderFulfillmentEnabled',
-                        'orderFulFillmentField',
-                        'receipt-width',
-                        'receipt-template',
-                        'modifyPreProcessSearchString',
-                        'updated_timestamp',
-                        'autoStatusFulfilled',
-                        'delayBetweenScanning',
-                        'displayCouponField',
-                        'displayNoteField',
-                        'displayPayButton',
-                        'orderFulfillmentByDefault',
-                        'productLeftSidebarWidth',
-                        'productMiddleRightWidth',
-                        'productMiddleLeftWidth',
-                        'productColumn4Width',
-                        'defaultPaymentMethod',
-                        'fulfilledNotAllowStatus',
-                        'fulfilledCloseOrderAfter',
-                        'dontAllowSwitchOrder',
-                        'productsIndexation',
-                        'ordersIndexation',
-                        'resetFulfillmentByCloseOrder',
-                        'sortOrderItemsByCategories',
-                        'pickListProductCode',
-                        'defaultProductQty',
-                        'allowMarkFulfilled',
-                        'disabledVariationsProducts',
-                        'disabledVariationsOrders',
-                        'defaultOrderTax',
-                        'cfForNewProduct',
-                        'newProductStatus',
-                        'uslpBtnAutoCreate',
-                        'uslpUseReceiptToPrint',
-                        'fulfillmentFrontendSearch',
-                        'appLoginMethods',
-                        'defaultLoginMethod',
-                    ))) {
+                    } else if (
+                        in_array($setting->field_name, array(
+                            "modalShowLocations",
+                            "directDbUpdate",
+                            "directDbSearch",
+                            "cartDecimalQuantity",
+                            "newOrderUserRequired",
+                            "fulfillmentScanItemQty",
+                            "nowOrderDefaultUser",
+                            'displaySearchCounter',
+                            'openOrderAfterCreation',
+                            'shippingRequired',
+                            'paymentRequired',
+                            "fieldForNewProduct",
+                            'orderFulfillmentEnabled',
+                            'orderFulFillmentField',
+                            'receipt-width',
+                            'receipt-template',
+                            'modifyPreProcessSearchString',
+                            'afterSearchJavaScript',
+                            'updated_timestamp',
+                            'autoStatusFulfilled',
+                            'delayBetweenScanning',
+                            'displayCouponField',
+                            'displayNoteField',
+                            'displayPayButton',
+                            'autoGenInvoice',
+                            'orderFulfillmentByDefault',
+                            'productLeftSidebarWidth',
+                            'productMiddleRightWidth',
+                            'productMiddleLeftWidth',
+                            'productColumn4Width',
+                            'beforeProductWidth',
+                            'beforeProductRightWidth',
+                            'afterProductWidth',
+                            'afterProductRightWidth',
+                            'defaultPaymentMethod',
+                            'fulfilledNotAllowStatus',
+                            'fulfilledCloseOrderAfter',
+                            'dontAllowSwitchOrder',
+                            'productsIndexation',
+                            'ordersIndexation',
+                            'resetFulfillmentByCloseOrder',
+                            'sortOrderItemsByCategories',
+                            'pickListProductCode',
+                            'defaultProductQty',
+                            'allowMarkFulfilled',
+                            'disabledVariationsProducts',
+                            'disabledVariationsOrders',
+                            'defaultOrderTax',
+                            'cfForNewProduct',
+                            'newProductStatus',
+                            'uslpBtnAutoCreate',
+                            'uslpUseReceiptToPrint',
+                            'fulfillmentFrontendSearch',
+                            'appLoginMethods',
+                            'defaultLoginMethod',
+                            'FFrestrictOrderOpening',
+                            'stripeApiEnabled',
+                            'stripeDefaultTerminalId',
+                            'stripeApiSecretKey',
+                            'FFexcludeIds',
+                            'FFerrorsInPopup',
+                            'displayTaxesForItems',
+                        ))
+                    ) {
                         $settings[$setting->field_name] = $setting->value;
-                    } else if (in_array($setting->field_name, ["defaultOrderStatus", "orderStatusesAreStillNotCompleted", "defaultShippingMethod", "defaultPriceField", "allowNegativeStock", 'defaultShippingMethods'])) {
+                    } else if (in_array($setting->field_name, ["defaultOrderStatus", "orderStatusesAreStillNotCompleted", "defaultShippingMethod", "allowNegativeStock", 'defaultShippingMethods'])) {
                         $settings[$setting->field_name] = $setting->value;
                     }
                 }
@@ -374,21 +413,28 @@ class Settings
             if ($tab === "prices") {
                 $settingsTable = $this->getSettings("settings_prices");
 
-                if (!$settingsTable) return $defaultValue;
+                if (!$settingsTable)
+                    return $defaultValue;
 
-                if (!$field) return $settingsTable;
+                if (!$field)
+                    return $settingsTable;
 
-                if (!isset($settingsTable->value) || !isset($settingsTable->value->$field)) return $defaultValue;
+                if (!isset($settingsTable->value) || !isset($settingsTable->value->$field))
+                    return $defaultValue;
 
                 return $settingsTable->value->$field;
             } else {
-                if (!isset($settings[$tab])) return $defaultValue;
+                if (!isset($settings[$tab]))
+                    return $defaultValue;
 
-                if (!$field) return $settings[$tab];
+                if (!$field)
+                    return $settings[$tab];
 
-                if (!isset($settings[$tab][$field])) return $defaultValue;
+                if (!isset($settings[$tab][$field]))
+                    return $defaultValue;
 
-                if (!$settings[$tab][$field] && $defaultValue) return $defaultValue;
+                if (!$settings[$tab][$field] && $defaultValue)
+                    return $defaultValue;
 
                 return $settings[$tab][$field];
             }
@@ -443,8 +489,10 @@ class Settings
     {
         global $wpdb;
 
+        // @codingStandardsIgnoreStart
         $tablePosts = $wpdb->prefix . Database::$posts;
         $posts = $wpdb->get_row("SELECT COUNT(P.id) as 'total' FROM {$tablePosts} AS P WHERE P.successful_update = '1' AND P.updated != '0000-00-00 00:00:00';");
+        // @codingStandardsIgnoreEnd
 
         if ($posts && $posts->total) {
             return $posts->total;
@@ -457,8 +505,10 @@ class Settings
     {
         global $wpdb;
 
+        // @codingStandardsIgnoreStart
         $tablePosts = $wpdb->prefix . Database::$posts;
-        $posts = $wpdb->get_row("SELECT COUNT(P.id) as 'total' FROM {$tablePosts} AS P WHERE P.successful_update = '0';");
+        $posts = $wpdb->get_row("SELECT COUNT(P.id) as 'total' FROM {$tablePosts} AS P WHERE P.successful_update = '0' AND P.post_type IN('product', 'product_variation', 'shop_order', 'shop_order_placehold');");
+        // @codingStandardsIgnoreEnd
 
         if ($posts && $posts->total) {
             return $posts->total;
@@ -591,17 +641,20 @@ class Settings
             if (isset($this->post["tab"]) && $this->post["tab"] == "fields") {
                 InterfaceData::saveFields($this->post["fields"], $this->post["role"]);
 
-                if (isset($this->post["defaultPriceField"])) {
-                    $this->updateSettings("settings_prices", json_encode(array(
-                        "defaultPriceField" => $this->post["defaultPriceField"]
-                    )));
-                }
                 if (isset($this->post["productLeftSidebarWidth"])) {
                     $this->updateSettings("productLeftSidebarWidth", $this->post["productLeftSidebarWidth"]);
                     $this->updateSettings("productMiddleRightWidth", $this->post["productMiddleRightWidth"]);
                     $this->updateSettings("productMiddleLeftWidth", $this->post["productMiddleLeftWidth"]);
                     $this->updateSettings("productColumn4Width", $this->post["productColumn4Width"]);
                 }
+                return;
+            }
+            if (isset($this->post["tab"]) && $this->post["tab"] == "order-fields") {
+                InterfaceData::saveFields($this->post["fields"], $this->post["role"]);
+                $this->updateSettings("beforeProductWidth", $this->post["beforeProductWidth"]);
+                $this->updateSettings("beforeProductRightWidth", $this->post["beforeProductRightWidth"]);
+                $this->updateSettings("afterProductWidth", $this->post["afterProductWidth"]);
+                $this->updateSettings("afterProductRightWidth", $this->post["afterProductRightWidth"]);
                 return;
             }
 
@@ -611,9 +664,9 @@ class Settings
                 return;
             }
 
-              foreach ($this->post as $key => $value) {
+            foreach ($this->post as $key => $value) {
                 if (!in_array($key, array("tab", "storage", "locations"))) {
-                    if (in_array($key, array("customCss", 'customCssMobile', "modifyPreProcessSearchString"))) {
+                    if (in_array($key, array("customCss", 'customCssMobile', "modifyPreProcessSearchString", "afterSearchJavaScript"))) {
                         $this->updateSettings($key, stripslashes($value), "text");
                     } else {
                         $this->updateSettings($key, $value, "text");
@@ -777,14 +830,14 @@ class Settings
                     "cart" => in_array($key, $defaultAccess) || in_array($key, $defaultFrontAccess) ? 1 : 0,
                     "linkcustomer" => in_array($key, $defaultAccess) || in_array($key, $defaultFrontAccess) ? 1 : 0,
                     "link_current_user" => 0,
-                    "frontend" => in_array($key,  $defaultAccess) || in_array($key, $defaultFrontAccess) ? 1 : 0,
-                    "plugin_settings" => in_array($key,  $defaultAccess) ? 1 : 0,
-                    "plugin_logs" => in_array($key,  $defaultAccess) ? 1 : 0,
-                    "app_qty_plus" => in_array($key,  $defaultAccess) || in_array($key, $defaultFrontAccess) ? 1 : 0,
-                    "app_qty_minus" => in_array($key,  $defaultAccess) || in_array($key, $defaultFrontAccess) ? 1 : 0,
-                    "app_save_list" => in_array($key,  $defaultAccess) || in_array($key, $defaultFrontAccess) ? 1 : 0,
-                    "prod_search_action" => in_array($key,  $defaultAccess) || in_array($key, $defaultFrontAccess) ? 1 : 0,
-                    "order_search_action" => in_array($key,  $defaultAccess) || in_array($key, $defaultFrontAccess) ? 1 : 0
+                    "frontend" => in_array($key, $defaultAccess) || in_array($key, $defaultFrontAccess) ? 1 : 0,
+                    "plugin_settings" => in_array($key, $defaultAccess) ? 1 : 0,
+                    "plugin_logs" => in_array($key, $defaultAccess) ? 1 : 0,
+                    "app_qty_plus" => in_array($key, $defaultAccess) || in_array($key, $defaultFrontAccess) ? 1 : 0,
+                    "app_qty_minus" => in_array($key, $defaultAccess) || in_array($key, $defaultFrontAccess) ? 1 : 0,
+                    "app_save_list" => in_array($key, $defaultAccess) || in_array($key, $defaultFrontAccess) ? 1 : 0,
+                    "prod_search_action" => in_array($key, $defaultAccess) || in_array($key, $defaultFrontAccess) ? 1 : 0,
+                    "order_search_action" => in_array($key, $defaultAccess) || in_array($key, $defaultFrontAccess) ? 1 : 0
                 );
             }
         }
@@ -815,8 +868,10 @@ class Settings
 
         if (isset($roles[$role])) {
             $data = $roles[$role];
-            if (!isset($data["newprod"]) && isset($data["inventory"])) $data["newprod"] = $data["inventory"];
-            if (!isset($data["linkcustomer"]) && isset($data["cart"])) $data["linkcustomer"] = $data["cart"];
+            if (!isset($data["newprod"]) && isset($data["inventory"]))
+                $data["newprod"] = $data["inventory"];
+            if (!isset($data["linkcustomer"]) && isset($data["cart"]))
+                $data["linkcustomer"] = $data["cart"];
 
             return $data;
         }
@@ -833,19 +888,19 @@ class Settings
     public function getUserRolePermissions($userId = null)
     {
         $result = array(
-            "inventory" => 0, 
-            "newprod" => 0, 
-            "orders" => 0, 
-            "onlymy" => 0, 
-            "show_prices" => 0, 
-            "order_edit" => 0, 
-            "order_edit_address" => 0, 
-            "edit_prices" => 0, 
-            "cart" => 0, 
-            "linkcustomer" => 0, 
+            "inventory" => 0,
+            "newprod" => 0,
+            "orders" => 0,
+            "onlymy" => 0,
+            "show_prices" => 0,
+            "order_edit" => 0,
+            "order_edit_address" => 0,
+            "edit_prices" => 0,
+            "cart" => 0,
+            "linkcustomer" => 0,
             "link_current_user" => 0,
-            "frontend" => 0, 
-            "plugin_settings" => 0, 
+            "frontend" => 0,
+            "plugin_settings" => 0,
             "plugin_logs" => 0,
             "app_qty_plus" => 0,
             "app_qty_minus" => 0,

@@ -20,11 +20,11 @@ class Logs
     {
 
         if (isset($_GET["p"])) {
-            $this->page = (int)sanitize_text_field($_GET["p"]);
+            $this->page = (int) sanitize_text_field($_GET["p"]);
         }
 
         if (isset($_GET["ipp"])) {
-            $this->recordsPerPage = (int)sanitize_text_field($_GET["ipp"]);
+            $this->recordsPerPage = (int) sanitize_text_field($_GET["ipp"]);
         }
 
         $this->getRecords();
@@ -70,19 +70,23 @@ class Logs
         }
 
 
+        // @codingStandardsIgnoreStart
         $this->records = $wpdb->get_results(
             "SELECT SQL_CALC_FOUND_ROWS * FROM {$table} AS L {$where} {$groupBy} ORDER BY L.id DESC LIMIT {$offset}, {$limit};"
         );
+        // @codingStandardsIgnoreEnd
 
+        // @codingStandardsIgnoreStart
         $total = $wpdb->get_row("SELECT FOUND_ROWS() as `total`");
+        // @codingStandardsIgnoreEnd
         $this->recordsTotal = $total->total;
     }
 
     private function getActions()
     {
         $this->actions = array(
-            "sku" =>  __("SKU", "us-barcode-scanner"),
-            "enable_stock" =>  __("Enable stock", "us-barcode-scanner"),
+            "sku" => __("SKU", "us-barcode-scanner"),
+            "enable_stock" => __("Enable stock", "us-barcode-scanner"),
             "quantity_plus" => __("Stock (+1)", "us-barcode-scanner"),
             "quantity_minus" => __("Stock (-1)", "us-barcode-scanner"),
             "order_quantity_minus" => __("Stock updated (Order creation)", "us-barcode-scanner"),
@@ -114,9 +118,9 @@ class Logs
         $this->users = array();
         $table = $wpdb->prefix . Database::$logs;
 
-        $users = $wpdb->get_results(
-            "SELECT L.user_id FROM {$table} AS L GROUP BY L.user_id;"
-        );
+        // @codingStandardsIgnoreStart
+        $users = $wpdb->get_results("SELECT L.user_id FROM {$table} AS L GROUP BY L.user_id;");
+        // @codingStandardsIgnoreEnd
 
         foreach ($users as $user) {
             $this->users[] = $this->getUserById($user->user_id);
@@ -127,8 +131,9 @@ class Logs
     {
         global $wpdb;
 
-        $sql = "SELECT * FROM {$wpdb->users} as u WHERE u.ID = {$id};";
-        $row = $wpdb->get_row($sql);
+        // @codingStandardsIgnoreStart
+        $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->users} as u WHERE u.ID = %s;", $id));
+        // @codingStandardsIgnoreEnd
 
         return array(
             'ID' => $row ? $row->ID : 0,
@@ -212,15 +217,15 @@ class Logs
             } else if ($record->custom_action) {
                 $action = $record->custom_action;
             } else if ($label != $record->value && $record->value != 0) {
-                $action =  __("Changed", "us-barcode-scanner");
-                $action .=  ' "' . $label . '"';
+                $action = __("Changed", "us-barcode-scanner");
+                $action .= ' "' . $label . '"';
             } else {
                 $action = isset($this->actions[$record->action]) ? $this->actions[$record->action] : $record->action;
             }
             if ($record->action == "update_order_item_meta") {
                 $newValue = $record->value == 1 ? __("Item Found", "us-barcode-scanner") : __("Uncheck", "us-barcode-scanner");
             } else {
-                $newValue = count($newValue) === 2 ?  $newValue[1] : $record->value;
+                $newValue = count($newValue) === 2 ? $newValue[1] : $record->value;
             }
             $oldValue = $record->old_value;
             fputcsv($fp, array($userId, $login, $fullName, $date, $time, $productId, $item, $action, $newValue, $oldValue), $csv_separator);
@@ -228,9 +233,9 @@ class Logs
 
         fclose($fp);
 
-        $exported = (int)$inputs["exported"] + count($this->records);
+        $exported = (int) $inputs["exported"] + count($this->records);
 
-        if ((int)$this->recordsTotal == $exported) {
+        if ((int) $this->recordsTotal == $exported) {
             $path = $folder["upload_dir"] . "logs/";
             $url = $folder["upload_dir_url"] . "logs/";
             rename($path . $tmpFname, $path . $fname);
@@ -239,7 +244,7 @@ class Logs
         $result = array(
             "total" => $this->recordsTotal,
             "exported" => $exported,
-            "nextPage" => (int)$inputs["page"] + 1,
+            "nextPage" => (int) $inputs["page"] + 1,
             "fname" => $fname,
             "fpath" => SettingsHelper::getDownloadCsvUrl() . "?fn=" . $fname,
             "tmpFname" => $tmpFname,
@@ -308,7 +313,8 @@ class Logs
 
     public function getFieldLabel($fieldName)
     {
-        if (!$fieldName) return "";
+        if (!$fieldName)
+            return "";
 
         $field = InterfaceData::getField($fieldName);
         return $field ? $field["field_label"] : $fieldName;

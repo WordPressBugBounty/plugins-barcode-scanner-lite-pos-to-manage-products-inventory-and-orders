@@ -23,13 +23,17 @@ class History
 
             $table = $wpdb->prefix . Database::$history;
 
+            // @codingStandardsIgnoreStart
             $record = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE `user_id` = %d AND `post_id` = %d;", $uid, $postId));
+            // @codingStandardsIgnoreEnd
 
+            // @codingStandardsIgnoreStart
             if ($record) {
                 $wpdb->update($table, array('counter' => $record->counter + 1, 'updated' => date("Y-m-d H:i:s")), array('id' => $record->id));
             } else {
                 $wpdb->insert($table, array('user_id' => $uid, 'post_id' => $postId, 'updated' => date("Y-m-d H:i:s")), array('%d', '%s', '%s'));
             }
+            // @codingStandardsIgnoreEnd
         } catch (\Throwable $th) {
             Debug::addPoint($th->getMessage());
         }
@@ -50,14 +54,17 @@ class History
 
             $table = $wpdb->prefix . Database::$history;
 
+            // @codingStandardsIgnoreStart
             $products = $wpdb->get_results($wpdb->prepare(
                 "SELECT H.* FROM {$table} AS H, {$wpdb->posts} AS P WHERE P.ID = H.post_id AND P.post_type IN('product','product_variation') AND H.user_id = %d ORDER BY H.updated DESC LIMIT 15;",
                 $uid
             ));
+            // @codingStandardsIgnoreEnd
 
             Debug::addPoint("--- history: products");
 
             if (HPOS::getStatus()) {
+                // @codingStandardsIgnoreStart
                 $orders = $wpdb->get_results($wpdb->prepare(
                     "SELECT H.*, 
                     (SELECT COUNT(order_item_id) FROM {$wpdb->prefix}woocommerce_order_items WHERE order_id = O.id AND order_item_type = 'line_item') AS 'items_count'
@@ -65,7 +72,9 @@ class History
                     WHERE O.type = 'shop_order' AND O.id = H.post_id AND H.user_id = %d ORDER BY H.updated DESC LIMIT 15;",
                     $uid
                 ));
+                // @codingStandardsIgnoreEnd
             } else {
+                // @codingStandardsIgnoreStart
                 $orders = $wpdb->get_results($wpdb->prepare(
                     "SELECT H.*, 
                     (SELECT COUNT(order_item_id) FROM {$wpdb->prefix}woocommerce_order_items WHERE order_id = P.ID AND order_item_type = 'line_item') AS 'items_count'
@@ -73,6 +82,7 @@ class History
                     WHERE P.ID = H.post_id AND P.post_type = 'shop_order' AND H.user_id = %d ORDER BY H.updated DESC LIMIT 15;",
                     $uid
                 ));
+                // @codingStandardsIgnoreEnd
             }
 
             Debug::addPoint("--- history: orders");
@@ -128,7 +138,9 @@ class History
                 if (!$value->post_id) continue;
 
                 if (HPOS::getStatus()) {
+                    // @codingStandardsIgnoreStart
                     $record = $wpdb->get_row($wpdb->prepare("SELECT O.* FROM {$wpdb->prefix}wc_orders AS O WHERE O.id = %d", $value->post_id));
+                    // @codingStandardsIgnoreEnd
 
                     if ($record) {
                         $order = new \WC_Order($value->post_id);

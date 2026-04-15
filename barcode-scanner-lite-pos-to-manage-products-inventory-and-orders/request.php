@@ -66,7 +66,9 @@ function usbs_plugin_filter($plugins)
         "fluent-smtp/fluent-smtp.php"
     );
 
+    // @codingStandardsIgnoreStart
     $option = $wpdb->get_row("SELECT * FROM {$wpdb->options} WHERE option_name = 'barcode-scanner-plugins';");
+    // @codingStandardsIgnoreEnd
     $availablePlugins = $option && $option->option_value ? unserialize($option->option_value) : array();
     $availablePlugins = array_merge($defaultPlugins, $availablePlugins);
 

@@ -43,7 +43,7 @@ class HPOS
         $settings = new Settings();
 
         $field = $settings->getSettings("searchResultsLimit");
-        $searchResultsLimit = $field === null ? 20 : (int)$field->value;
+        $searchResultsLimit = $field === null ? 20 : (int) $field->value;
         $searchResultsLimit = $searchResultsLimit ? $searchResultsLimit : 20;
         $searchResultsLimit = $searchResultsLimit > 999 ? 999 : $searchResultsLimit;
 
@@ -59,6 +59,19 @@ class HPOS
         $excludeStatuses = "";
         $orderStatusesField = $settings->getSettings("orderStatuses");
         $excludeStatuses = $orderStatusesField === null ? "wc-checkout-draft,trash" : $orderStatusesField->value;
+
+        if ($excludeStatuses) {
+            $excludeStatusesArr = explode(",", $excludeStatuses);
+
+            if ($excludeStatusesArr) {
+                foreach ($excludeStatusesArr as $value) {
+                    if (preg_match('/^wc\-(.*?)?$/', $value, $m)) {
+                        $excludeStatusesArr[] = $m[1];
+                    }
+                }
+                $excludeStatuses = implode(',', $excludeStatusesArr);
+            }
+        }
 
         $filterWithoutTitle = $filter;
         $findByTitle = false;
@@ -80,10 +93,14 @@ class HPOS
             $query = $queryFromUrl;
         }
 
-        $sql = self::sqlBuilder($query, $filterWithoutTitle, $excludeStatuses);
+        $availableStatuses = apply_filters('scanner_orders_available_statuses', array());
 
+        $sql = self::sqlBuilder($query, $filterWithoutTitle, $excludeStatuses, $availableStatuses);
+
+        // @codingStandardsIgnoreStart
         $orders = $wpdb->get_results($sql);
         $total = $wpdb->get_row("SELECT FOUND_ROWS() as `total`");
+        // @codingStandardsIgnoreEnd
 
         Debug::addPoint("1. sql");
         Debug::addPoint($sql);
@@ -122,9 +139,13 @@ class HPOS
     private static function checkUrlInQuery($query, $filter)
     {
         try {
-            if (!$filter || !isset($filter["products"])) return $query;
+            if (!$filter || !isset($filter["products"])) {
+                return $query;
+            }
 
-            if (!isset($filter["products"]["prod_link"]) || $filter["products"]["prod_link"] != "1") return $query;
+            if (!isset($filter["products"]["prod_link"]) || $filter["products"]["prod_link"] != "1") {
+                return $query;
+            }
 
             $id = self::isUrl($query) ? url_to_postid($query) : "";
 
@@ -144,7 +165,7 @@ class HPOS
         }
     }
 
-    private static function sqlBuilder($query, $filter, $excludeStatuses)
+    private static function sqlBuilder($query, $filter, $excludeStatuses, $availableStatuses = [])
     {
         global $wpdb;
 
@@ -154,19 +175,35 @@ class HPOS
         $columns = $wpdb->prefix . Database::$columns;
         $metaFieldPrefix = Database::$postMetaFieldPrefix;
 
+        // @codingStandardsIgnoreStart
         $tableColumns = $wpdb->get_results("SELECT * FROM {$columns} AS C;");
+        // @codingStandardsIgnoreEnd
 
         $statuses = explode(",", $excludeStatuses);
-        if (!count($statuses)) $statuses[] = "trash";
+        if (!count($statuses)) {
+            $statuses[] = "trash";
+        }
         $statuses = implode("','", $statuses);
 
         $selectColumns = array();
         $params = (new Post())->getFilterParams($filter);
         $isNumeric = (preg_match('/^[0-9]{0,20}$/', trim($query), $m)) ? true : false;
 
+        $availableStatusesSql = " ";
+
+        if ($availableStatuses && is_array($availableStatuses) && count($availableStatuses)) {
+            $availableStatusesStr = implode("','", $availableStatuses);
+            $availableStatusesSql = " 
+                AND ( P.post_status IN ('{$availableStatusesStr}')  OR P.post_status IS NULL ) 
+                AND ( P.post_parent = 0 OR P.post_parent IS NULL OR P.post_parent_status IS NUll OR P.post_parent_status IN ('{$availableStatusesStr}')   ) 
+            ";
+        }
+
         $sql = "SELECT SQL_CALC_FOUND_ROWS O.* %SELECT_COLUMNS% FROM {$posts} AS P, {$wpdb->prefix}wc_orders AS O 
-                WHERE O.id = P.post_id AND ( P.post_status NOT IN('{$statuses}') OR P.post_status IS NULL ) 
+                WHERE O.id = P.post_id 
+                    AND ( P.post_status NOT IN('{$statuses}') OR P.post_status IS NULL ) 
                     AND ( P.post_parent = 0 OR P.post_parent IS NULL OR P.post_parent_status IS NUll OR P.post_parent_status NOT IN('{$statuses}')  ) 
+                    {$availableStatusesSql}
                     AND ( ";
 
         $filterSql = "";
@@ -203,7 +240,7 @@ class HPOS
 
             if (key_exists($field, Database::$postsFields)) {
                 $filterSql .= (strlen($filterSql)) ? " OR " : "";
-                $_sql = Database::$postsFields[$field] === "like" || $params["statusProductCF"] == 2 ? " ( P.post_type IN( {$types} ) AND  P.`{$field}` LIKE '%{$query}%' ) " :  " ( P.post_type IN( {$types} ) AND  P.`{$field}` = '{$query}' ) ";
+                $_sql = Database::$postsFields[$field] === "like" || $params["statusProductCF"] == 2 ? " ( P.post_type IN( {$types} ) AND  P.`{$field}` LIKE '%{$query}%' ) " : " ( P.post_type IN( {$types} ) AND  P.`{$field}` = '{$query}' ) ";
 
                 $filterSql .= $_sql;
                 $selectColumns[] = "{$_sql} AS '{$field}'";
@@ -246,6 +283,14 @@ class HPOS
             $_sql = self::sqlComp($params["_order_number"], $types, $query, "P.{$metaFieldPrefix}_order_number");
             $filterSql .= $_sql;
             $selectColumns[] = "{$_sql} AS '_order_number'";
+        }
+
+        if ($params["hook_order_number"] != 0) {
+            $filterSql .= (strlen($filterSql)) ? " OR " : "";
+            $types = "'shop_order'";
+            $_sql = self::sqlComp($params["hook_order_number"], $types, $query, "P.hook_order_number");
+            $filterSql .= $_sql;
+            $selectColumns[] = "{$_sql} AS 'hook_order_number'";
         }
 
         if ($params["_billing_address_index"] != 0) {
@@ -312,19 +357,25 @@ class HPOS
     {
         $orders = array();
 
-        if (!$posts) return $orders;
+        if (!$posts) {
+            return $orders;
+        }
 
         if (count($posts) > 1) {
             foreach ($posts as $post) {
                 $order = self::formatOrder($post, $additionalFields, 'orders_list');
 
-                if ($order) $orders[] = $order;
+                if ($order) {
+                    $orders[] = $order;
+                }
             }
         } elseif (count($posts)) {
             $post = $posts[0];
             $order = self::formatOrder($post, $additionalFields, $page);
 
-            if ($order) $orders[] = $order;
+            if ($order) {
+                $orders[] = $order;
+            }
         }
 
         return $orders;
@@ -337,7 +388,9 @@ class HPOS
         Debug::addPoint(" - formatOrder");
 
         try {
-            if (!isset($post->ID) && isset($post->id)) $post->ID = $post->id;
+            if (!isset($post->ID) && isset($post->id)) {
+                $post->ID = $post->id;
+            }
             $order = new \WC_Order($post->ID);
         } catch (\Throwable $th) {
         }
@@ -374,6 +427,7 @@ class HPOS
         $products = array();
         $items = $order->get_items("line_item");
         $currencySymbol = get_woocommerce_currency_symbol(get_woocommerce_currency());
+        $currencyLabel = get_woocommerce_currency();
 
         Debug::addPoint(" - formatOrder currency");
 
@@ -453,7 +507,7 @@ class HPOS
 
         $orderDate = new \DateTime($order->get_date_created());
         $date_format = $order->get_date_created();
-        $date_format->setTimezone(new \DateTimeZone( \wp_timezone_string()));
+        $date_format->setTimezone(new \DateTimeZone(\wp_timezone_string()));
         $date_format = $date_format->format("Y-m-d H:i:s");
 
         $customerName = $order->get_billing_first_name() . " " . $order->get_billing_last_name();
@@ -468,9 +522,15 @@ class HPOS
 
         Debug::addPoint(" - formatOrder user");
 
-        $logRecord = $wpdb->get_row("SELECT * FROM {$wpdb->prefix}barcode_scanner_logs AS L WHERE L.post_id = '{$order->get_id()}' AND L.action = 'update_order_fulfillment' AND L.value = '1' ORDER BY L.id DESC LIMIT 1");
+        // @codingStandardsIgnoreStart
+        $logRecord = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$wpdb->prefix}barcode_scanner_logs AS L WHERE L.post_id = %d AND L.action = 'update_order_fulfillment' AND L.value = '1' ORDER BY L.id DESC LIMIT 1",
+            $order->get_id()
+        ));
+        // @codingStandardsIgnoreEnd
         $fulfillment_user_name = "";
         $fulfillment_user_email = "";
+        $fulfillment_user_id = "";
 
         if ($logRecord && $logRecord->user_id) {
             $user = get_user_by("ID", $logRecord->user_id);
@@ -478,6 +538,7 @@ class HPOS
             if ($user) {
                 $fulfillment_user_name = $user->display_name ? $user->display_name : $user->user_nicename;
                 $fulfillment_user_email = $user->user_email;
+                $fulfillment_user_id = $user->ID;
             }
         }
 
@@ -493,10 +554,10 @@ class HPOS
         Debug::addPoint(" - formatOrder fulfillment");
 
         $bStates = WC()->countries->get_states($order->get_billing_country());
-        $bState  = !empty($bStates[$order->get_billing_state()]) ? $bStates[$order->get_billing_state()] : '';
+        $bState = !empty($bStates[$order->get_billing_state()]) ? $bStates[$order->get_billing_state()] : '';
 
         $sStates = WC()->countries->get_states($order->get_shipping_country());
-        $sState  = !empty($sStates[$order->get_shipping_state()]) ? $sStates[$order->get_shipping_state()] : '';
+        $sState = !empty($sStates[$order->get_shipping_state()]) ? $sStates[$order->get_shipping_state()] : '';
 
         $receiptShortcodes = ResultsHelper::getReceiptShortcodesOrder($settings, $order->get_id());
 
@@ -505,20 +566,22 @@ class HPOS
         if ($customerId) {
             $cartScannerActions = new CartScannerActions();
 
-            $taxAddress = $cartScannerActions->getTaxAddress(array("address" => array(
-                "billing_country" => $order->get_billing_country(),
-                "billing_state" => $order->get_billing_state(),
-                "billing_city" => $order->get_billing_city(),
-                "billing_postcode" => $order->get_billing_postcode(),
-                "shipping_country" => $order->get_shipping_country(),
-                "shipping_state" => $order->get_shipping_state(),
-                "shipping_city" => $order->get_shipping_city(),
-                "shipping_postcode" => $order->get_shipping_postcode(),
-                "shipping_as_billing" => 0
-            )));
+            $taxAddress = $cartScannerActions->getTaxAddress(array(
+                "address" => array(
+                    "billing_country" => $order->get_billing_country(),
+                    "billing_state" => $order->get_billing_state(),
+                    "billing_city" => $order->get_billing_city(),
+                    "billing_postcode" => $order->get_billing_postcode(),
+                    "shipping_country" => $order->get_shipping_country(),
+                    "shipping_state" => $order->get_shipping_state(),
+                    "shipping_city" => $order->get_shipping_city(),
+                    "shipping_postcode" => $order->get_shipping_postcode(),
+                    "shipping_as_billing" => 0
+                )
+            ));
 
             $shippingMethods = $cart->getShippingMethods($customerId, $taxAddress);
-        } 
+        }
         else {
             $userId = get_current_user_id();
             $shippingMethods = $cart->getShippingMethods($userId, array());
@@ -528,10 +591,12 @@ class HPOS
 
         foreach ($order->get_items('shipping') as $shipping_item) {
             $method_id = $shipping_item->get_method_id();
-            if (!$method_id && $method_id != 0) $method_id = "";
+            if (!$method_id && $method_id != 0)
+                $method_id = "";
 
             $instance_id = $shipping_item->get_instance_id();
-            if (!$instance_id) $instance_id = 0;
+            if (!$instance_id)
+                $instance_id = 0;
 
             $shipping_method = $method_id;
         }
@@ -580,8 +645,8 @@ class HPOS
             "order_date" => $order->get_date_created(),
             "date_format" => $date_format,
             "preview_date_format" => $previewDateFormat,
-            "usbs_fulfillment_objects" => get_post_meta($order->get_id(), "usbs_fulfillment_objects", true),
-            "usbs_order_fulfillment_data" => get_post_meta($order->get_id(), "usbs_order_fulfillment_data", true),
+            "usbs_fulfillment_objects" => OrdersHelper::get_meta_value($order, $post->ID, "usbs_fulfillment_objects"),
+            "usbs_order_fulfillment_data" => OrdersHelper::get_meta_value($order, $post->ID, "usbs_order_fulfillment_data"),
             "user" => $userData,
             "order_tax" => $order->get_total_tax(),
             "order_tax_c" => strip_tags(wc_price($order->get_total_tax())),
@@ -606,13 +671,15 @@ class HPOS
             "customer_country" => $customerCountry,
             "products" => $sortOrderItemsByCategories == "on" && !in_array($page, array('history', 'orders_list')) ? ProductsHelper::sortProductsByCategories($products) : $products,
             "currencySymbol" => $currencySymbol,
+            'currencyLabel' => $currencyLabel,
             "postEditUrl" => admin_url('post.php?post=' . $post->ID) . '&action=edit',
             "postPayUrl" => $order->get_checkout_payment_url(),
             "updated" => time(),
             "foundCounter" => OrdersHelper::get_meta_value($order, $post->ID, "usbs_found_counter"),
             "fulfillment_user_name" => $fulfillment_user_name,
             "fulfillment_user_email" => $fulfillment_user_email,
-            "discount" => $order->get_discount_total() ?  strip_tags($order->get_discount_to_display()) : "",
+            "fulfillment_user_id" => $fulfillment_user_id,
+            "discount" => $order->get_discount_total() ? strip_tags($order->get_discount_to_display()) : "",
             "coupons" => $order->get_coupon_codes(),
             "shop" => ResultsHelper::getStoreData(),
             "receiptShortcodes" => $receiptShortcodes,
@@ -623,6 +690,9 @@ class HPOS
             "shippingMethods" => $shippingMethods,
             "shipping_method" => $shipping_method,
             "payment_method" => $payment_method,
+            "order_notes" => OrdersHelper::getOrderNotes($order),
+            "pos_data" => OrdersHelper::getPosData($order),
+            "current_edit_data" => $order->get_meta("_bs_user_edit_data"),
         );
 
         OrdersHelper::addOrderData($order->get_id(), $props);
@@ -630,10 +700,12 @@ class HPOS
         Debug::addPoint(" - formatOrder order props");
 
         if ($customerId) {
+            // @codingStandardsIgnoreStart
             $customerOrders = $wpdb->get_row($wpdb->prepare(
                 "SELECT COUNT(O.id) AS 'count' FROM {$wpdb->prefix}wc_orders AS O WHERE O.customer_id = %d AND O.`type` = 'shop_order';",
                 $customerId
             ));
+            // @codingStandardsIgnoreEnd
 
             $props["customer_orders_count"] = $customerOrders ? $customerOrders->count : 0;
         }
@@ -667,10 +739,25 @@ class HPOS
         $_aftership_tracking_items = "";
         if ($aftershipTrackingItems && is_array($aftershipTrackingItems)) {
             foreach ($aftershipTrackingItems as $value) {
-                if (isset($value["tracking_number"])) $_aftership_tracking_items .= " " . $value["tracking_number"];
+                if (isset($value["tracking_number"]))
+                    $_aftership_tracking_items .= " " . $value["tracking_number"];
             }
         }
         $props["_aftership_tracking_items"] = trim($_aftership_tracking_items);
+
+        try {
+            foreach (InterfaceData::getFields(true, "", false, Users::userRole()) as $value) {
+                if (!$value['field_name'] && !in_array($value['position'], array('before-product', 'before-product-right', 'after-product', 'after-product-right'))) {
+                    continue;
+                }
+
+                $filterName = str_replace("%field", $value['field_name'], "barcode_scanner_%field_get_after");
+                $defaultValue = OrdersHelper::get_meta_value($order, $post->ID, $value['field_name']);
+                $filteredValue = apply_filters($filterName, $defaultValue, $value['field_name'], $props["ID"]);
+                $props[$value['field_name']] = $filteredValue;
+            }
+        } catch (\Throwable $th) {
+        }
 
         foreach ($additionalFields as $key => $value) {
             $props[$key] = $value;
@@ -692,7 +779,7 @@ class HPOS
 
         $orderDate = new \DateTime($order->get_date_created());
         $date_format = $order->get_date_created();
-        $date_format->setTimezone(new \DateTimeZone( \wp_timezone_string()));
+        $date_format->setTimezone(new \DateTimeZone(\wp_timezone_string()));
         $date_format = $date_format->format("Y-m-d H:i:s");
 
 
@@ -735,12 +822,13 @@ class HPOS
             "order_date" => $order->get_date_created(),
             "date_format" => $date_format,
             "preview_date_format" => $previewDateFormat,
-            "usbs_fulfillment_objects" => get_post_meta($order->get_id(), "usbs_fulfillment_objects", true),
-            "usbs_order_fulfillment_data" => get_post_meta($order->get_id(), "usbs_order_fulfillment_data", true),
+            "usbs_fulfillment_objects" => OrdersHelper::get_meta_value($order, $post->ID, "usbs_fulfillment_objects"),
+            "usbs_order_fulfillment_data" => OrdersHelper::get_meta_value($order, $post->ID, "usbs_order_fulfillment_data"),
             "order_total" => $order->get_total(),
             "order_total_c" => strip_tags(wc_price($order->get_total())),
             "customer_name" => trim($customerName),
             "total_products" => count($order->get_items("line_item")),
+            "current_edit_data" => $order->get_meta("_bs_user_edit_data"),
             "updated" => time(),
             "customer_orders_count" => 0,
             "user" => $userData,

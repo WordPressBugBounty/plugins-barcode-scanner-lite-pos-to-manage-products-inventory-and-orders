@@ -27,11 +27,13 @@ class BatchNumbers
 
         if (!$fields || !isset($fields['ID'])) return;
 
+        // @codingStandardsIgnoreStart
         $batchNumbers = $wpdb->get_results($wpdb->prepare(
             "SELECT * FROM {$wpdb->prefix}wpo_wcpbn_batch_numbers AS BN, {$wpdb->prefix}wpo_wcpbn_shared_products AS SP 
             WHERE BN.id = SP.batch_id AND SP.product_id = %d;",
             $fields['ID']
         ));
+        // @codingStandardsIgnoreEnd
 
         if ($batchNumbers) {
             foreach ($batchNumbers as &$value) {
@@ -52,9 +54,11 @@ class BatchNumbers
         if ($batchId && $postId) {
             apply_filters(self::$hook_before_delete_batch, $postId, $batchId);
 
+            // @codingStandardsIgnoreStart
             $wpdb->delete("{$wpdb->prefix}wpo_wcpbn_batch_numbers", array("id" => $batchId));
 
             $wpdb->delete("{$wpdb->prefix}wpo_wcpbn_shared_products", array("batch_id" => $batchId, "product_id" => $postId));
+            // @codingStandardsIgnoreEnd
 
             apply_filters(self::$hook_after_delete_batch, $postId);
         }
@@ -78,19 +82,23 @@ class BatchNumbers
             $dt = new DateTime('now');
             $userId = Users::getUserId($request);
 
+            // @codingStandardsIgnoreStart
             $wpdb->insert("{$wpdb->prefix}wpo_wcpbn_batch_numbers", array(
                 "date_created" => $dt->format('Y-m-d H:i:s'),
                 "date_expiry" => null,
                 "user_id" => $userId,
             ));
+            // @codingStandardsIgnoreEnd
             $batchId = $wpdb->insert_id;
 
             if ($batchId) {
+                // @codingStandardsIgnoreStart
                 $wpdb->insert("{$wpdb->prefix}wpo_wcpbn_shared_products", array(
                     "date_created" => $dt->format('Y-m-d H:i:s'),
                     "batch_id" => $batchId,
                     "product_id" => $postId,
                 ));
+                // @codingStandardsIgnoreEnd
             }
 
             apply_filters(self::$hook_after_created_batch, $postId, $batchId);
@@ -117,7 +125,9 @@ class BatchNumbers
             $fields = array($field => $value);
 
             if ($field === 'quantity') {
+                // @codingStandardsIgnoreStart
                 $record = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}wpo_wcpbn_batch_numbers AS BN WHERE BN.id = %d;", $batchId));
+                // @codingStandardsIgnoreEnd
 
                 if ($record && $record->quantity_available && (float)$record->quantity_available == 0) {
                     $fields['quantity_available'] = $value;
@@ -126,7 +136,9 @@ class BatchNumbers
 
             $fields = apply_filters(self::$hook_update_batch_fields, $fields, $batchId);
 
+            // @codingStandardsIgnoreStart
             $wpdb->update("{$wpdb->prefix}wpo_wcpbn_batch_numbers", $fields, array("id" => $batchId));
+            // @codingStandardsIgnoreEnd
 
             apply_filters(self::$hook_after_update_batch_fields, $fields, $batchId, $postId);
         }
@@ -155,7 +167,9 @@ class BatchNumbers
                     'status' => $value['status'],
                 );
 
+                // @codingStandardsIgnoreStart
                 $record = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}wpo_wcpbn_batch_numbers AS BN WHERE BN.id = %d;", $value['id']));
+                // @codingStandardsIgnoreEnd
 
                 if (
                     $record && $record->quantity && (float)$record->quantity == 0
@@ -166,7 +180,9 @@ class BatchNumbers
 
                 $fields = apply_filters(self::$hook_update_batch_fields, $fields, $value['id']);
 
+                // @codingStandardsIgnoreStart
                 $wpdb->update("{$wpdb->prefix}wpo_wcpbn_batch_numbers", $fields, array("id" => $value['id']));
+                // @codingStandardsIgnoreEnd
 
                 apply_filters(self::$hook_after_update_batch_fields, $fields, $value['id'], $postId);
             }

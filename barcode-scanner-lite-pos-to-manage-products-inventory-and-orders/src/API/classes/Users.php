@@ -38,14 +38,10 @@ class Users
         if (!$userId && $token) {
 
             try {
-                if (preg_match("/^([0-9]+)/", @base64_decode($token), $m)) {
-                    if ($m && count($m) > 0 && is_numeric($m[0])) {
-                        $userId = $m[0];
-                    }
-                } else {
-                    $meta = $wpdb->get_row("SELECT * FROM {$wpdb->usermeta} WHERE meta_key = 'barcode_scanner_app_otp' AND meta_value = '{$token}';");
-                    $userId = $meta ? $meta->user_id : $userId;
-                }
+                // @codingStandardsIgnoreStart
+                $metaApp = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->usermeta} WHERE meta_key = 'barcode_scanner_app_otp' AND meta_value = %s;", $token));
+                // @codingStandardsIgnoreEnd
+                $userId = $metaApp ? $metaApp->user_id : $userId;
             } catch (\Throwable $th) {
             }
         }
@@ -57,7 +53,7 @@ class Users
     {
         if ($userId) {
             $user = get_user_by('ID', $userId);
-            $roles = $user && isset($user->roles) ? (array)$user->roles : array();
+            $roles = $user && isset($user->roles) ? (array) $user->roles : array();
             return $roles && count($roles) ? $roles[0] : '';
         }
 
@@ -86,7 +82,9 @@ class Users
     {
         global $wpdb;
 
+        // @codingStandardsIgnoreStart
         return $wpdb->get_results("SELECT * FROM {$wpdb->usermeta} AS UM WHERE UM.meta_key = 'barcode_scanner_app_last_used';");
+        // @codingStandardsIgnoreEnd
     }
 
     public static function updateAppUsesTime($userId)

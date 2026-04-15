@@ -65,6 +65,7 @@ class LogActions
             }
         }
 
+        // @codingStandardsIgnoreStart
         $wpdb->insert($table, array(
             "user_id" => $userId,
             "post_id" => $itemId,
@@ -77,7 +78,59 @@ class LogActions
             "old_value" => $oldValue,
             "type" => $type
         ));
+        // @codingStandardsIgnoreEnd
 
         return $wpdb->insert_id;
+    }
+
+    static public function donwloadFile()
+    {
+        global $wp, $wp_query, $wp_the_query, $wp_rewrite, $wp_did_header;
+
+        if (!preg_match('/\/.*?barcode\-scanner.*?download\-csv\?fn=(.*?)?$/', $_SERVER["REQUEST_URI"], $m)) {
+            return;
+        }
+
+        $root = isset($_SERVER['DOCUMENT_ROOT']) ? $_SERVER['DOCUMENT_ROOT'] : "../../..";
+
+        $dt = new \DateTime("now");
+        $tempFileName = isset($_GET['fn']) ? sanitize_text_field($_GET['fn']) : "";
+
+        if (!$tempFileName) {
+            return;
+        }
+        $tempFileName = str_replace("..", "", $tempFileName);
+
+
+        if ($tempFileName && current_user_can('administrator')) {
+            $wp_upload_dir = wp_upload_dir();
+            $upload_dir = $wp_upload_dir['basedir'] . '/barcode-scanner/';
+            $csvFileName = "Barcode_scanner_logs_" . $dt->format("d-m-Y_h-i-s") . ".csv";
+            $csvFilePath = $upload_dir . 'logs/' . $tempFileName . '.csv';
+
+            $files = glob($upload_dir . 'logs/' . "*.csv");
+
+            $now = time();
+
+            foreach ($files as $file) {
+                if (is_file($file)) {
+                    if ($now - filemtime($file) >= 60 * 60 * 24 * 5) {
+                        unlink($file);
+                    }
+                }
+            }
+
+            if (file_exists($csvFilePath)) {
+                header('Content-Type: text/csv');
+                header('Content-Disposition: attachment; filename="' . $csvFileName . '"');
+
+                readfile($csvFilePath);
+            } else {
+                wp_redirect(admin_url('/admin.php?page=barcode-scanner-logs'));
+            }
+
+            exit;
+        }
+
     }
 }

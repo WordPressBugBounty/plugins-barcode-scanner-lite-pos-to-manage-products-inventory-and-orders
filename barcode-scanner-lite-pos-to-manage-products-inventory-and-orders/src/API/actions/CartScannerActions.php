@@ -3,6 +3,7 @@
 namespace UkrSolution\BarcodeScanner\API\actions;
 
 use UkrSolution\BarcodeScanner\API\classes\Emails;
+use UkrSolution\BarcodeScanner\API\classes\OrdersHelper;
 use UkrSolution\BarcodeScanner\API\classes\PostHelper;
 use UkrSolution\BarcodeScanner\API\classes\ProductsHelper;
 use UkrSolution\BarcodeScanner\API\classes\Results;
@@ -18,7 +19,6 @@ use WP_REST_Request;
 
 class CartScannerActions
 {
-    private $priceField = "_sale_price";
     private $filter_cart_item_price = "scanner_filter_cart_item_price";
     private $filter_cart_item_meta_data = "scanner_filter_cart_item_meta_data";
     private $filter_cart_item_price_format = "scanner_filter_cart_item_price_format";
@@ -35,17 +35,17 @@ class CartScannerActions
     private $prodDiscount = 0;
 
     public function addItem(WP_REST_Request $request)
-    {        
-        $autoFill = (bool)$request->get_param("autoFill");
+    {
+        $autoFill = (bool) $request->get_param("autoFill");
         $customFilter = $request->get_param("customFilter");
         $orderUserId = $request->get_param("orderUserId");
         $itemsCustomPrices = $request->get_param("itemsCustomPrices");
-        $byId = (bool)$request->get_param("byId");
+        $byId = (bool) $request->get_param("byId");
         $query = RequestHelper::getQuery($request, "cart_add_item");
-        $setQty = (float)$request->get_param("setQty");
-        $ignoreIncrease = (bool)$request->get_param("ignoreIncrease");
+        $setQty = (float) $request->get_param("setQty");
+        $ignoreIncrease = (bool) $request->get_param("ignoreIncrease");
 
-                $this->updateOrderCustomPrices($itemsCustomPrices);
+        $this->updateOrderCustomPrices($itemsCustomPrices);
 
         $settings = new Settings();
 
@@ -60,7 +60,7 @@ class CartScannerActions
         $total = count($products);
 
         $defaultQuantity = $settings->getSettings("defaultProductQty");
-        $defaultQuantity = $defaultQuantity === null ? 1 : (float)$defaultQuantity->value;
+        $defaultQuantity = $defaultQuantity === null ? 1 : (float) $defaultQuantity->value;
 
         if ($total === 1 && $findByTitle == false && !$autoFill) {
             $currentItems = $this->getCartItems($request);
@@ -69,18 +69,17 @@ class CartScannerActions
             $orderUserId = $request->get_param("orderUserId");
         }
 
-                $this->initFieldPrice($orderUserId);
 
         foreach ($products as &$product) {
             $product["post_type"] = "product_for_cart";
 
-            $qtyStep = isset($product["number_field_step"]) && $product["number_field_step"] ? (float)$product["number_field_step"] : $defaultQuantity;
+            $qtyStep = isset($product["number_field_step"]) && $product["number_field_step"] ? (float) $product["number_field_step"] : $defaultQuantity;
             $qtyStep = is_numeric($qtyStep) && $qtyStep > 0 ? $qtyStep : $defaultQuantity;
 
             if ($qtyStep == 1) {
                 $number_field_step = \get_post_meta($product["ID"], "number_field_step", true);
                 if ($number_field_step && is_numeric($number_field_step)) {
-                    $qtyStep = (float)$number_field_step;
+                    $qtyStep = (float) $number_field_step;
                 }
             }
 
@@ -97,7 +96,8 @@ class CartScannerActions
                         update_post_meta($product["ID"], "_stock", $setQty);
                     }
                     $product["_stock"] = $setQty;
-                    if ($setQty > 0) $product["_stock_status"] = "instock";
+                    if ($setQty > 0)
+                        $product["_stock_status"] = "instock";
                     LogActions::add($product["ID"], LogActions::$actions["update_cart_qty"], "", $setQty, $currQty, "product", $request);
                 }
 
@@ -107,7 +107,7 @@ class CartScannerActions
                     }
                 }
 
-                if (!isset($product["_stock"]) || (float)$product["_stock"] < $currQty + $qtyStep) {
+                if (!isset($product["_stock"]) || (float) $product["_stock"] < $currQty + $qtyStep) {
                     $_backorders = \get_post_meta($product["ID"], "_backorders", true);
 
                     if ($product["product_manage_stock"] && !in_array($_backorders, array("notify", "yes")) && !$ignoreIncrease) {
@@ -115,7 +115,7 @@ class CartScannerActions
                     }
                 }
 
-                if (!isset($product["_stock"]) || (float)$product["_stock"] < $currQty + $qtyStep) {
+                if (!isset($product["_stock"]) || (float) $product["_stock"] < $currQty + $qtyStep) {
                     $_backorders = \get_post_meta($product["ID"], "_backorders", true);
 
                     if ($product["product_manage_stock"] && !in_array($_backorders, array("notify", "yes")) && !$ignoreIncrease) {
@@ -172,10 +172,11 @@ class CartScannerActions
         $cartItemId = $request->get_param("cartItem");
         $customerUserId = $request ? $request->get_param("orderUserId") : null;
 
+        // @codingStandardsIgnoreStart
         $tableCart = $wpdb->prefix . Database::$cart;
         $wpdb->delete($tableCart, array("id" => $cartItemId));
+        // @codingStandardsIgnoreEnd
 
-        $this->initFieldPrice($customerUserId);
         $this->setOrderTotal($request);
 
         $result = array(
@@ -195,7 +196,6 @@ class CartScannerActions
 
         $customerUserId = $request ? $request->get_param("orderUserId") : null;
 
-        $this->initFieldPrice($customerUserId);
 
         $tableCart = $wpdb->prefix . Database::$cart;
 
@@ -207,7 +207,7 @@ class CartScannerActions
         $currentItems = $request->get_param("currentItems");
 
         $decimalQuantity = $settings->getSettings("cartDecimalQuantity");
-        $decimalQuantity = $decimalQuantity === null ? "off" : $decimalQuantity->value;
+        $decimalQuantity = $decimalQuantity === null ? "on" : $decimalQuantity->value;
 
         foreach ($currentItems as $currentItem) {
             $cartKey = isset($currentItem["cartKey"]) ? $currentItem["cartKey"] : "";
@@ -219,9 +219,9 @@ class CartScannerActions
             foreach ($items as $cartItem) {
                 if ($cartItem->id === $cartKey) {
                     if ($decimalQuantity == "on") {
-                        $newQty = isset($currentItem["quantity"]) ? (float)$currentItem["quantity"] : 1;
+                        $newQty = isset($currentItem["quantity"]) ? (float) $currentItem["quantity"] : 1;
                     } else {
-                        $newQty = isset($currentItem["quantity"]) ? (int)$currentItem["quantity"] : 1;
+                        $newQty = isset($currentItem["quantity"]) ? (int) $currentItem["quantity"] : 1;
                     }
 
                     $id = $cartItem->product_id;
@@ -253,20 +253,25 @@ class CartScannerActions
                         $_backorders = \get_post_meta($id, "_backorders", true);
 
                         if (!in_array($_backorders, array("notify", "yes"))) {
-                            return rest_ensure_response(array("increase_qty" => 1, "item" => array(
-                                "ID" => $variation_id ? $variation_id : $id,
-                                "product_id" => $variation_id ? $variation_id : $id,
-                                "_stock" => $sQty,
-                                "post_title" => $postTitle,
-                            )));
+                            return rest_ensure_response(array(
+                                "increase_qty" => 1,
+                                "item" => array(
+                                    "ID" => $variation_id ? $variation_id : $id,
+                                    "product_id" => $variation_id ? $variation_id : $id,
+                                    "_stock" => $sQty,
+                                    "post_title" => $postTitle,
+                                )
+                            ));
                         }
                     }
 
+                    // @codingStandardsIgnoreStart
                     if ($newQty > 0) {
                         $wpdb->update($tableCart, array("quantity" => $newQty), array("id" => $cartItem->id));
                     } else {
                         $wpdb->delete($tableCart, array("id" => $cartItem->id));
                     }
+                    // @codingStandardsIgnoreEnd
                 }
             }
         }
@@ -286,7 +291,6 @@ class CartScannerActions
     {
         $customerUserId = $request ? $request->get_param("orderUserId") : null;
 
-        $this->initFieldPrice($customerUserId);
 
         $items = $request->get_param("currentItems");
         $customFilter = $request->get_param("customFilter");
@@ -354,7 +358,8 @@ class CartScannerActions
 
     public function getTaxAddress($userExtraData, $tax_based_on = null)
     {
-        if ($userExtraData && isset($userExtraData['address'])) $userExtraData = $userExtraData['address'];
+        if ($userExtraData && isset($userExtraData['address']))
+            $userExtraData = $userExtraData['address'];
 
         $tax_based_on = $tax_based_on ? $tax_based_on : get_option('woocommerce_tax_based_on', 'shipping');
         $address = array("tax_based_on" => $tax_based_on, "country" => "", "state" => "", "city" => "", "postcode" => "");
@@ -394,7 +399,7 @@ class CartScannerActions
         return $address;
     }
 
-    private function getCartDetails(WP_REST_Request $request = null)
+    private function getCartDetails($request)
     {
         $cart = new Cart();
 
@@ -404,10 +409,14 @@ class CartScannerActions
 
         $isUpdateShipping = $request ? $request->get_param("isUpdateShipping") : null;
         $shippingMethod = $request ? trim($request->get_param("shippingMethod")) : null;
-        if (!$shippingMethod && $userExtraData && isset($userExtraData['shippingMethod']) && $userExtraData['shippingMethod']) $shippingMethod = $userExtraData['shippingMethod'];
+        if (!$shippingMethod && $userExtraData && isset($userExtraData['shippingMethod']) && $userExtraData['shippingMethod']) {
+            $shippingMethod = $userExtraData['shippingMethod'];
+        }
 
         $paymentMethod = $request ? $request->get_param("paymentMethod") : "";
-        if (!$paymentMethod && $userExtraData && isset($userExtraData['paymentMethod']) && $userExtraData['paymentMethod']) $paymentMethod = $userExtraData['paymentMethod'];
+        if (!$paymentMethod && $userExtraData && isset($userExtraData['paymentMethod']) && $userExtraData['paymentMethod']) {
+            $paymentMethod = $userExtraData['paymentMethod'];
+        }
 
         $newOrderStatus = $request ? $request->get_param("newOrderStatus") : "";
 
@@ -420,7 +429,8 @@ class CartScannerActions
         $userId = get_current_user_id();
 
         $tokenUserId = $request ? $request->get_param("token_user_id") : null;
-        if ($tokenUserId) $userId = $tokenUserId;
+        if ($tokenUserId)
+            $userId = $tokenUserId;
 
         if ($request) {
             $this->updateOrderExtraDataField("paymentMethod", $paymentMethod, $userId);
@@ -450,8 +460,9 @@ class CartScannerActions
         }
 
         $isShippingInList = false;
+        $shippingData = explode(":", $activeShippingMethod);
 
-        if (count(explode(":", $activeShippingMethod)) == 1) {
+        if (count($shippingData) == 1) {
             foreach ($shippingMethods as $key => $value) {
                 if ($activeShippingMethod === $value["id"]) {
                     $activeShippingMethod = $value["id"] . ":" . $value["instance_id"];
@@ -469,8 +480,19 @@ class CartScannerActions
             }
         }
 
-        if (!$isShippingInList) $activeShippingMethod = "0:";
+        if (!$isShippingInList) {
+            if (count($shippingData) == 2) {
+                $globalShippings = OrdersHelper::getWCshippingMethods();
 
+                foreach ($globalShippings as $value) {
+                    if ($value['id'] == $shippingData[0]) {
+                        $activeShippingMethod = $shippingData[0] . ":0";
+                    }
+                }
+            } else {
+                $activeShippingMethod = "0:";
+            }
+        }
         if ($paymentMethod) {
             update_user_meta($userId, "scanner_active_payment_method", $paymentMethod);
             $activePaymentMethod = $paymentMethod;
@@ -480,14 +502,16 @@ class CartScannerActions
 
         $couponError = $coupon && isset($coupon["error"]) ? $coupon["error"] : null;
 
-        if ($couponError) $coupon = null;
+        if ($couponError)
+            $coupon = null;
 
         $settings = new Settings();
         $defaultOrderTax = $settings->getSettings("defaultOrderTax");
         $defaultOrderTax = $defaultOrderTax === null ? 'based_on_store' : $defaultOrderTax->value;
 
         $woocommerce_calc_taxes = get_option("woocommerce_calc_taxes");
-        if ($woocommerce_calc_taxes != "yes") $defaultOrderTax = "no_tax";
+        if ($woocommerce_calc_taxes != "yes")
+            $defaultOrderTax = "no_tax";
 
         $isPricesIncludeTax = \wc_prices_include_tax();
 
@@ -498,6 +522,7 @@ class CartScannerActions
         $cartShippingTotal = 0;
         $cartShippingTotalTax = 0;
         $cartShippingTax = 0;
+        $cartCogsTotal = 0;
         $additionalTaxes = array();
         $itemsForOrder = array();
         $orderTaxDetails = array();
@@ -509,7 +534,6 @@ class CartScannerActions
         $orderCustomCashGot = get_user_meta($userId, "scanner_custom_order_cash_got", true);
 
         $isCustomShippingPrice = ($orderCustomShippingPrice || $orderCustomShippingPrice == 0) && $orderCustomShippingPrice != "" ? 1 : 0;
-
         $fieldsChanged = array(
             "orderCustomPrice" => ($orderCustomPrice || $orderCustomPrice == 0) && $orderCustomPrice != "" ? 1 : 0,
             "orderCustomShippingPrice" => $isCustomShippingPrice ? 1 : 0,
@@ -530,11 +554,39 @@ class CartScannerActions
                 if (is_array($activeShippingMethodData) && count($activeShippingMethodData) >= 1) {
                     $_shipping_id = $activeShippingMethodData[0];
                     $allShippings = $cart->getShippingMethods($customerUserId, $taxAddress);
+                    $isOptimalMethod = false;
 
                     foreach ($allShippings as $_shipping) {
                         if ($_shipping["id"] === $_shipping_id) {
                             $shipping = $_shipping;
+                            $isOptimalMethod = true;
                             break;
+                        }
+                    }
+
+                    if (!$isOptimalMethod) {
+                        $globalShippings = OrdersHelper::getWCshippingMethods();
+                        $isGlobalShipping = false;
+
+                        foreach ($globalShippings as $_shipping) {
+                            if ($_shipping_id == $_shipping['id']) {
+                                $shipping = array(
+                                    'id' => $_shipping['id'],
+                                    'title' => $_shipping['title'],
+                                    'cost' => $activeShippingMethod == "0:" && $orderCustomShippingPrice ? $orderCustomShippingPrice : 0,
+                                    'instance_id' => '',
+                                );
+                                $isGlobalShipping = true;
+                            }
+                        }
+
+                        if (!$isGlobalShipping && $activeShippingMethod == "0:" && $orderCustomShippingPrice) {
+                            $shipping = array(
+                                "id" => 0,
+                                "title" => __("No shipping", "us-barcode-scanner"),
+                                "cost" => $orderCustomShippingPrice,
+                                "instance_id" => '',
+                            );
                         }
                     }
                 }
@@ -591,12 +643,12 @@ class CartScannerActions
 
             if ($item->custom_price || $item->custom_price == "0") {
                 $customPrice = $this->formatPriceForUpdate($item->custom_price);
-                $itemPrice = (float)($customPrice);
-                $itemSubtotal = (float)($customPrice * $item->quantity);
+                $itemPrice = (float) ($customPrice);
+                $itemSubtotal = (float) ($customPrice * $item->quantity);
                 $use_custom_price = 1;
             } else {
-                $itemPrice = (float)$item->price;
-                $itemSubtotal = (float)$item->price * $item->quantity;
+                $itemPrice = (float) $item->price;
+                $itemSubtotal = (float) $item->price * $item->quantity;
             }
 
             $discountPrice = $this->getDiscountPrice($item, $itemSubtotal, $item->quantity, $items, $coupon);
@@ -604,7 +656,7 @@ class CartScannerActions
             $cartSubtotal += $itemSubtotal;
             $cartTotal += $discountPrice;
 
-            $productId = $item->variation_id ? $item->variation_id  : $item->product_id;
+            $productId = $item->variation_id ? $item->variation_id : $item->product_id;
             $product = \wc_get_product($productId);
             $tax_info = array();
             $line_subtotal_taxes = array();
@@ -659,14 +711,24 @@ class CartScannerActions
                     }
                     $_rate_data["subtotal_tax"] = $_tax_cost;
 
-                    if (isset($orderTaxDetails[$_rate_id])) $orderTaxDetails[$_rate_id]["subtotal_tax"] += $_tax_cost;
-                    else $orderTaxDetails[$_rate_id] = $_rate_data;
+                    if (isset($orderTaxDetails[$_rate_id]))
+                        $orderTaxDetails[$_rate_id]["subtotal_tax"] += $_tax_cost;
+                    else
+                        $orderTaxDetails[$_rate_id] = $_rate_data;
 
                     $orderTaxDetails[$_rate_id]["subtotal_tax_c"] = ResultsHelper::getFormattedPrice(strip_tags(wc_price($orderTaxDetails[$_rate_id]["subtotal_tax"])));
 
                     $_line_tax_data["total"][$_rate_id] = $_tax_cost;
                     $_line_tax_data["subtotal"][$_rate_id] = $_tax_cost;
                 }
+            }
+
+            $_cost = $product->get_meta('_cogs_total_value', true);
+            $_cogs_value = $_cost;
+
+            if ($_cost && is_numeric($_cost)) {
+                $_cogs_value = $item->quantity ? $_cost * $item->quantity : $_cost;
+                $cartCogsTotal += $_cogs_value;
             }
 
             $itemsForOrder[] = array(
@@ -679,10 +741,14 @@ class CartScannerActions
                 "subtotal" => $itemSubtotal,
                 "total" => $discountPrice,
                 "tax" => $line_subtotal_tax,
-                "_line_tax_data" => $_line_tax_data,
+                "total_tax" => $discountPrice + $line_subtotal_tax,
+                "total_tax_c" => strip_tags(\wc_price($discountPrice + $line_subtotal_tax)),
+                "_line_tax_data" => OrdersHelper::formatItemTaxesData($_line_tax_data),
                 "_rate" => $_rate,
                 "tax_info" => $tax_info,
                 "use_custom_price" => $use_custom_price,
+                "_cost" => $_cost,
+                "_cogs_value" => $_cogs_value
             );
         }
 
@@ -727,13 +793,13 @@ class CartScannerActions
             }
         }
 
-        $cart_total = strip_tags(wc_price($cartTotal, array("currency" => " ",)));
+        $cart_total = strip_tags(wc_price($cartTotal, array("currency" => " ", )));
         $cart_total = trim(str_replace("&nbsp;", "", $cart_total));
 
-        $cart_subtotal = strip_tags(wc_price($cartSubtotal, array("currency" => " ",)));
+        $cart_subtotal = strip_tags(wc_price($cartSubtotal, array("currency" => " ", )));
         $cart_subtotal = trim(str_replace("&nbsp;", "", $cart_subtotal));
 
-        $total_tax = strip_tags(wc_price($cartTaxTotal, array("currency" => " ",)));
+        $total_tax = strip_tags(wc_price($cartTaxTotal, array("currency" => " ", )));
         $total_tax = trim(str_replace("&nbsp;", "", $total_tax));
 
         if ($orderCustomCashGot && $orderCustomCashGot != "") {
@@ -743,10 +809,14 @@ class CartScannerActions
             $orderCustomCashGotChange = "";
         }
 
+        $currencyLabel = get_woocommerce_currency();
+
         return array(
             "additionalTaxes" => $additionalTaxes,
             "cart_total" => ResultsHelper::getFormattedPrice($cart_total),
             "cart_total_c" => strip_tags($cartTotal),
+            "cart_total_with_currency" => strip_tags(wc_price($cart_total)),
+            'currencyLabel' => $currencyLabel ? $currencyLabel : 'usd',
             "cart_subtotal" => $cart_subtotal,
             "cart_subtotal_c" => strip_tags(wc_price($cartSubtotal)),
             "cart_subtotal_tax" => $cartSubtotalTax,
@@ -772,6 +842,7 @@ class CartScannerActions
             "taxAddress" => $taxAddress,
             "isPricesIncludeTax" => $isPricesIncludeTax,
             "fieldsChanged" => $fieldsChanged,
+            "cartCogsTotal" => $cartCogsTotal,
         );
     }
 
@@ -781,7 +852,8 @@ class CartScannerActions
 
         $coupon = $request ? $request->get_param("coupon") : "";
 
-        if (!$coupon) return null;
+        if (!$coupon)
+            return null;
 
         if (preg_match('/^(\d+)([\.,]\d+)?\%$/', $coupon, $matches)) {
             $couponPercent = $matches[1] . $matches[2];
@@ -795,7 +867,7 @@ class CartScannerActions
             );
             $this->percentDiscount = $couponPercent;
 
-                        return $customCoupon;
+            return $customCoupon;
         }
         else if (preg_match('/^(\d+)([\.,]\d+)?$/', $coupon, $matches)) {
             $couponFixed = $matches[1] . $matches[2];
@@ -809,12 +881,13 @@ class CartScannerActions
             );
             $this->prodDiscount = $couponFixed;
 
-                        return $customCoupon;
+            return $customCoupon;
         }
 
         $couponData = $coupon ? new \WC_Coupon(trim($coupon)) : null;
 
-        if (!$couponData || !$couponData->get_id()) return array("error" => __("Coupon not found.", "us-barcode-scanner"));
+        if (!$couponData || !$couponData->get_id())
+            return array("error" => __("Coupon not found.", "us-barcode-scanner"));
 
         if ($couponData->get_date_expires()) {
             $now = new \DateTime("now");
@@ -891,9 +964,9 @@ class CartScannerActions
         foreach ($items as $item) {
             if ($item->custom_price || $item->custom_price == "0") {
                 $customPrice = $this->formatPriceForUpdate($item->custom_price);
-                $totalItemsPrice += (float)($customPrice * $item->quantity);
+                $totalItemsPrice += (float) ($customPrice * $item->quantity);
             } else {
-                $totalItemsPrice += (float)$item->price * $item->quantity;
+                $totalItemsPrice += (float) $item->price * $item->quantity;
             }
 
             $totalItemsQty += $item->quantity;
@@ -906,7 +979,7 @@ class CartScannerActions
 
         if ($minimum_amount && $minimum_amount > $totalItemsPrice) {
             $minAmount = strip_tags(wc_price($minimum_amount));
-            return array("error" => __("Coupon requires minimal order price", "us-barcode-scanner")  . " " . $minAmount);
+            return array("error" => __("Coupon requires minimal order price", "us-barcode-scanner") . " " . $minAmount);
         }
 
         if ($maximum_amount && $maximum_amount < $totalItemsPrice) {
@@ -941,9 +1014,10 @@ class CartScannerActions
             }
         }
 
-        $userId =  get_current_user_id();
+        $userId = get_current_user_id();
         $tokenUserId = $request ? $request->get_param("token_user_id") : null;
-        if ($tokenUserId) $userId = $tokenUserId;
+        if ($tokenUserId)
+            $userId = $tokenUserId;
         $this->updateOrderExtraDataField("coupon", $coupon, $userId);
 
         return $result;
@@ -957,9 +1031,9 @@ class CartScannerActions
         $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} AS CD WHERE CD.user_id = %d AND CD.param = %s;", $userId, $field));
 
         if ($row) {
-            $wpdb->update($table, array("value" =>  $value), array("id" => $row->id));
+            $wpdb->update($table, array("value" => $value), array("id" => $row->id));
         } else {
-            $wpdb->insert($table, array("user_id" => $userId, "param" => $field, "value" =>  $value));
+            $wpdb->insert($table, array("user_id" => $userId, "param" => $field, "value" => $value));
         }
     }
 
@@ -967,7 +1041,8 @@ class CartScannerActions
     {
         $discountPrice = $price;
 
-        if (!$coupon) return $discountPrice;
+        if (!$coupon)
+            return $discountPrice;
 
         if (isset($coupon["product_ids"]) && count($coupon["product_ids"]) > 0) {
             if (!in_array($item->product_id, $coupon["product_ids"])) {
@@ -1066,7 +1141,7 @@ class CartScannerActions
             }
 
             if ($post) {
-                $cartItem = (new Results)->formatCartScannerItem($item, $post, $this->priceField, $request);
+                $cartItem = (new Results)->formatCartScannerItem($item, $post, null, $request);
                 $cartItem["cart_key"] = $item->id;
                 $cartItem["custom_price"] = $item->custom_price;
                 $cartItems[] = $cartItem;
@@ -1082,12 +1157,13 @@ class CartScannerActions
 
         $tableCart = $wpdb->prefix . Database::$cart;
 
-        $userId =  get_current_user_id();
+        $userId = get_current_user_id();
         $tokenUserId = $request ? $request->get_param("token_user_id") : null;
-        if ($tokenUserId) $userId = $tokenUserId;
+        if ($tokenUserId)
+            $userId = $tokenUserId;
 
         if (isset($product["quantity"])) {
-            if ((float)$product["quantity"] < 1) {
+            if ((float) $product["quantity"] < 1) {
                 return;
             }
 
@@ -1103,8 +1179,9 @@ class CartScannerActions
             $cartItemData = array();
         }
 
-        $quantity_step = ($cartItemData && isset($cartItemData["number_field_step"]) && $cartItemData["number_field_step"]) ? (float)$cartItemData["number_field_step"] : $quantity;
-        if (!$quantity_step || $quantity_step == 0) $quantity_step = 1;
+        $quantity_step = ($cartItemData && isset($cartItemData["number_field_step"]) && $cartItemData["number_field_step"]) ? (float) $cartItemData["number_field_step"] : $quantity;
+        if (!$quantity_step || $quantity_step == 0)
+            $quantity_step = 1;
 
         $priceField = (new Results())->getFieldPrice($orderUserId);
 
@@ -1113,7 +1190,7 @@ class CartScannerActions
 
             if (!$productCart) {
                 $_product = \wc_get_product($product["variation_id"]);
-                $productPrice = (new Results())->getProductPrice($_product, $priceField, null, $orderUserId, $quantity);
+                $productPrice = (new Results())->getProductPrice($_product, null, null, $orderUserId, $quantity);
 
                 if (!$productPrice && $productPrice !== 0 && $productPrice !== '0') {
                     return array(
@@ -1141,6 +1218,7 @@ class CartScannerActions
                     }
                 }
 
+                // @codingStandardsIgnoreStart
                 $isInserted = $wpdb->insert($tableCart, array(
                     "user_id" => $userId,
                     "product_id" => $product["post_parent"],
@@ -1152,11 +1230,14 @@ class CartScannerActions
                     "meta" => json_encode($cartItemData),
                     "updated" => date("Y-m-d H:i:s", time()),
                 ));
+                // @codingStandardsIgnoreEnd
             } else {
+                // @codingStandardsIgnoreStart
                 $wpdb->update($tableCart, array(
                     "quantity_step" => $quantity_step,
                     "updated" => date("Y-m-d H:i:s", time()),
                 ), array("id" => $productCart->id));
+                // @codingStandardsIgnoreEnd
 
                 $isChanged = $this->changeQuantityInCart($productCart, $quantity);
             }
@@ -1165,7 +1246,7 @@ class CartScannerActions
 
             if (!$productCart) {
                 $_product = \wc_get_product($product["ID"]);
-                $productPrice = (new Results())->getProductPrice($_product, $priceField, null, $orderUserId, $quantity);
+                $productPrice = (new Results())->getProductPrice($_product, null, null, $orderUserId, $quantity);
 
                 if (!$productPrice && $productPrice !== 0 && $productPrice !== '0') {
                     return array(
@@ -1193,6 +1274,7 @@ class CartScannerActions
                     }
                 }
 
+                // @codingStandardsIgnoreStart
                 $isInserted = $wpdb->insert($tableCart, array(
                     "user_id" => $userId,
                     "product_id" => $product["ID"],
@@ -1202,11 +1284,14 @@ class CartScannerActions
                     "meta" => json_encode($cartItemData),
                     "updated" => date("Y-m-d H:i:s", time()),
                 ));
+                // @codingStandardsIgnoreEnd 
             } else {
+                // @codingStandardsIgnoreStart
                 $wpdb->update($tableCart, array(
                     "quantity_step" => $quantity_step,
                     "updated" => date("Y-m-d H:i:s", time()),
                 ), array("id" => $productCart->id));
+                // @codingStandardsIgnoreEnd
 
                 $isChanged = $this->changeQuantityInCart($productCart, $quantity);
             }
@@ -1256,7 +1341,7 @@ class CartScannerActions
                 if ($item->attributes) {
                     $invalidValues = count($product["attributes"]);
                     $itemAttributes = @json_decode($item->attributes, false);
-                    $itemAttributes = $itemAttributes ? (array)$itemAttributes : array();
+                    $itemAttributes = $itemAttributes ? (array) $itemAttributes : array();
 
                     foreach ($product["attributes"] as $attr => $value) {
                         if (
@@ -1290,7 +1375,9 @@ class CartScannerActions
         $tableCart = $wpdb->prefix . Database::$cart;
         $quantity = $productCart->quantity + $step;
 
+        // @codingStandardsIgnoreStart
         return $wpdb->update($tableCart, array("quantity" => $quantity), array("id" => $productCart->id));
+        // @codingStandardsIgnoreEnd
     }
 
     public function conditionally_send_wc_email($value)
@@ -1318,7 +1405,6 @@ class CartScannerActions
         $customerUserId = $request ? $request->get_param("orderUserId") : null;
         $shipmentTrackingItems = $request ? $request->get_param("shipmentTrackingItems") : array();
 
-        $this->initFieldPrice($customerUserId);
 
         $clearCart = $request->get_param("clearCart");
         $orderStatus = $request->get_param("orderStatus");
@@ -1335,11 +1421,13 @@ class CartScannerActions
             $taxAddress = $this->getTaxAddress($extraData);
         }
 
-        if ($isPay) $orderStatus = "wc-pending";
+        if ($isPay)
+            $orderStatus = "wc-pending";
 
         $currentUserId = get_current_user_id();
         $tokenUserId = $request ? $request->get_param("token_user_id") : null;
-        if ($tokenUserId) $currentUserId = $tokenUserId;
+        if ($tokenUserId)
+            $currentUserId = $tokenUserId;
 
         try {
             $sendAdminEmailCreatedOrder = $settings->getSettings("sendAdminEmailCreatedOrder");
@@ -1352,7 +1440,7 @@ class CartScannerActions
                 add_filter('option_woocommerce_dokan_vendor_new_order_settings', array($this, 'conditionally_send_wc_email'), 10000);
                 add_filter('option_woocommerce_dokan_vendor_completed_order_settings', array($this, 'conditionally_send_wc_email'), 10000);
 
-                add_filter( 'woocommerce_email_enabled_new_order', '__return_false' );
+                add_filter('woocommerce_email_enabled_new_order', '__return_false');
             }
         } catch (\Throwable $th) {
         }
@@ -1372,7 +1460,7 @@ class CartScannerActions
                 add_filter('option_woocommerce_lmfwc_email_customer_deliver_license_keys_settings', array($this, 'conditionally_send_wc_email'), 10000);
                 add_filter('option_woocommerce_customer_paid_for_order_settings', array($this, 'conditionally_send_wc_email'), 10000);
 
-                                add_filter( 'woocommerce_email_enabled_customer_processing_order', '__return_false' );
+                add_filter('woocommerce_email_enabled_customer_processing_order', '__return_false');
             }
         } catch (\Throwable $th) {
         }
@@ -1411,7 +1499,6 @@ class CartScannerActions
         }
 
         $details = $this->getCartDetails($request);
-
         $order = \wc_create_order($data);
 
         if ($order && $customerUserId) {
@@ -1435,14 +1522,14 @@ class CartScannerActions
 
             $address = array(
                 'first_name' => $first_name,
-                'last_name' =>  $last_name,
+                'last_name' => $last_name,
                 'company' => $company,
                 'email' => is_email($email) ? $email : "",
                 'phone' => $phone,
                 'address_1' => $address_1,
                 'address_2' => $address_2,
                 'city' => $city,
-                'state' =>  $state,
+                'state' => $state,
                 'postcode' => $postcode,
                 'country' => $country,
             );
@@ -1451,21 +1538,23 @@ class CartScannerActions
             $prefix = isset($addr["shipping_as_billing"]) && $addr["shipping_as_billing"] == 1 ? "billing" : "shipping";
             $address = array(
                 'first_name' => isset($addr[$prefix . "_first_name"]) ? $addr[$prefix . "_first_name"] : get_user_meta($customerUserId, $prefix . "_first_name", true),
-                'last_name'  => isset($addr[$prefix . "_last_name"]) ? $addr[$prefix . "_last_name"] : get_user_meta($customerUserId, $prefix . "_last_name", true),
-                'company'    => isset($addr[$prefix . "_company"]) ? $addr[$prefix . "_company"] : get_user_meta($customerUserId, $prefix . "_company", true),
-                'phone'      => isset($addr[$prefix . "_phone"]) ? $addr[$prefix . "_phone"] : get_user_meta($customerUserId, $prefix . "_phone", true),
-                'address_1'  => isset($addr[$prefix . "_address_1"]) ? $addr[$prefix . "_address_1"] : get_user_meta($customerUserId, $prefix . "_address_1", true),
-                'address_2'  => isset($addr[$prefix . "_address_2"]) ? $addr[$prefix . "_address_2"] : get_user_meta($customerUserId, $prefix . "_address_2", true),
-                'city'       => isset($addr[$prefix . "_city"]) ? $addr[$prefix . "_city"] : get_user_meta($customerUserId, $prefix . "_city", true),
-                'state'      => isset($addr[$prefix . "_state"]) ? $addr[$prefix . "_state"] : get_user_meta($customerUserId, $prefix . "_state", true),
-                'postcode'   => isset($addr[$prefix . "_postcode"]) ? $addr[$prefix . "_postcode"] : get_user_meta($customerUserId, $prefix . "_postcode", true),
-                'country'    => isset($addr[$prefix . "_country"]) ? $addr[$prefix . "_country"] : get_user_meta($customerUserId, $prefix . "_country", true),
+                'last_name' => isset($addr[$prefix . "_last_name"]) ? $addr[$prefix . "_last_name"] : get_user_meta($customerUserId, $prefix . "_last_name", true),
+                'company' => isset($addr[$prefix . "_company"]) ? $addr[$prefix . "_company"] : get_user_meta($customerUserId, $prefix . "_company", true),
+                'phone' => isset($addr[$prefix . "_phone"]) ? $addr[$prefix . "_phone"] : get_user_meta($customerUserId, $prefix . "_phone", true),
+                'address_1' => isset($addr[$prefix . "_address_1"]) ? $addr[$prefix . "_address_1"] : get_user_meta($customerUserId, $prefix . "_address_1", true),
+                'address_2' => isset($addr[$prefix . "_address_2"]) ? $addr[$prefix . "_address_2"] : get_user_meta($customerUserId, $prefix . "_address_2", true),
+                'city' => isset($addr[$prefix . "_city"]) ? $addr[$prefix . "_city"] : get_user_meta($customerUserId, $prefix . "_city", true),
+                'state' => isset($addr[$prefix . "_state"]) ? $addr[$prefix . "_state"] : get_user_meta($customerUserId, $prefix . "_state", true),
+                'postcode' => isset($addr[$prefix . "_postcode"]) ? $addr[$prefix . "_postcode"] : get_user_meta($customerUserId, $prefix . "_postcode", true),
+                'country' => isset($addr[$prefix . "_country"]) ? $addr[$prefix . "_country"] : get_user_meta($customerUserId, $prefix . "_country", true),
             );
             $order->set_address($address, 'shipping');
 
             $order->save();
 
+            // @codingStandardsIgnoreStart
             $wpdb->update($wpdb->posts, array('post_author' => $currentUserId), array('ID' => $order->get_id()));
+            // @codingStandardsIgnoreEnd
         }
 
         if ($order) {
@@ -1500,6 +1589,10 @@ class CartScannerActions
                     "subtotal" => $isPricesIncludeTax && $value["tax"] ? $value["price"] - $value["tax"] : $value["subtotal"],
                     "total" => $isPricesIncludeTax && $value["tax"] ? $value["price"] - $value["tax"] : $value["total"],
                 );
+
+                if (\get_option("woocommerce_feature_cost_of_goods_sold_enabled", null) == "yes") {
+                    $options["cogs_value"] = $value["_cogs_value"];
+                }
 
                 $orderItemId = $order->add_product($product, $value["quantity"], $options);
 
@@ -1562,9 +1655,12 @@ class CartScannerActions
 
             if ($details && $shippingMethod) {
                 $activeShippingMethod = get_user_meta($userId, "scanner_active_shipping_method", true);
-                if (!$activeShippingMethod && $shippingMethod) $activeShippingMethod = $shippingMethod;
+                if (!$activeShippingMethod && $shippingMethod) {
+                    $activeShippingMethod = $shippingMethod;
+                }
 
                 $shippingLabel = __("Shipping", "us-barcode-scanner");
+                $shippingLabelByCustomerList = false;
 
                 $cart = new Cart();
                 $allShippings = $cart->getShippingMethods($customerUserId, $taxAddress);
@@ -1572,7 +1668,19 @@ class CartScannerActions
                 foreach ($allShippings as $_shipping) {
                     if ($activeShippingMethod == $_shipping["id"] . ":" . $_shipping["instance_id"]) {
                         $shippingLabel = $_shipping["title"];
+                        $shippingLabelByCustomerList = true;
                         break;
+                    }
+                }
+
+                if (!$shippingLabelByCustomerList) {
+                    $globalShippings = OrdersHelper::getWCshippingMethods();
+
+                    foreach ($globalShippings as $_shipping) {
+                        if ($activeShippingMethod == $_shipping['id'] . ":0") {
+                            $shippingLabel = $_shipping['title'];
+                            $activeShippingMethod = $_shipping['id'];
+                        }
                     }
                 }
 
@@ -1582,6 +1690,13 @@ class CartScannerActions
                     $shipping_data = @explode(":", $shipping_method->id);
 
                     if ($shipping_data && is_array($shipping_data) && count($shipping_data) == 2 && $shipping_data[0] == "free_shipping") {
+                        $_method_id = $shipping_data[0];
+                        $_instance_id = $shipping_data[1];
+
+                        $shipping_method->set_method_id($_method_id);
+                        $shipping_method->set_instance_id($_instance_id);
+                    }
+                    else if (!$activeShippingMethod && $shipping_data && is_array($shipping_data) && count($shipping_data) == 2 && $shipping_data[1] == "0") {
                         $_method_id = $shipping_data[0];
                         $_instance_id = $shipping_data[1];
 
@@ -1662,6 +1777,10 @@ class CartScannerActions
         $order->set_cart_tax($tax_amount);
         $order->save();
 
+        if (\get_option("woocommerce_feature_cost_of_goods_sold_enabled", null) == "yes") {
+            OrdersHelper::set_meta_value($order, $order->get_id(), "_cogs_total_value", $details["cartCogsTotal"]);
+        }
+
         $orderId = $order->get_id();
         $checkoutErrors = $this->getWcCheckoutErrors($orderId);
 
@@ -1693,6 +1812,20 @@ class CartScannerActions
                     $postData = array('ID' => $orderId, 'post_excerpt' => $extraData["note"]);
                     wp_update_post($postData);
                     $order->set_customer_note($extraData["note"]);
+                    $order->save();
+                }
+            }
+
+            if ($orderId && $extraData) {
+                $_is_updated = false;
+
+                foreach ($extraData as $key => $value) {
+                    if (preg_match("/^_usbs_pos_(.*?)$/", $key, $m)) {
+                        $order->update_meta_data($key, $value);
+                    }
+                }
+
+                if ($_is_updated) {
                     $order->save();
                 }
             }
@@ -1762,7 +1895,9 @@ class CartScannerActions
         }
 
         if ($orderId && $currentUserId) {
+            // @codingStandardsIgnoreStart
             $wpdb->update($wpdb->posts, array('post_author' => $currentUserId), array('ID' => $orderId));
+            // @codingStandardsIgnoreEnd
         }
 
         if ($orderId && $shipmentTrackingItems) {
@@ -1791,8 +1926,13 @@ class CartScannerActions
             (new ManagementActions())->productIndexation($orderId, "orderCreated");
 
             if (function_exists("wcpdf_get_document")) {
-                wcpdf_get_document("invoice", array($orderId), true);
-            }   
+                $autoGenInvoice = $settings->getSettings("autoGenInvoice");
+                $autoGenInvoice = $autoGenInvoice === null ? 'on' : $autoGenInvoice->value;
+
+                if ($autoGenInvoice != "off") {
+                    wcpdf_get_document("invoice", array($orderId), true);
+                }
+            }
 
             do_action('bs_woocommerce_new_order', $orderId, $order);
         }
@@ -1833,9 +1973,13 @@ class CartScannerActions
         $tableCart = $wpdb->prefix . Database::$cart;
 
         $tokenUserId = $request ? $request->get_param("token_user_id") : null;
-        if ($tokenUserId) $userId = $tokenUserId;
+        if ($tokenUserId) {
+            $userId = $tokenUserId;
+        }
 
+        // @codingStandardsIgnoreStart
         $wpdb->delete($tableCart, array("user_id" => $userId));
+        // @codingStandardsIgnoreEnd
 
         update_user_meta($userId, "scanner_custom_order_total", "");
         update_user_meta($userId, "scanner_custom_order_shipping", "");
@@ -1861,7 +2005,9 @@ class CartScannerActions
     {
         $userId = get_current_user_id();
         $tokenUserId = $request ? $request->get_param("token_user_id") : null;
-        if ($tokenUserId) $userId = $tokenUserId;
+        if ($tokenUserId) {
+            $userId = $tokenUserId;
+        }
 
         update_user_meta($userId, "scanner_custom_order_total", "");
         update_user_meta($userId, "scanner_custom_order_shipping", "");
@@ -1886,9 +2032,10 @@ class CartScannerActions
 
         $userId = get_current_user_id();
         $tokenUserId = $request ? $request->get_param("token_user_id") : null;
-        if ($tokenUserId) $userId = $tokenUserId;
+        if ($tokenUserId) {
+            $userId = $tokenUserId;
+        }
 
-        $this->initFieldPrice($customerUserId);
         $this->setOrderTotal($request);
 
         $userData = array();
@@ -1902,10 +2049,10 @@ class CartScannerActions
 
                 if ($customer && $meta) {
                     $bStates = WC()->countries->get_states($customer->get_billing_country());
-                    $bState  = !empty($bStates[$customer->get_billing_state()]) ? $bStates[$customer->get_billing_state()] : '';
+                    $bState = !empty($bStates[$customer->get_billing_state()]) ? $bStates[$customer->get_billing_state()] : '';
 
                     $sStates = WC()->countries->get_states($customer->get_shipping_country());
-                    $sState  = !empty($sStates[$customer->get_shipping_state()]) ? $sStates[$customer->get_shipping_state()] : '';
+                    $sState = !empty($sStates[$customer->get_shipping_state()]) ? $sStates[$customer->get_shipping_state()] : '';
 
                     $userData = array(
                         "ID" => $orderUserId,
@@ -1914,7 +2061,7 @@ class CartScannerActions
                         "email" => $meta->user_email,
                         "first_name" => $customer->get_first_name(),
                         "last_name" => $customer->get_last_name(),
-                        "display_name" => $customer->get_first_name(),
+                        "display_name" => $customer->get_display_name(),
                         "billing_first_name" => $customer->get_billing_first_name(),
                         "billing_last_name" => $customer->get_billing_last_name(),
                         "billing_company" => $customer->get_billing_company(),
@@ -2015,15 +2162,12 @@ class CartScannerActions
         return array_unique($errors);
     }
 
-    private function initFieldPrice($orderUserId)
-    {
-        $this->priceField = (new Results())->getFieldPrice($orderUserId);
-    }
 
     private function setOrderTotal(WP_REST_Request $request)
     {
         $orderCustomPrice = $this->formatPriceForUpdate($request->get_param("orderCustomPrice"));
         $orderCustomShipping = $this->formatPriceForUpdate($request->get_param("orderCustomShipping"));
+        $orderCustomShippingRaw = $request->get_param("orderCustomShipping");
         $orderCustomCashGot = $request->get_param("orderCustomCashGot");
         $orderCustomCashGot = $orderCustomCashGot && $orderCustomCashGot != "0" ? $this->formatPriceForUpdate($orderCustomCashGot) : "";
         $orderCustomShippingTax = $this->formatPriceForUpdate($request->get_param("orderCustomShippingTax"));
@@ -2033,24 +2177,26 @@ class CartScannerActions
         $userId = get_current_user_id();
 
         $tokenUserId = $request ? $request->get_param("token_user_id") : null;
-        if ($tokenUserId) $userId = $tokenUserId;
-
-        if ($orderCustomTax && (float)$orderCustomTax) {
+        if ($tokenUserId) {
+            $userId = $tokenUserId;
         }
 
-        if (is_numeric($orderCustomPrice) && $orderCustomPrice >= 0 && (float)$orderCustomPrice >= 0) {
+        if ($orderCustomTax && (float) $orderCustomTax) {
+        }
+
+        if (is_numeric($orderCustomPrice) && $orderCustomPrice >= 0 && (float) $orderCustomPrice >= 0) {
             update_user_meta($userId, "scanner_custom_order_total", $orderCustomPrice);
         } else if ($orderCustomPrice == " ") {
             update_user_meta($userId, "scanner_custom_order_total", "");
         }
 
-        if (is_numeric($orderCustomShipping) && $orderCustomShipping >= 0 && (float)$orderCustomShipping >= 0) {
+        if (is_numeric($orderCustomShipping) && $orderCustomShipping >= 0 && (float) $orderCustomShipping >= 0) {
             update_user_meta($userId, "scanner_custom_order_shipping", $orderCustomShipping);
-        } else if ($orderCustomShipping == " ") {
+        } else if ($orderCustomShippingRaw == " ") {
             update_user_meta($userId, "scanner_custom_order_shipping", "");
         }
 
-        if (is_numeric($orderCustomShippingTax) && $orderCustomShippingTax >= 0 && (float)$orderCustomShippingTax >= 0) {
+        if (is_numeric($orderCustomShippingTax) && $orderCustomShippingTax >= 0 && (float) $orderCustomShippingTax >= 0) {
             update_user_meta($userId, "scanner_custom_order_shipping_tax", $orderCustomShippingTax);
         } else if ($orderCustomShippingTax == " ") {
             update_user_meta($userId, "scanner_custom_order_shipping_tax", "");
@@ -2060,14 +2206,18 @@ class CartScannerActions
             $list = array();
 
             foreach ($orderCustomTaxes as $key => $value) {
-                if (($value || $value == 0) && $value != " ") $list[$key] = $value;
+                if (($value || $value == 0) && $value != " ") {
+                    $list[$key] = $value;
+                }
             }
 
-            if (!count($list)) $list = "";
+            if (!count($list)) {
+                $list = "";
+            }
             update_user_meta($userId, "scanner_custom_order_custom_taxes", $list);
         }
 
-        if (is_numeric($orderCustomCashGot) && $orderCustomCashGot > 0 && (float)$orderCustomCashGot > 0) {
+        if (is_numeric($orderCustomCashGot) && $orderCustomCashGot > 0 && (float) $orderCustomCashGot > 0) {
             update_user_meta($userId, "scanner_custom_order_cash_got", $orderCustomCashGot);
         } else if ($orderCustomCashGot == " " || $orderCustomCashGot == "") {
             update_user_meta($userId, "scanner_custom_order_cash_got", "");
@@ -2081,13 +2231,19 @@ class CartScannerActions
         $excludes = array("clear");
         $table = $wpdb->prefix . Database::$cartData;
 
-        if (!$data || !$userId) return;
+        if (!$data || !$userId) {
+            return;
+        }
 
+        // @codingStandardsIgnoreStart
         $wpdb->delete($table, array("user_id" => $userId));
+        // @codingStandardsIgnoreEnd
 
         foreach ($data as $key => $value) {
             if (!in_array($key, $excludes) && in_array(gettype($value), array('string', 'integer'))) {
+                // @codingStandardsIgnoreStart
                 $wpdb->insert($table, array("user_id" => $userId, "param" => $key, "value" => $value));
+                // @codingStandardsIgnoreEnd
             }
         }
     }
@@ -2098,8 +2254,10 @@ class CartScannerActions
 
         if ($itemsCustomPrices) {
             foreach ($itemsCustomPrices as $cartId => $price) {
+                // @codingStandardsIgnoreStart
                 $table = $wpdb->prefix . Database::$cart;
                 $wpdb->update($table, array("custom_price" => $price), array("id" => $cartId));
+                // @codingStandardsIgnoreEnd
             }
         }
     }
@@ -2108,7 +2266,9 @@ class CartScannerActions
     {
 
         try {
-            if (!$price) return $price;
+            if (!$price) {
+                return $price;
+            }
 
             $priceThousandSeparator = "";
             $priceDecimalSeparator = ".";
@@ -2133,7 +2293,7 @@ class CartScannerActions
         }
     }
 
-    private function getCartRecords(WP_REST_Request $request = null, $userId = null)
+    private function getCartRecords($request, $userId = null)
     {
         global $wpdb;
 
@@ -2143,23 +2303,25 @@ class CartScannerActions
             $tokenUserId = $request ? $request->get_param("token_user_id") : null;
             $userId = get_current_user_id();
 
-            if ($tokenUserId) $userId = $tokenUserId;
+            if ($tokenUserId) {
+                $userId = $tokenUserId;
+            }
         }
 
+        // @codingStandardsIgnoreStart
         $items = $wpdb->get_results(
             $wpdb->prepare("SELECT * FROM {$tableCart} WHERE user_id = '%d';", $userId)
         );
+        // @codingStandardsIgnoreEnd
 
         $customerUserId = $request ? $request->get_param("orderUserId") : null;
-
-        $priceField = (new Results())->getFieldPrice($customerUserId);
 
         $newList = array();
 
         foreach ($items as &$item) {
-            $productId = $item->variation_id ? $item->variation_id  : $item->product_id;
+            $productId = $item->variation_id ? $item->variation_id : $item->product_id;
             $product = \wc_get_product($productId);
-            $price = (new Results())->getProductPrice($product, $priceField, null, $customerUserId, $item->quantity);
+            $price = (new Results())->getProductPrice($product, null, null, $customerUserId, $item->quantity);
 
             $item->price = $price;
             $newList[] = $item;

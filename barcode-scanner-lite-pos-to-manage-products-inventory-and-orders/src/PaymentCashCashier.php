@@ -1,14 +1,15 @@
-<?php 
+<?php
 
-add_action('plugins_loaded', 'init_gateway_payment_cash_cashier');
-function init_gateway_payment_cash_cashier() {
+add_action('plugins_loaded', function () {
     if (!class_exists('WC_Payment_Gateway')) {
         return;
     }
 
-    class WC_Gateway_Payment_Cash_Cashier extends WC_Payment_Gateway {
+    class WC_Gateway_Payment_Cash_Cashier extends WC_Payment_Gateway
+    {
 
-        public function __construct() {
+        public function __construct()
+        {
             $this->id = 'payment_cash_cashier';
             $this->icon = ''; 
             $this->has_fields = false;
@@ -24,31 +25,33 @@ function init_gateway_payment_cash_cashier() {
             add_action('woocommerce_update_options_payment_gateways_' . $this->id, array($this, 'process_admin_options'));
         }
 
-        public function init_form_fields() {
+        public function init_form_fields()
+        {
             $this->form_fields = array(
                 'enabled' => array(
-                    'title'   => 'Enable/Disable',
-                    'type'    => 'checkbox',
-                    'label'   => 'Enable Cash (cashier)',
+                    'title' => 'Enable/Disable',
+                    'type' => 'checkbox',
+                    'label' => 'Enable Cash (cashier)',
                     'default' => 'yes'
                 ),
                 'title' => array(
-                    'title'       => 'Title',
-                    'type'        => 'text',
+                    'title' => 'Title',
+                    'type' => 'text',
                     'description' => 'Title shown during checkout.',
-                    'default'     => 'Cash (cashier)',
-                    'desc_tip'    => true,
+                    'default' => 'Cash (cashier)',
+                    'desc_tip' => true,
                 ),
                 'description' => array(
-                    'title'       => 'Description',
-                    'type'        => 'textarea',
+                    'title' => 'Description',
+                    'type' => 'textarea',
                     'description' => 'Description shown during checkout.',
-                    'default'     => 'Pay via our cash (cashier).',
+                    'default' => 'Pay via our cash (cashier).',
                 ),
             );
         }
 
-        public function process_payment($order_id) {
+        public function process_payment($order_id)
+        {
             $order = wc_get_order($order_id);
 
             $order->update_status('on-hold', 'Awaiting custom payment');
@@ -59,19 +62,88 @@ function init_gateway_payment_cash_cashier() {
 
 
             return array(
-                'result'   => 'success',
+                'result' => 'success',
                 'redirect' => $this->get_return_url($order),
             );
         }
 
-        public function is_available() {
+        public function is_available()
+        {
             return is_admin() || isset($_GET['token']);
         }
     }
-}
 
-add_filter('woocommerce_payment_gateways', 'add_payment_cash_cashier_class');
-function add_payment_cash_cashier_class($methods) {
+    class WC_Gateway_Payment_POS_Terminal_Stripe extends WC_Payment_Gateway
+    {
+
+        public function __construct()
+        {
+            $this->id = 'payment_pos_terminal_stripe';
+            $this->icon = ''; 
+            $this->has_fields = false;
+            $this->method_title = 'POS Terminal (Stripe)';
+            $this->method_description = 'POS Terminal (Stripe)';
+
+            $this->init_form_fields();
+            $this->init_settings();
+
+            $this->title = $this->get_option('title');
+            $this->description = $this->get_option('description');
+
+            add_action('woocommerce_update_options_payment_gateways_' . $this->id, array($this, 'process_admin_options'));
+        }
+
+        public function init_form_fields()
+        {
+            $this->form_fields = array(
+                'enabled' => array(
+                    'title' => 'Enable/Disable',
+                    'type' => 'checkbox',
+                    'label' => 'Enable POS Terminal (Stripe)',
+                    'default' => 'yes'
+                ),
+                'title' => array(
+                    'title' => 'Title',
+                    'type' => 'text',
+                    'description' => 'Title shown during checkout.',
+                    'default' => 'POS Terminal (Stripe)',
+                    'desc_tip' => true,
+                ),
+                'description' => array(
+                    'title' => 'Description',
+                    'type' => 'textarea',
+                    'description' => 'Description shown during checkout.',
+                    'default' => 'Pay via POS Terminal (Stripe).',
+                ),
+            );
+        }
+
+        public function process_payment($order_id)
+        {
+            $order = wc_get_order($order_id);
+
+            $order->update_status('on-hold', 'Awaiting custom payment');
+
+            if (function_exists("wc_reduce_stock_levels")) {
+                wc_reduce_stock_levels($order_id);
+            }
+
+
+            return array(
+                'result' => 'success',
+                'redirect' => $this->get_return_url($order),
+            );
+        }
+
+        public function is_available()
+        {
+            return is_admin() || isset($_GET['token']);
+        }
+    }
+});
+
+add_filter('woocommerce_payment_gateways', function ($methods) {
     $methods[] = 'WC_Gateway_Payment_Cash_Cashier';
+    $methods[] = 'WC_Gateway_Payment_POS_Terminal_Stripe';
     return $methods;
-}
+});

@@ -8,6 +8,8 @@ use UkrSolution\BarcodeScanner\API\AjaxRoutes;
 use UkrSolution\BarcodeScanner\API\classes\Auth;
 use UkrSolution\BarcodeScanner\API\classes\Checker;
 use UkrSolution\BarcodeScanner\API\classes\Integrations;
+use UkrSolution\BarcodeScanner\API\classes\OrdersFilter;
+use UkrSolution\BarcodeScanner\API\classes\OrdersHelper;
 use UkrSolution\BarcodeScanner\API\classes\PostsList;
 use UkrSolution\BarcodeScanner\API\classes\RequestHelper;
 use UkrSolution\BarcodeScanner\API\classes\Results;
@@ -18,6 +20,7 @@ use UkrSolution\BarcodeScanner\API\classes\Users;
 use UkrSolution\BarcodeScanner\API\classes\WPML;
 use UkrSolution\BarcodeScanner\API\PluginsHelper;
 use UkrSolution\BarcodeScanner\API\Routes;
+use UkrSolution\BarcodeScanner\API\stripe\StripeTerminalService;
 use UkrSolution\BarcodeScanner\features\admin\Admin;
 use UkrSolution\BarcodeScanner\features\cart\Cart;
 use UkrSolution\BarcodeScanner\features\debug\Debug;
@@ -30,6 +33,7 @@ use UkrSolution\BarcodeScanner\features\indexedData\IndexedData;
 use UkrSolution\BarcodeScanner\features\interfaceData\InterfaceData;
 use UkrSolution\BarcodeScanner\features\locations\Locations;
 use UkrSolution\BarcodeScanner\features\locations\LocationsData;
+use UkrSolution\BarcodeScanner\features\logs\LogActions;
 use UkrSolution\BarcodeScanner\features\logs\Logs;
 use UkrSolution\BarcodeScanner\features\mobile\MobileRouter;
 use UkrSolution\BarcodeScanner\features\orders\Orders;
@@ -84,13 +88,13 @@ class Core
             add_action('init', array($this, 'handleConfigs'), 999999);
         }
 
-        $cartDecimalQuantity = false;
+        $cartDecimalQuantity = true;
 
         try {
             $settings = new Settings();
 
             $field = $settings->getSettings("cartDecimalQuantity");
-            $value = $field === null ? "off" : $field->value;
+            $value = $field === null ? "on" : $field->value;
             $cartDecimalQuantity = $value === "on";
         } catch (\Throwable $th) {
         }
@@ -123,6 +127,10 @@ class Core
             }
             Database::updatePost($post->ID, array(), null, null, "transition_post_status");
         }, 9999, 3);
+
+        add_action('woocommerce_order_status_changed', function ($order_id, $old_status, $new_status, $order) {
+            Database::updatePost($order->get_id(), array(), null, null, "woocommerce_order_status_changed");
+        }, 9999, 4);
 
         add_action('wp_insert_post', function($orderId) {
             if(in_array(get_post_type($orderId), array("shop_order"))) {
@@ -167,26 +175,10 @@ class Core
             return $formatted_meta;
         }, 10, 1 );
 
-        if($cartDecimalQuantity && \is_admin()) {
-            add_filter('woocommerce_quantity_input_min', function ($val) { 
-                return 0.1;
-            });
+        add_action('before_delete_post', function ($post_id) {
+            Database::removeIndexedRecord($post_id);
+        });
 
-            add_filter('woocommerce_quantity_input_step', function ($val) {
-                return 0.1;
-            });
-
-            add_filter('woocommerce_order_item_get_quantity', function ($quantity, $item) {
-                if($item->get_type() == "line_item") {
-                    $metaQty = \wc_get_order_item_meta($item->get_id(), "_qty");
-                    if($metaQty && $quantity != $metaQty) {
-                        $quantity = (float)$metaQty;
-                    }
-                }
-
-                    return $quantity;
-            }, 10, 3);
-        }
 
         $isMobileRoute = (new MobileRouter())->init($this);
         if(isset($isMobileRoute["route"]) && $isMobileRoute["route"] && isset($isMobileRoute["params"]) && $isMobileRoute["params"]) {
@@ -218,6 +210,7 @@ class Core
         add_action('wp_ajax_nopriv_usbs_auth_link', array($auth, 'loginLink'));
 
         add_action('init', array($this, "parseAuthRequest"));
+        add_action('init', array($this, "settingsAjaxUpdate"));
 
 
 
@@ -256,8 +249,8 @@ class Core
             $action = isset($_GET["action"]) ? $_GET["action"] : "";
             $postId = isset($_GET["post"]) ? $_GET["post"] : "";
 
-            if(Checker::getMediaLoader()) {
-            }else if ($action == 'edit' && $postId) {
+            if (Checker::getMediaLoader()) {
+            } else if ($action == 'edit' && $postId) {
             } else {
                 wp_enqueue_media();
             }
@@ -266,6 +259,10 @@ class Core
         add_action('init', function() use ($frontend) {
             $frontend->userMenuIntegration();
             $frontend->shordcodesIntegration();
+        });
+
+        add_action('init', function() use ($frontend) {
+            LogActions::donwloadFile();
         });
     }
 
@@ -313,21 +310,21 @@ class Core
 
         if ($webview) {
             
-  $appJsPath = plugin_dir_url(__FILE__)."../assets/js/bundle-business-1.11.0-1762270461249.js";
+  $appJsPath = plugin_dir_url(__FILE__)."../assets/js/bundle-business-1.12.0-1776150596682.js";
 
-  $vendorJsPath = plugin_dir_url(__FILE__)."../assets/js/chunk-business-1.11.0-1762270461249.js";
+  $vendorJsPath = plugin_dir_url(__FILE__)."../assets/js/chunk-business-1.12.0-1776150596682.js";
 
   
         } else {
-            wp_enqueue_script("barcode_scanner_loader", $path."assets/js/index-business-1.11.0-1762270461249.js", array("jquery"), 1762270461249, true);
+            wp_enqueue_script("barcode_scanner_loader", $path."assets/js/index-business-1.12.0-1776150596682.js", array("jquery"), 1776150596682, true);
 
-    $appJsPath = $path."assets/js/bundle-business-1.11.0-1762270461249.js";
+    $appJsPath = $path."assets/js/bundle-business-1.12.0-1776150596682.js";
 
-    $vendorJsPath = $path."assets/js/chunk-business-1.11.0-1762270461249.js";
+    $vendorJsPath = $path."assets/js/chunk-business-1.12.0-1776150596682.js";
 
         }
 
-        wp_enqueue_style('barcode_scanner_main', USBS_PLUGIN_BASE_URL . '/assets/css/style.css', array(), '1.11.0');
+        wp_enqueue_style('barcode_scanner_main', USBS_PLUGIN_BASE_URL . '/assets/css/style.css', array(), '1.12.0');
 
         if(!$isReturn) {
             $settings = get_option("barcode-scanner-settings-options", array());
@@ -441,6 +438,8 @@ class Core
             }
         }
 
+        $currencyPosition = get_option('woocommerce_currency_pos');
+
         $usbs = array(
             'appJsPath' => $appJsPath,
             'vendorJsPath' => $vendorJsPath,
@@ -449,11 +448,12 @@ class Core
             'pluginUrl' => USBS_PLUGIN_BASE_URL,
             'frontendLink' => get_home_url() . "/barcode-scanner-front",
             'jsonUrl' => get_rest_url(),
-            'pluginVersion' => '1.11.0',
+            'pluginVersion' => '1.12.0',
             'isWoocommerceActive' => PluginsHelper::is_plugin_active('woocommerce/woocommerce.php'),
             'isStockLocations' => PluginsHelper::is_plugin_active('stock-locations-for-woocommerce/stock-locations-for-woocommerce.php'),
             'currencySymbol' => $currency,
             'currencyLabel' => $currencyLabel,
+            'currencyPosition' => $currencyPosition,
             'priceDecimalSeparator' => $priceDecimalSeparator,
             'priceThousandSeparator' => $priceThousandSeparator,
             'priceDecimals' => $priceDecimals,
@@ -484,10 +484,11 @@ class Core
             "prefix" => "",
             "mode" => 'WEl5I+xhJLxE9d0ZGEOn2g==',
             "userSessions" => $userSessions,
-            "shippingMethods" => array(),
+            "shippingMethods" => OrdersHelper::getWCshippingMethods(),
             "paymentMethods" => $cart->getPaymentMethods(),
             "wcPricesInclTax" => function_exists("wc_prices_include_tax") ? \wc_prices_include_tax() : "",
             "orderStatuses" => SettingsHelper::getOrderStatuses(),
+            "orderAvailableStatuses" => apply_filters('scanner_orders_available_statuses', array()),
             "countries" => $countries,
             "searchHistory"=> array(),
             "productsListCount" => $productsList ? count($productsList) : 0,
@@ -499,6 +500,7 @@ class Core
             'upload_max_filesize' => SettingsHelper::getUploadMaxFilesize(),
             'taxBasedOn' => get_option('woocommerce_tax_based_on', 'shipping'),
             'user_roles' => Users::getNewUserRoles(),
+            'user_role' => Users::getUserRole($userId),
             'usbs_orders_list_filter' => $userId ? get_user_meta($userId, "usbs_orders_list_filter", true) : array(),
             'search_results_sort_by' => $userId ? get_user_meta($userId, "search_results_sort_by", true) : "relevance",
         );
@@ -552,6 +554,17 @@ class Core
         }
         Debug::addPoint("- modifyPreProcessSearchString");
 
+        $field = $settings->getSettings("afterSearchJavaScript");
+        $fnContent = $field === null ? "" : trim($field->value);
+        $usbsAfterSearchJavaScript = '';
+
+        if ($fnContent) {
+            $usbsAfterSearchJavaScript = "window.afterSearchJavaScript = () => {" . $fnContent . " ; };";
+        }
+        Debug::addPoint("- afterSearchJavaScript");
+
+        $usbsOrdersListFilter = OrdersFilter::getFilter();
+
                 return array(
             'usbs' => $usbs,
             'usbsCustomCss' => array("css" => $customCss ? $customCss->value : ""),
@@ -566,6 +579,8 @@ class Core
             'usbsCategories' => array(), 
             "cartExtraData" => $cartExtraData,
             "usbsModifyPreProcessSearchString" => $usbsModifyPreProcessSearchString,
+            "usbsAfterSearchJavaScript" => $usbsAfterSearchJavaScript,
+            "usbsOrdersListFilter" => $usbsOrdersListFilter,
         );
     }
 
@@ -636,7 +651,7 @@ class Core
 
         $deps = array('jquery');
 
-                wp_enqueue_script('barcode_scanner_settings', USBS_PLUGIN_BASE_URL . '/src/features/settings/assets/js/index-business-1.11.0-1762270461249.js', $deps, null, true);
+                wp_enqueue_script('barcode_scanner_settings', USBS_PLUGIN_BASE_URL . '/src/features/settings/assets/js/index-business-1.12.0-1776150596682.js', $deps, null, true);
         wp_enqueue_style('barcode_scanner_settings', USBS_PLUGIN_BASE_URL . '/src/features/settings/assets/css/index.css');
 
         wp_enqueue_script('barcode_scanner_settings_chosen', USBS_PLUGIN_BASE_URL . '/src/features/settings/assets/js/chosen.jquery.min.js', $deps, null, true);
@@ -658,6 +673,16 @@ class Core
     public function pageSettingsUpdate () {
         $nonce = isset($_POST["nonce"]) ? sanitize_text_field($_POST["nonce"]) : "";
 
+        PermissionsHelper::setUser(get_current_user_id());
+        $errorRole = PermissionsHelper::roleRequired(['administrator'], true);
+        $error = PermissionsHelper::onePermRequired(['plugin_settings'], true);
+
+        if(is_array($error) && isset($error['message']) && is_array($errorRole)) {
+            $title = esc_html__("Barcode Scanner settings", "us-barcode-scanner");
+            require_once USBS_PLUGIN_BASE_PATH . "src/features/settings/error.php";
+            return;
+        }
+
         if($nonce && wp_verify_nonce($nonce, USBS_PLUGIN_BASE_NAME . "-settings")) {
             $settings = new Settings();
             $settings->formSubmitted();
@@ -674,18 +699,27 @@ class Core
     }
 
     public function pageSettingsReset () {
+        $nonce = isset($_GET["nonce"]) ? sanitize_text_field($_GET["nonce"]) : "";
         $tab = isset($_GET["tab"]) ? "&tab=" . sanitize_text_field($_GET["tab"]) : "";
-        $settings = new Settings();
 
-        $settings->resetOptionsSettings();
+        PermissionsHelper::setUser(get_current_user_id());
+        $errorRole = PermissionsHelper::roleRequired(['administrator'], true);
+        $error = PermissionsHelper::onePermRequired(['plugin_settings'], true);
 
-        Database::removeUsersData();        
+        if(is_array($error) && isset($error['message']) && is_array($errorRole)) {
+            $title = esc_html__("Barcode Scanner settings", "us-barcode-scanner");
+            require_once USBS_PLUGIN_BASE_PATH . "src/features/settings/error.php";
+            return;
+        }
 
-        Database::removeAllTables();
-
-        Database::setupTables(null);
-
-        SettingsHelper::restoreReceiptTemplate();
+        if($nonce && wp_verify_nonce($nonce, USBS_PLUGIN_BASE_NAME . "-settings")) {
+            $settings = new Settings();
+            $settings->resetOptionsSettings();
+            Database::removeUsersData();        
+            Database::removeAllTables();
+            Database::setupTables(null);
+            SettingsHelper::restoreReceiptTemplate();
+        }
 
         wp_redirect(admin_url('/admin.php?page=barcode-scanner-settings' . $tab));
         exit;
@@ -705,7 +739,7 @@ class Core
         $interfaceData = new InterfaceData();
 
         wp_enqueue_script('jquery-ui-datepicker');
-        wp_enqueue_script('barcode_scanner_logs', USBS_PLUGIN_BASE_URL . '/src/features/logs/assets/js/index-business-1.11.0-1762270461249.js', array('jquery'), null, true);
+        wp_enqueue_script('barcode_scanner_logs', USBS_PLUGIN_BASE_URL . '/src/features/logs/assets/js/index-business-1.12.0-1776150596682.js', array('jquery'), null, true);
         wp_enqueue_style('barcode_scanner_logs', USBS_PLUGIN_BASE_URL . '/src/features/logs/assets/css/index.css');
         wp_register_style('jquery-ui', 'https://code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css');
         wp_enqueue_style('jquery-ui'); 
@@ -760,7 +794,7 @@ class Core
         }
 
         wp_enqueue_script('jquery-ui-datepicker');
-        wp_enqueue_script('barcode_scanner_logs', USBS_PLUGIN_BASE_URL . '/src/features/indexedData/assets/js/index-business-1.11.0-1762270461249.js', array('jquery'), null, true);
+        wp_enqueue_script('barcode_scanner_logs', USBS_PLUGIN_BASE_URL . '/src/features/indexedData/assets/js/index-business-1.12.0-1776150596682.js', array('jquery'), null, true);
         wp_enqueue_style('barcode_scanner_logs', USBS_PLUGIN_BASE_URL . '/src/features/indexedData/assets/css/index.css');
         wp_register_style('jquery-ui', 'https://code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css');
         wp_enqueue_style('jquery-ui'); 
@@ -829,6 +863,16 @@ class Core
 
             exit;
 
+        }
+    }
+
+    public function settingsAjaxUpdate()
+    {
+        $post = json_decode(file_get_contents("php://input"), true);
+
+        if (is_array($post) && isset($post['storage']) && isset($post['tab']) && $post['tab'] == "fields") {
+            $_POST = $post;
+            $this->pageSettingsUpdate();
         }
     }
 }

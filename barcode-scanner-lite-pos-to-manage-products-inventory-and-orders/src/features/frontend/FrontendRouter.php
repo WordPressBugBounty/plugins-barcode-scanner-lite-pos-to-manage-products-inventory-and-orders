@@ -43,7 +43,9 @@ class FrontendRouter
             if (isset($_SERVER["REQUEST_URI"])) {
                 $key = $_SERVER["REQUEST_URI"];
 
-                if (!$key) return $result;
+                if (!$key) {
+                    return $result;
+                }
 
                 if (isset($_GET["redirect_to"])) {
                     return $result;
@@ -91,7 +93,7 @@ class FrontendRouter
         if (!$this->checkUserPermissions()) {
             $accessDenied = true;
 
-                        if (function_exists("http_response_code")) {
+            if (function_exists("http_response_code")) {
                 http_response_code(403);
             } else {
                 header("HTTP/1.1 403 Access denied");
@@ -160,7 +162,7 @@ class FrontendRouter
 
             $permission = \get_user_meta($userId, $this->userPermissionKey, true);
 
-            if ($permission && (int)$permission) {
+            if ($permission && (int) $permission) {
                 return true;
             } else {
                 return false;

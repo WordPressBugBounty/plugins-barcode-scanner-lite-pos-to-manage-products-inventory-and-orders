@@ -28,25 +28,24 @@ $isProductLabelsPrinting = class_exists('UkrSolution\ProductLabelsPrinting\Helpe
     <div>
         <nav class="nav-tab-wrapper">
             <a href="#search" class="nav-tab <?php echo ($tab === "search") ? esc_attr("nav-tab-active") : "" ?>" data-tab="search"><?php echo esc_html__("Search", "us-barcode-scanner"); ?></a>
-            <a href="#fields" class="nav-tab <?php echo ($tab === "fields") ? esc_attr("nav-tab-active") : "" ?>" data-tab="fields"><?php echo esc_html__("Product fields", "us-barcode-scanner"); ?></a>
-            <a href="#app" class="nav-tab <?php echo ($tab === "app") ? esc_attr("nav-tab-active") : "" ?>" data-tab="app"><?php echo esc_html__("Mobile App", "us-barcode-scanner"); ?></a>
             <a href="#products" class="nav-tab <?php echo ($tab === "products") ? esc_attr("nav-tab-active") : "" ?>" data-tab="products"><?php echo esc_html__("Products", "us-barcode-scanner"); ?></a>
-            <?php
-            ?>
-
+            <a href="#fields" class="nav-tab <?php echo ($tab === "fields") ? esc_attr("nav-tab-active") : "" ?>" data-tab="fields"><?php echo esc_html__("Product fields", "us-barcode-scanner"); ?></a>
             <a href="#orders" class="nav-tab <?php echo ($tab === "orders") ? esc_attr("nav-tab-active") : "" ?>" data-tab="orders"><?php echo esc_html__("Orders", "us-barcode-scanner"); ?></a>
+            <a href="#order-fields" class="nav-tab <?php echo ($tab === "order-fields") ? esc_attr("nav-tab-active") : "" ?>" data-tab="order-fields"><?php echo esc_html__("Order fields", "us-barcode-scanner"); ?></a>
+            <a href="#app" class="nav-tab <?php echo ($tab === "app") ? esc_attr("nav-tab-active") : "" ?>" data-tab="app"><?php echo esc_html__("Mobile App", "us-barcode-scanner"); ?></a>
             <a href="#permissions" class="nav-tab <?php echo ($tab === "permissions") ? esc_attr("nav-tab-active") : "" ?>" data-tab="permissions"><?php echo esc_html__("Permissions", "us-barcode-scanner"); ?></a>
             <a href="#general" class="nav-tab <?php echo ($tab === "general") ? esc_attr("nav-tab-active") : "" ?>" data-tab="general"><?php echo esc_html__("Front-end popup", "us-barcode-scanner"); ?></a>
-            <a href="#receipt-printing" class="nav-tab <?php echo ($tab === "receipt-printing") ? esc_attr("nav-tab-active") : "" ?>" data-tab="receipt-printing"><?php echo esc_html__("Receipt printing", "us-barcode-scanner"); ?></a>
+            <a href="#receipt-printing" class="nav-tab <?php echo ($tab === "receipt-printing") ? esc_attr("nav-tab-active") : "" ?>" data-tab="receipt-printing"><?php echo esc_html__("Receipt", "us-barcode-scanner"); ?></a>
             <a href="#plugins" class="nav-tab <?php echo ($tab === "plugins") ? esc_attr("nav-tab-active") : "" ?>" data-tab="plugins"><?php echo esc_html__('Hooks for "Direct DB" mode', "us-barcode-scanner"); ?></a>
             <?php if ($isProductLabelsPrinting): ?>
-                <a href="#label-printing" class="nav-tab <?php echo ($tab === "label-printing") ? esc_attr("nav-tab-active") : "" ?>" data-tab="label-printing"><?php echo esc_html__("Label Printing plugin", "us-barcode-scanner"); ?></a>
+                <a href="#label-printing" class="nav-tab <?php echo ($tab === "label-printing") ? esc_attr("nav-tab-active") : "" ?>" data-tab="label-printing"><?php echo esc_html__("Label Printing", "us-barcode-scanner"); ?></a>
             <?php endif; ?>
+            <a href="#pos-terminal" class="nav-tab <?php echo ($tab === "pos-terminal") ? esc_attr("nav-tab-active") : "" ?>" data-tab="pos-terminal"><?php echo esc_html__("POS Terminal", "us-barcode-scanner"); ?></a>
             <a href="#css" class="nav-tab <?php echo ($tab === "css") ? esc_attr("nav-tab-active") : "" ?>" data-tab="css"><?php echo esc_html__("Other", "us-barcode-scanner"); ?></a>
             <a href="#license" class="nav-tab <?php echo ($tab === "license") ? esc_attr("nav-tab-active") : "" ?>" data-tab="license"><?php echo esc_html__("License", "us-barcode-scanner"); ?></a>
 
             <!-- custom tabs -->
-            <?php foreach ($customTabs as $index => $customTab) : ?>
+            <?php foreach ($customTabs as $index => $customTab): ?>
                 <?php $slug = isset($customTab["slug"]) && $customTab["slug"] ? $customTab["slug"] : "tab-slug-" . $index; ?>
                 <?php $name = isset($customTab["name"]) && $customTab["name"] ? $customTab["name"] : "Tab name"; ?>
                 <a href="#license" class="nav-tab <?php echo ($tab === $slug) ? esc_attr("nav-tab-active") : "" ?>" data-tab="<?php echo esc_attr($slug); ?>"><?php echo esc_html($name); ?></a>
@@ -57,9 +56,6 @@ $isProductLabelsPrinting = class_exists('UkrSolution\ProductLabelsPrinting\Helpe
             <div class="settings-tab general-tab" <?php echo ($tab !== "general") ? 'style="display: none;"' : "" ?>>
                 <?php require_once(__DIR__ . "/views/tab-general.php"); ?>
             </div>
-            <!-- locations -->
-            <?php
-            ?>
             <!-- search -->
             <div class="settings-tab search-tab" <?php echo ($tab !== "search") ? 'style="display: none;"' : "" ?>>
                 <?php require_once(__DIR__ . "/views/tab-search.php"); ?>
@@ -76,6 +72,10 @@ $isProductLabelsPrinting = class_exists('UkrSolution\ProductLabelsPrinting\Helpe
             <div class="settings-tab fields-tab" <?php echo ($tab !== "fields") ? 'style="display: none;"' : "" ?>>
                 <?php require_once(__DIR__ . "/views/tab-fields.php"); ?>
             </div>
+            <!-- fields -->
+            <div class="settings-tab order-fields-tab" <?php echo ($tab !== "order-fields") ? 'style="display: none;"' : "" ?>>
+                <?php require_once(__DIR__ . "/views/tab-order-fields.php"); ?>
+            </div>
             <!-- permissions -->
             <div class="settings-tab permissions-tab" <?php echo ($tab !== "permissions") ? 'style="display: none;"' : "" ?>>
                 <?php require_once(__DIR__ . "/views/tab-permissions.php"); ?>
@@ -87,6 +87,10 @@ $isProductLabelsPrinting = class_exists('UkrSolution\ProductLabelsPrinting\Helpe
             <!-- plugins -->
             <div class="settings-tab plugins-tab" <?php echo ($tab !== "plugins") ? 'style="display: none;"' : "" ?>>
                 <?php require_once(__DIR__ . "/views/tab-plugins.php"); ?>
+            </div>
+            <!-- pos-terminal -->
+            <div class="settings-tab pos-terminal-tab" <?php echo ($tab !== "pos-terminal") ? 'style="display: none;"' : "" ?>>
+                <?php require_once(__DIR__ . "/views/tab-pos-terminal.php"); ?>
             </div>
             <!-- license -->
             <div class="settings-tab license-tab" <?php echo ($tab !== "license") ? 'style="display: none;"' : "" ?>>
@@ -108,7 +112,7 @@ $isProductLabelsPrinting = class_exists('UkrSolution\ProductLabelsPrinting\Helpe
             </div>
 
             <!-- custom tabs -->
-            <?php foreach ($customTabs as $index => $customTab) : ?>
+            <?php foreach ($customTabs as $index => $customTab): ?>
                 <?php $slug = isset($customTab["slug"]) && $customTab["slug"] ? $customTab["slug"] : "tab-slug-" . $index; ?>
                 <div class="settings-tab <?php echo esc_attr($slug); ?>-tab" <?php echo ($tab !== $slug) ? 'style="display: none;"' : "" ?>>
                     <?php if (file_exists($customTab["viewPath"])) {
@@ -122,45 +126,43 @@ $isProductLabelsPrinting = class_exists('UkrSolution\ProductLabelsPrinting\Helpe
     </div>
 </div>
 
-<div id="barcode-scanner-preloader">
-    <span class="a4b-preloader-icon"></span>
-    <style>
-        #barcode-scanner-preloader {
-            position: fixed;
-            top: 0px;
-            left: 0px;
-            width: 100vw;
-            height: 100vh;
-            z-index: 9000;
-            font-size: 14px;
-            background: rgba(0, 0, 0, 0.3);
-            transition: opacity 0.3s ease 0s;
-            transform: translate3d(0px, 0px, 0px);
-        }
+<div id="barcode-scanner-preloader"><span class="a4b-preloader-icon"></span></div>
+<style>
+    #barcode-scanner-preloader {
+        position: fixed;
+        top: 0px;
+        left: 0px;
+        width: 100vw;
+        height: 100vh;
+        z-index: 9000;
+        font-size: 14px;
+        background: rgba(0, 0, 0, 0.3);
+        transition: opacity 0.3s ease 0s;
+        transform: translate3d(0px, 0px, 0px);
+    }
 
-        #barcode-scanner-preloader .a4b-preloader-icon {
-            position: relative;
-            top: 50%;
-            left: 50%;
-            color: #fff;
-            border-radius: 50%;
-            opacity: 1;
-            width: 30px;
-            height: 30px;
-            border: 2px solid #f3f3f3;
-            border-top: 3px solid #3498db;
-            display: inline-block;
-            animation: a4b-spin 1s linear infinite;
-        }
+    #barcode-scanner-preloader .a4b-preloader-icon {
+        position: relative;
+        top: 50%;
+        left: 50%;
+        color: #fff;
+        border-radius: 50%;
+        opacity: 1;
+        width: 30px;
+        height: 30px;
+        border: 2px solid #f3f3f3;
+        border-top: 3px solid #3498db;
+        display: inline-block;
+        animation: a4b-spin 1s linear infinite;
+    }
 
-        @keyframes a4b-spin {
-            100% {
-                -webkit-transform: rotate(360deg);
-                transform: rotate(360deg);
-            }
+    @keyframes a4b-spin {
+        100% {
+            -webkit-transform: rotate(360deg);
+            transform: rotate(360deg);
         }
-    </style>
-</div>
+    }
+</style>
 
 <style>
     #bs-settings-page .tabs .form-table th {
@@ -185,7 +187,7 @@ $isProductLabelsPrinting = class_exists('UkrSolution\ProductLabelsPrinting\Helpe
 </style>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         const tabs = document.querySelectorAll('.nav-tab-wrapper a');
         let selectedTab = '<?php echo esc_html($tab); ?>';
 

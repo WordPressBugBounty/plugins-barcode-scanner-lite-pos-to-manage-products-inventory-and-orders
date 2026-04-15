@@ -2,7 +2,8 @@
 use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
 ?>
 
-<form class="bs-settings-input-conditions" id="bs-settings-orders-tab" method="POST" action="<?php echo esc_url($actualLink); ?>">
+<form class="bs-settings-input-conditions" id="bs-settings-orders-tab" method="POST"
+    action="<?php echo esc_url($actualLink); ?>">
     <input type="hidden" name="tab" value="orders" />
     <input type="hidden" name="storage" value="table" />
     <input type="hidden" name="nonce" value="<?php echo esc_attr($nonce); ?>" />
@@ -25,8 +26,10 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                     ?>
                     <label>
                         <?php $checked = $defaultValue !== "off" ? ' checked=checked ' : ''; ?>
-                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> onchange="WebbsSettingsCheckboxChange(`#bs_enable_order_fulfillment input[name='orderFulfillmentEnabled']`,this.checked ? 'on' : 'off')" />
-                        <input type="hidden" name="orderFulfillmentEnabled" value="<?php echo $checked ? "on" : "off"; ?>" />
+                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?>
+                            onchange="WebbsSettingsCheckboxChange(`#bs_enable_order_fulfillment input[name='orderFulfillmentEnabled']`,this.checked ? 'on' : 'off')" />
+                        <input type="hidden" name="orderFulfillmentEnabled"
+                            value="<?php echo $checked ? "on" : "off"; ?>" />
                         <?php echo esc_html__("Enable", "us-barcode-scanner"); ?>
                     </label>
                 </td>
@@ -43,8 +46,10 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                     ?>
                     <label>
                         <?php $checked = $defaultValue !== "off" ? ' checked=checked ' : ''; ?>
-                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> onchange="WebbsSettingsCheckboxChange(`#bs_order_fulfillment_enabled input[name='orderFulfillmentByDefault']`,this.checked ? 'on' : 'off')" />
-                        <input type="hidden" name="orderFulfillmentByDefault" value="<?php echo $checked ? "on" : "off"; ?>" />
+                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?>
+                            onchange="WebbsSettingsCheckboxChange(`#bs_order_fulfillment_enabled input[name='orderFulfillmentByDefault']`,this.checked ? 'on' : 'off')" />
+                        <input type="hidden" name="orderFulfillmentByDefault"
+                            value="<?php echo $checked ? "on" : "off"; ?>" />
                         <?php echo esc_html__("Enable", "us-barcode-scanner"); ?>
                     </label><br />
                     <i><?php echo esc_html__('If this option enabled then "fulfillment" mode will be active by default.', "us-barcode-scanner"); ?></i>
@@ -62,8 +67,10 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                     ?>
                     <label>
                         <?php $checked = $defaultValue !== "off" ? ' checked=checked ' : ''; ?>
-                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> onchange="WebbsSettingsCheckboxChange(`#fulfillment_scan_item_qty input[name='fulfillmentScanItemQty']`,this.checked ? 'on' : 'off')" />
-                        <input type="hidden" name="fulfillmentScanItemQty" value="<?php echo $checked ? "on" : "off"; ?>" />
+                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?>
+                            onchange="WebbsSettingsCheckboxChange(`#fulfillment_scan_item_qty input[name='fulfillmentScanItemQty']`,this.checked ? 'on' : 'off')" />
+                        <input type="hidden" name="fulfillmentScanItemQty"
+                            value="<?php echo $checked ? "on" : "off"; ?>" />
                         <?php echo esc_html__("Enable", "us-barcode-scanner"); ?>
                     </label><br />
                     <i><?php echo esc_html__("In order fulfillment mode, this option will take into account amount of the purchased items (qty). So, order item will be  fulfilled (marked with green arrow) as soon as product is scanned in the same amount as was purchased. E.g. if 10 the same items were purchased - you will have to scan the barcode 10 times.", "us-barcode-scanner"); ?></i>
@@ -87,7 +94,7 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                             if ($defaultValue === $key) {
                                 $selected = ' selected=selected ';
                             }
-                        ?>
+                            ?>
                             <option value="<?php esc_html_e($key, 'us-barcode-scanner'); ?>" <?php esc_html_e($selected, 'us-barcode-scanner'); ?>><?php esc_html_e($value, 'us-barcode-scanner'); ?></option>
                             <?php
                         }
@@ -107,8 +114,10 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                     ?>
                     <label>
                         <?php $checked = $defaultValue !== "off" ? ' checked=checked ' : ''; ?>
-                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> onchange="WebbsSettingsCheckboxChange(`#fulfilled_not_allow_status input[name='fulfilledNotAllowStatus']`,this.checked ? 'on' : 'off')" />
-                        <input type="hidden" name="fulfilledNotAllowStatus" value="<?php echo $checked ? "on" : "off"; ?>" />
+                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?>
+                            onchange="WebbsSettingsCheckboxChange(`#fulfilled_not_allow_status input[name='fulfilledNotAllowStatus']`,this.checked ? 'on' : 'off')" />
+                        <input type="hidden" name="fulfilledNotAllowStatus"
+                            value="<?php echo $checked ? "on" : "off"; ?>" />
                         <?php echo esc_html__("Enable", "us-barcode-scanner"); ?>
                     </label>
                 </td>
@@ -125,8 +134,10 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                     ?>
                     <label>
                         <?php $checked = $defaultValue !== "off" ? ' checked=checked ' : ''; ?>
-                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> onchange="WebbsSettingsCheckboxChange(`#dont_allow_to_switch_order input[name='dontAllowSwitchOrder']`,this.checked ? 'on' : 'off')" />
-                        <input type="hidden" name="dontAllowSwitchOrder" value="<?php echo $checked ? "on" : "off"; ?>" />
+                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?>
+                            onchange="WebbsSettingsCheckboxChange(`#dont_allow_to_switch_order input[name='dontAllowSwitchOrder']`,this.checked ? 'on' : 'off')" />
+                        <input type="hidden" name="dontAllowSwitchOrder"
+                            value="<?php echo $checked ? "on" : "off"; ?>" />
                         <?php echo esc_html__("Enable", "us-barcode-scanner"); ?>
                     </label>
                 </td>
@@ -143,7 +154,8 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                     ?>
                     <label>
                         <?php $checked = $defaultValue !== "off" ? ' checked=checked ' : ''; ?>
-                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> onchange="WebbsSettingsCheckboxChange(`#allow_mark_fulfilled input[name='allowMarkFulfilled']`,this.checked ? 'on' : 'off')" />
+                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?>
+                            onchange="WebbsSettingsCheckboxChange(`#allow_mark_fulfilled input[name='allowMarkFulfilled']`,this.checked ? 'on' : 'off')" />
                         <input type="hidden" name="allowMarkFulfilled" value="<?php echo $checked ? "on" : "off"; ?>" />
                         <?php echo esc_html__("Enable", "us-barcode-scanner"); ?>
                     </label>
@@ -161,8 +173,10 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                     ?>
                     <label>
                         <?php $checked = $defaultValue !== "off" ? ' checked=checked ' : ''; ?>
-                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> onchange="WebbsSettingsCheckboxChange(`#fulfilled_close_order_after input[name='fulfilledCloseOrderAfter']`,this.checked ? 'on' : 'off')" />
-                        <input type="hidden" name="fulfilledCloseOrderAfter" value="<?php echo $checked ? "on" : "off"; ?>" />
+                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?>
+                            onchange="WebbsSettingsCheckboxChange(`#fulfilled_close_order_after input[name='fulfilledCloseOrderAfter']`,this.checked ? 'on' : 'off')" />
+                        <input type="hidden" name="fulfilledCloseOrderAfter"
+                            value="<?php echo $checked ? "on" : "off"; ?>" />
                         <?php echo esc_html__("Enable", "us-barcode-scanner"); ?>
                     </label>
                 </td>
@@ -179,8 +193,10 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                     ?>
                     <label>
                         <?php $checked = $defaultValue !== "off" ? ' checked=checked ' : ''; ?>
-                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> onchange="WebbsSettingsCheckboxChange(`#reset_fulfillment_by_close_order input[name='resetFulfillmentByCloseOrder']`,this.checked ? 'on' : 'off')" />
-                        <input type="hidden" name="resetFulfillmentByCloseOrder" value="<?php echo $checked ? "on" : "off"; ?>" />
+                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?>
+                            onchange="WebbsSettingsCheckboxChange(`#reset_fulfillment_by_close_order input[name='resetFulfillmentByCloseOrder']`,this.checked ? 'on' : 'off')" />
+                        <input type="hidden" name="resetFulfillmentByCloseOrder"
+                            value="<?php echo $checked ? "on" : "off"; ?>" />
                         <?php echo esc_html__("Enable", "us-barcode-scanner"); ?>
                     </label>
                     <br />
@@ -198,7 +214,8 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                     $defaultValue = $defaultValue === null ? "" : $defaultValue->value;
                     ?>
                     <span>
-                        <input type="text" name="orderFulFillmentField" value="<?php esc_html_e($defaultValue); ?>" placeholder="<?php echo esc_html__("Field name", "us-barcode-scanner"); ?>" />
+                        <input type="text" name="orderFulFillmentField" value="<?php esc_html_e($defaultValue); ?>"
+                            placeholder="<?php echo esc_html__("Field name", "us-barcode-scanner"); ?>" />
                         <div>
                             <i><?php echo esc_html__("Specify meta custom field name of the tracking number (you may need help of web-developer to find it)", "us-barcode-scanner"); ?></i>
                         </div>
@@ -216,7 +233,8 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                     $defaultValue = $defaultValue === null ? "" : $defaultValue->value;
                     ?>
                     <span>
-                        <input type="text" name="ffQtyStep" value="<?php esc_html_e($defaultValue); ?>" placeholder="<?php echo esc_html__("Product custom meta field", "us-barcode-scanner"); ?>" />
+                        <input type="text" name="ffQtyStep" value="<?php esc_html_e($defaultValue); ?>"
+                            placeholder="<?php echo esc_html__("Product custom meta field", "us-barcode-scanner"); ?>" />
                         <div>
                             <i><?php echo esc_html__('Take into account "qty step" product field in the fulfillment process. It may be helpful if you sell items in boxes (e.g. products 10 per box) and you want to scan the box barcode and to fulfill item by 10. Specify here the product meta field where "qty step"/"amount in the box" is specified.', "us-barcode-scanner"); ?></i>
                         </div>
@@ -235,8 +253,10 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                     ?>
                     <label>
                         <?php $checked = $defaultValue !== "off" ? ' checked=checked ' : ''; ?>
-                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> onchange="WebbsSettingsCheckboxChange(`#reset_fulfillment_by_close_order input[name='sortOrderItemsByCategories']`,this.checked ? 'on' : 'off')" />
-                        <input type="hidden" name="sortOrderItemsByCategories" value="<?php echo $checked ? "on" : "off"; ?>" />
+                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?>
+                            onchange="WebbsSettingsCheckboxChange(`#reset_fulfillment_by_close_order input[name='sortOrderItemsByCategories']`,this.checked ? 'on' : 'off')" />
+                        <input type="hidden" name="sortOrderItemsByCategories"
+                            value="<?php echo $checked ? "on" : "off"; ?>" />
                         <?php echo esc_html__("Enable", "us-barcode-scanner"); ?>
                     </label>
                 </td>
@@ -253,8 +273,10 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                     ?>
                     <label>
                         <?php $checked = $defaultValue !== "off" ? ' checked=checked ' : ''; ?>
-                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> onchange="WebbsSettingsCheckboxChange(`#fulfillment_frontend_search input[name='fulfillmentFrontendSearch']`,this.checked ? 'on' : 'off')" />
-                        <input type="hidden" name="fulfillmentFrontendSearch" value="<?php echo $checked ? "on" : "off"; ?>" />
+                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?>
+                            onchange="WebbsSettingsCheckboxChange(`#fulfillment_frontend_search input[name='fulfillmentFrontendSearch']`,this.checked ? 'on' : 'off')" />
+                        <input type="hidden" name="fulfillmentFrontendSearch"
+                            value="<?php echo $checked ? "on" : "off"; ?>" />
                         <?php echo esc_html__("Enable", "us-barcode-scanner"); ?>
                     </label>
                     <div>
@@ -262,10 +284,67 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                     </div>
                 </td>
             </tr>
+            <!-- Restrict order oppening if it is in the fulfilment process by another user -->
+            <tr id="fulfillment_frontend_search">
+                <th scope="row">
+                    <?php echo esc_html__("Restrict order oppening if it is in the fulfilment process by another user.", "us-barcode-scanner"); ?>
+                </th>
+                <td>
+                    <?php
+                    $defaultValue = $settings->getSettings("FFrestrictOrderOpening");
+                    $defaultValue = $defaultValue === null ? 'off' : $defaultValue->value;
+                    ?>
+                    <label>
+                        <?php $checked = $defaultValue !== "off" ? ' checked=checked ' : ''; ?>
+                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?>
+                            onchange="WebbsSettingsCheckboxChange(`#fulfillment_frontend_search input[name='FFrestrictOrderOpening']`,this.checked ? 'on' : 'off')" />
+                        <input type="hidden" name="FFrestrictOrderOpening"
+                            value="<?php echo $checked ? "on" : "off"; ?>" />
+                        <?php echo esc_html__("Enable", "us-barcode-scanner"); ?>
+                    </label>
+                </td>
+            </tr>
+
+            <!-- Error messages display in popup (require user to press ok) -->
+            <tr id="fulfillment_frontend_search">
+                <th scope="row">
+                    <?php echo esc_html__("Error messages display in popup (require user to press ok)", "us-barcode-scanner"); ?>
+                </th>
+                <td>
+                    <?php
+                    $defaultValue = $settings->getSettings("FFerrorsInPopup");
+                    $defaultValue = $defaultValue === null ? 'off' : $defaultValue->value;
+                    ?>
+                    <label>
+                        <?php $checked = $defaultValue == "on" ? ' checked=checked ' : ''; ?>
+                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?>
+                            onchange="WebbsSettingsCheckboxChange(`#fulfillment_frontend_search input[name='FFerrorsInPopup']`,this.checked ? 'on' : 'off')" />
+                        <input type="hidden" name="FFerrorsInPopup" value="<?php echo $checked ? "on" : "off"; ?>" />
+                        <?php echo esc_html__("Enable", "us-barcode-scanner"); ?>
+                    </label>
+                </td>
+            </tr>
+
+            <tr id="fulfillment_exclude_ids">
+                <th scope="row">
+                    <?php echo esc_html__("Exclude products from the fulfilment process by Product ID.", "us-barcode-scanner"); ?>
+                </th>
+                <td>
+                    <?php
+                    $defaultValue = $settings->getSettings("FFexcludeIds");
+                    $defaultValue = $defaultValue === null ? '' : $defaultValue->value;
+                    ?>
+                    <textarea name="FFexcludeIds" resize="both" rows="3"
+                        cols="40"><?php echo wp_kses_post($defaultValue) ?></textarea>
+                    <div>
+                        <i><?php echo esc_html__('Use separator ",". Example: 100,2000,59,10573', "us-barcode-scanner"); ?></i>
+                    </div>
+                </td>
+            </tr>
 
             <tr class="usbs-section-label">
                 <td>
-                    <h2><?php echo esc_html__("Display / hide fields", "us-barcode-scanner"); ?></h2>
+                    <h2><?php echo esc_html__("General", "us-barcode-scanner"); ?></h2>
                 </td>
             </tr>
             <!-- Display "Coupon" field -->
@@ -280,7 +359,8 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                     ?>
                     <label>
                         <?php $checked = $defaultValue !== "off" ? ' checked=checked ' : ''; ?>
-                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> onchange="WebbsSettingsCheckboxChange(`#display_coupon_field input[name='displayCouponField']`,this.checked ? 'on' : 'off')" />
+                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?>
+                            onchange="WebbsSettingsCheckboxChange(`#display_coupon_field input[name='displayCouponField']`,this.checked ? 'on' : 'off')" />
                         <input type="hidden" name="displayCouponField" value="<?php echo $checked ? "on" : "off"; ?>" />
                         <?php echo esc_html__("Enable", "us-barcode-scanner"); ?>
                     </label>
@@ -298,8 +378,29 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                     ?>
                     <label>
                         <?php $checked = $defaultValue !== "off" ? ' checked=checked ' : ''; ?>
-                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> onchange="WebbsSettingsCheckboxChange(`#display_note_field input[name='displayNoteField']`,this.checked ? 'on' : 'off')" />
+                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?>
+                            onchange="WebbsSettingsCheckboxChange(`#display_note_field input[name='displayNoteField']`,this.checked ? 'on' : 'off')" />
                         <input type="hidden" name="displayNoteField" value="<?php echo $checked ? "on" : "off"; ?>" />
+                        <?php echo esc_html__("Enable", "us-barcode-scanner"); ?>
+                    </label>
+                </td>
+            </tr>
+            <!-- Show taxes for each item -->
+            <tr id="displayTaxesForItems">
+                <th scope="row">
+                    <?php echo esc_html__('Show taxes for each item', "us-barcode-scanner"); ?>
+                </th>
+                <td>
+                    <?php
+                    $defaultValue = $settings->getSettings("displayTaxesForItems");
+                    $defaultValue = $defaultValue === null ? '' : $defaultValue->value;
+                    ?>
+                    <label>
+                        <?php $checked = $defaultValue == "on" ? ' checked=checked ' : ''; ?>
+                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?>
+                            onchange="WebbsSettingsCheckboxChange(`#displayTaxesForItems input[name='displayTaxesForItems']`,this.checked ? 'on' : 'off')" />
+                        <input type="hidden" name="displayTaxesForItems"
+                            value="<?php echo $checked ? "on" : "off"; ?>" />
                         <?php echo esc_html__("Enable", "us-barcode-scanner"); ?>
                     </label>
                 </td>
@@ -316,7 +417,8 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                     ?>
                     <label>
                         <?php $checked = $defaultValue !== "off" ? ' checked=checked ' : ''; ?>
-                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> onchange="WebbsSettingsCheckboxChange(`#displayPayButton input[name='displayPayButton']`,this.checked ? 'on' : 'off')" />
+                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?>
+                            onchange="WebbsSettingsCheckboxChange(`#displayPayButton input[name='displayPayButton']`,this.checked ? 'on' : 'off')" />
                         <input type="hidden" name="displayPayButton" value="<?php echo $checked ? "on" : "off"; ?>" />
                         <?php echo esc_html__("Enable", "us-barcode-scanner"); ?>
                     </label>
@@ -338,8 +440,9 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                     $orderStatusesAreStillNotCompletedValue = $field === null ? "wc-pending,wc-processing,wc-on-hold" : $field->value;
                     ?>
                     <input type="hidden" name="orderStatusesAreStillNotCompleted" value="" />
-                    <select name="orderStatusesAreStillNotCompleted[]" class="usbs_order_statuses_are_still_not_complected" multiple="true" style="width:300px;">
-                        <?php foreach (SettingsHelper::getOrderStatuses() as $key => $value) : ?>
+                    <select name="orderStatusesAreStillNotCompleted[]"
+                        class="usbs_order_statuses_are_still_not_complected" multiple="true" style="width:300px;">
+                        <?php foreach (SettingsHelper::getOrderStatuses() as $key => $value): ?>
                             <option value="<?php echo esc_attr($key); ?>"><?php echo esc_html($value); ?></option>
                         <?php endforeach; ?>
                         <option value="trash"><?php echo esc_html__("Trash", "us-barcode-scanner"); ?></option>
@@ -370,7 +473,7 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                             if ($defaultValue === $key) {
                                 $selected = ' selected=selected ';
                             }
-                        ?>
+                            ?>
                             <option value="<?php esc_html_e($key, 'us-barcode-scanner'); ?>" <?php esc_html_e($selected, 'us-barcode-scanner'); ?>><?php esc_html_e($value, 'us-barcode-scanner'); ?></option>
                             <?php
                         }
@@ -396,10 +499,14 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                     }
                     ?>
                     <span style="position: relative;">
-                        <input type="text" value="<?php esc_html_e($userName); ?>" placeholder="<?php echo esc_html__("Find user", "us-barcode-scanner"); ?>" class="order-default-user-search-input" />
-                        <input type="hidden" name="nowOrderDefaultUser" value="<?php esc_html_e($defaultValue); ?>" class="order-default-user-id-search-input" />
+                        <input type="text" value="<?php esc_html_e($userName); ?>"
+                            placeholder="<?php echo esc_html__("Find user", "us-barcode-scanner"); ?>"
+                            class="order-default-user-search-input" />
+                        <input type="hidden" name="nowOrderDefaultUser" value="<?php esc_html_e($defaultValue); ?>"
+                            class="order-default-user-id-search-input" />
                         <span style="position: relative;">
-                            <span style="position: absolute; top: -5px; left: 0; display: none;" id="order-default-user-search-preloader">
+                            <span style="position: absolute; top: -5px; left: 0; display: none;"
+                                id="order-default-user-search-preloader">
                                 <span id="barcode-scanner-action-preloader">
                                     <span class="a4b-action-preloader-icon"></span>
                                 </span>
@@ -424,8 +531,10 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                     ?>
                     <label>
                         <?php $checked = $defaultValue !== "off" ? ' checked=checked ' : ''; ?>
-                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> onchange="WebbsSettingsCheckboxChange(`#bs_new_order_user_required input[name='newOrderUserRequired']`,this.checked ? 'on' : 'off')" />
-                        <input type="hidden" name="newOrderUserRequired" value="<?php echo $checked ? "on" : "off"; ?>" />
+                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?>
+                            onchange="WebbsSettingsCheckboxChange(`#bs_new_order_user_required input[name='newOrderUserRequired']`,this.checked ? 'on' : 'off')" />
+                        <input type="hidden" name="newOrderUserRequired"
+                            value="<?php echo $checked ? "on" : "off"; ?>" />
                         <?php echo esc_html__("Enable", "us-barcode-scanner"); ?>
                     </label>
                 </td>
@@ -442,8 +551,10 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                     ?>
                     <label>
                         <?php $checked = $defaultValue !== "off" ? ' checked=checked ' : ''; ?>
-                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> onchange="WebbsSettingsCheckboxChange(`#bs_open_order_after_creation input[name='openOrderAfterCreation']`,this.checked ? 'on' : 'off')" />
-                        <input type="hidden" name="openOrderAfterCreation" value="<?php echo esc_attr($checked ? "on" : "off"); ?>" />
+                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?>
+                            onchange="WebbsSettingsCheckboxChange(`#bs_open_order_after_creation input[name='openOrderAfterCreation']`,this.checked ? 'on' : 'off')" />
+                        <input type="hidden" name="openOrderAfterCreation"
+                            value="<?php echo esc_attr($checked ? "on" : "off"); ?>" />
                         <?php echo esc_html__("Enable", "us-barcode-scanner"); ?>
                     </label>
                 </td>
@@ -459,7 +570,8 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                     $defaultValue = $defaultValue === null ? "1" : $defaultValue->value;
                     ?>
                     <span>
-                        <input type="text" name="defaultProductQty" value="<?php echo ($defaultValue); ?>" placeholder="<?php echo esc_attr("1"); ?>" style="width: 70px; height: 30px;" />
+                        <input type="text" name="defaultProductQty" value="<?php echo ($defaultValue); ?>"
+                            placeholder="<?php echo esc_attr("1"); ?>" style="width: 70px; height: 30px;" />
                         <span class="defaultProductQty_error_message"></span>
                         <div>
                             <i><?php echo esc_html__("Any added product (to the new order) will have the QTY equal to this setting by default.", "us-barcode-scanner"); ?></i>
@@ -479,40 +591,50 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                     $defaultValue = $defaultValue === null ? "" : $defaultValue->value;
                     ?>
                     <span>
-                        <input type="text" name="cartQtyStep" value="<?php esc_html_e($defaultValue); ?>" placeholder="<?php echo esc_html__("Product custom meta field", "us-barcode-scanner"); ?>" />
+                        <input type="text" name="cartQtyStep" value="<?php esc_html_e($defaultValue); ?>"
+                            placeholder="<?php echo esc_html__("Product custom meta field", "us-barcode-scanner"); ?>" />
                     </span>
                     <br />
                     <i><?php echo esc_html__('Take into account "qty step" field of the product. It may be helpful if you sell items in boxes (e.g. products 10 per box) and you want to scan the barcode and to increase/decrease item by 10 in cart. Specify here the product meta field where "qty step"/"amount in the box" is specified.', "us-barcode-scanner"); ?></i>
                 </td>
             </tr>
             <!-- Use price to create order -->
+            <?php  ?>
+            <!-- List of order statuses which considered as still not completed -->
             <tr>
                 <th scope="row" style="width: 240px;">
-                    <?php echo esc_html__("Use price to create order", "us-barcode-scanner"); ?>
+                    <?php echo esc_html__("Item price priority", "us-barcode-scanner"); ?>
                 </th>
-                <td>
+                <td class="priceFieldPriority_row">
                     <?php
-                    $defaultValue = $settings->getSettings("defaultPriceField");
-                    $defaultValue = $defaultValue === null ? $settings->getField("prices", "defaultPriceField") : $defaultValue->value;
+                    $field = $settings->getSettings("priceFieldPriority");
+                    $priceFieldPriority = $field === null ? "wc_default" : $field->value;
                     ?>
-                    <select name="defaultPriceField" style="max-width: 175px;">
-                        <?php $selected = $defaultValue === "wc_default" || $settings->getField("prices", "defaultPriceField", "wc_default") ? 'selected="selected"' : ""; ?>
-                        <option value="wc_default" <?php esc_html_e($selected, 'us-barcode-scanner'); ?>><?php esc_html_e("WooCommerce default", 'us-barcode-scanner'); ?></option>
-
-                        <?php foreach ($interfaceData::getFields(true) as $field) : ?>
-                            <?php if ($field["type"] == "price" && $field["status"] == 1) : ?>
-                                <?php $selected = $defaultValue === $field["field_name"] ? 'selected="selected"' : ""; ?>
-                                <option value="<?php echo esc_attr($field["field_name"]); ?>" <?php esc_html_e($selected, 'us-barcode-scanner'); ?>><?php esc_html_e("Always use " . $field["field_label"], 'us-barcode-scanner'); ?></option>
+                    <input type="hidden" name="priceFieldPriority" value="" />
+                    <select class="priceFieldPriority" multiple="true" style="width:300px;">
+                        <!-- default wclogic -->
+                        <option value="wc_default"><?php esc_html_e("WooCommerce default", 'us-barcode-scanner'); ?>
+                        </option>
+                        <!-- generated fields -->
+                        <?php foreach ($interfaceData::getFields(true) as $field): ?>
+                            <?php if ($field["type"] == "price" && $field["status"] == 1): ?>
+                                <option value="<?php echo esc_attr($field["field_name"]); ?>">
+                                    <?php esc_html_e($field["field_label"], 'us-barcode-scanner'); ?>
+                                </option>
                             <?php endif; ?>
                         <?php endforeach; ?>
                     </select>
+                    <input type="hidden" name="priceFieldPriority" id="priceFieldPriority"
+                        value="<?php esc_html_e($priceFieldPriority); ?>">
+                    <br />
+                    <i><?php echo esc_html__("This price will be used in new orders. The first price in this list will have the highest priority.", "us-barcode-scanner"); ?></i>
                 </td>
             </tr>
             <!-- Default order tax -->
             <?php
             $woocommerce_calc_taxes = get_option("woocommerce_calc_taxes");
             ?>
-            <?php if ($woocommerce_calc_taxes == "yes") : ?>
+            <?php if ($woocommerce_calc_taxes == "yes"): ?>
                 <tr>
                     <th scope="row" style="width: 240px;">
                         <?php echo esc_html__("Default order tax", "us-barcode-scanner"); ?>
@@ -524,9 +646,13 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                         ?>
                         <select name="defaultOrderTax" style="max-width: 175px;">
                             <?php $selected = $defaultValue === "based_on_store" ? 'selected="selected"' : ""; ?>
-                            <option value="based_on_store" <?php esc_html_e($selected, 'us-barcode-scanner'); ?>><?php esc_html_e("Based on the store location", 'us-barcode-scanner'); ?></option>
+                            <option value="based_on_store" <?php esc_html_e($selected, 'us-barcode-scanner'); ?>>
+                                <?php esc_html_e("Based on the store location", 'us-barcode-scanner'); ?>
+                            </option>
                             <?php $selected = $defaultValue === "no_tax" ? 'selected="selected"' : ""; ?>
-                            <option value="no_tax" <?php esc_html_e($selected, 'us-barcode-scanner'); ?>><?php esc_html_e("No Tax", 'us-barcode-scanner'); ?></option>
+                            <option value="no_tax" <?php esc_html_e($selected, 'us-barcode-scanner'); ?>>
+                                <?php esc_html_e("No Tax", 'us-barcode-scanner'); ?>
+                            </option>
                         </select>
                         <div>
                             <i><?php echo esc_html__("This tax will be used for new order which doesn't have billing address information yet.", "us-barcode-scanner"); ?></i>
@@ -546,9 +672,11 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                     ?>
                     <select name="defaultPaymentMethod">
                         <option value=""><?php echo esc_html__('Not selected', 'us-barcode-scanner'); ?></option>
-                        <?php foreach ($cart->getPaymentMethods() as $value) : ?>
+                        <?php foreach ($cart->getPaymentMethods() as $value): ?>
                             <?php $selected = $defaultValue === $value['id'] ? ' selected=selected ' : ""; ?>
-                            <option value="<?php esc_html_e($value['id'], 'us-barcode-scanner'); ?>" <?php esc_html_e($selected, 'us-barcode-scanner'); ?>><?php esc_html_e($value['title'], 'us-barcode-scanner'); ?></option>
+                            <option value="<?php esc_html_e($value['id'], 'us-barcode-scanner'); ?>" <?php esc_html_e($selected, 'us-barcode-scanner'); ?>>
+                                <?php esc_html_e($value['title'], 'us-barcode-scanner'); ?>
+                            </option>
                         <?php endforeach; ?>
                     </select>
                 </td>
@@ -565,7 +693,8 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                     ?>
                     <label>
                         <?php $checked = $defaultValue !== "off" ? ' checked=checked ' : ''; ?>
-                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> onchange="WebbsSettingsCheckboxChange(`#bs_payment_required input[name='paymentRequired']`,this.checked ? 'on' : 'off')" />
+                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?>
+                            onchange="WebbsSettingsCheckboxChange(`#bs_payment_required input[name='paymentRequired']`,this.checked ? 'on' : 'off')" />
                         <input type="hidden" name="paymentRequired" value="<?php echo $checked ? "on" : "off"; ?>" />
                         <?php echo esc_html__("Enable", "us-barcode-scanner"); ?>
                     </label>
@@ -594,10 +723,13 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                         return $aIndex - $bIndex;
                     });
                     ?>
-                    <input type="hidden" name='defaultShippingMethods[]' value="<?php echo esc_attr($shippingMethodsValue); ?>" />
-                    <select multiple data-placeholder='Choose a shipping...' multiple class='chosen-select-shipping-methods' style="width:300px;">
-                        <?php foreach ($shippingsMethods as $method) : ?>
-                            <option value="<?php echo esc_attr($method['id']); ?>"><?php echo esc_html($method['title']); ?></option>
+                    <input type="hidden" name='defaultShippingMethods[]'
+                        value="<?php echo esc_attr($shippingMethodsValue); ?>" />
+                    <select multiple data-placeholder='Choose a shipping...' multiple
+                        class='chosen-select-shipping-methods' style="width:300px;">
+                        <?php foreach ($shippingsMethods as $method): ?>
+                            <option value="<?php echo esc_attr($method['id']); ?>"><?php echo esc_html($method['title']); ?>
+                            </option>
                         <?php endforeach; ?>
                     </select>
                 </td>
@@ -614,8 +746,10 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                     ?>
                     <label>
                         <?php $checked = $defaultValue !== "off" ? ' checked=checked ' : ''; ?>
-                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> onchange="WebbsSettingsCheckboxChange(`#bs_shipping_required input[name='shippingRequired']`,this.checked ? 'on' : 'off')" />
-                        <input type="hidden" name="shippingRequired" value="<?php echo esc_attr($checked ? "on" : "off"); ?>" />
+                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?>
+                            onchange="WebbsSettingsCheckboxChange(`#bs_shipping_required input[name='shippingRequired']`,this.checked ? 'on' : 'off')" />
+                        <input type="hidden" name="shippingRequired"
+                            value="<?php echo esc_attr($checked ? "on" : "off"); ?>" />
                         <?php echo esc_html__("Enable", "us-barcode-scanner"); ?>
                     </label>
                 </td>
@@ -632,8 +766,10 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                     ?>
                     <label>
                         <?php $checked = $defaultValue !== "off" ? ' checked=checked ' : ''; ?>
-                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> onchange="WebbsSettingsCheckboxChange(`#bs_send_email_for_created_order input[name='sendAdminEmailCreatedOrder']`,this.checked ? 'on' : 'off')" />
-                        <input type="hidden" name="sendAdminEmailCreatedOrder" value="<?php echo $checked ? "on" : "off"; ?>" />
+                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?>
+                            onchange="WebbsSettingsCheckboxChange(`#bs_send_email_for_created_order input[name='sendAdminEmailCreatedOrder']`,this.checked ? 'on' : 'off')" />
+                        <input type="hidden" name="sendAdminEmailCreatedOrder"
+                            value="<?php echo $checked ? "on" : "off"; ?>" />
                         <?php echo esc_html__("Enable", "us-barcode-scanner"); ?>
                     </label>
                 </td>
@@ -650,18 +786,43 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                     ?>
                     <label>
                         <?php $checked = $defaultValue !== "off" ? ' checked=checked ' : ''; ?>
-                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> onchange="WebbsSettingsCheckboxChange(`#bs_send_email_for_created_order input[name='sendClientEmailCreatedOrder']`,this.checked ? 'on' : 'off')" />
-                        <input type="hidden" name="sendClientEmailCreatedOrder" value="<?php echo $checked ? "on" : "off"; ?>" />
+                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?>
+                            onchange="WebbsSettingsCheckboxChange(`#bs_send_email_for_created_order input[name='sendClientEmailCreatedOrder']`,this.checked ? 'on' : 'off')" />
+                        <input type="hidden" name="sendClientEmailCreatedOrder"
+                            value="<?php echo $checked ? "on" : "off"; ?>" />
                         <?php echo esc_html__("Enable", "us-barcode-scanner"); ?>
                     </label>
                 </td>
             </tr>
 
+            <!-- PDF Invoices & Packing Slips for WooCommerce -->
+            <?php if (function_exists("wcpdf_get_document")): ?>
+                <tr id="autoGenInvoice">
+                    <th scope="row">
+                        <?php echo esc_html__('PDF Invoices & Packing Slips for WooCommerce', "us-barcode-scanner"); ?>
+                    </th>
+                    <td>
+                        <?php
+                        $defaultValue = $settings->getSettings("autoGenInvoice");
+                        $defaultValue = $defaultValue === null ? 'on' : $defaultValue->value;
+                        ?>
+                        <label>
+                            <?php $checked = $defaultValue !== "off" ? ' checked=checked ' : ''; ?>
+                            <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> onchange="WebbsSettingsCheckboxChange(`#autoGenInvoice input[name='autoGenInvoice'
+                            ]`,this.checked ? 'on' : 'off' )" />
+                            <input type="hidden" name="autoGenInvoice" value="<?php echo $checked ? "on" : "off"; ?>" />
+                            <?php echo esc_html__("Generate invoice after order creation", "us-barcode-scanner"); ?>
+                        </label>
+                    </td>
+                </tr>
+            <?php endif; ?>
+
             <?php  ?>
         </tbody>
     </table>
     <div class="submit">
-        <input type="submit" class="button button-primary" value="<?php echo esc_html__("Save Changes", "us-barcode-scanner"); ?>">
+        <input type="submit" class="button button-primary"
+            value="<?php echo esc_html__("Save Changes", "us-barcode-scanner"); ?>">
     </div>
 </form>
 <style>
@@ -714,7 +875,7 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
     });
 </script>
 <script>
-    jQuery(document).ready(function() {
+    jQuery(document).ready(function () {
         jQuery(".usbs_order_statuses_are_still_not_complected").chosen({
             search_contains: true,
             no_results_text: "<?php echo esc_html__("Nothing found for:", "us-barcode-scanner"); ?> ",
@@ -722,6 +883,25 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
         });
         var defaultValue = '<?php echo esc_html($orderStatusesAreStillNotCompletedValue); ?>'.split(',');
         jQuery(".usbs_order_statuses_are_still_not_complected").val(defaultValue).trigger("chosen:updated");
+    });
+</script>
+<script>
+    jQuery(document).ready(function () {
+        var savedOrder = '<?php echo esc_html($priceFieldPriority); ?>'.split(',');
+        var $select = jQuery(".priceFieldPriority");
+        savedOrder.forEach(function (val) {
+            var $opt = $select.find('option[value="' + val + '"]');
+            if ($opt.length) $select.append($opt);
+        });
+        $select.val(savedOrder);
+        $select.chosen({ search_contains: true, no_results_text: "<?php echo esc_html__("Nothing found for:", "us-barcode-scanner"); ?> ", width: "300px" });
+        var order = savedOrder.slice();
+        jQuery("#priceFieldPriority").val(order.join(","));
+        $select.on("change", function (e, params) {
+            if (params?.selected) order.push(params.selected);
+            if (params?.deselected) order = order.filter(v => v !== params.deselected);
+            jQuery("#priceFieldPriority").val(order.join(","));
+        });
     });
 </script>
 <script>
@@ -776,7 +956,7 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
         }
     }
 
-    jQuery(document).ready(function() {
+    jQuery(document).ready(function () {
         const validDefaultProductQty = (event, params) => {
             jQuery('.defaultProductQty_error_message').text("");
 

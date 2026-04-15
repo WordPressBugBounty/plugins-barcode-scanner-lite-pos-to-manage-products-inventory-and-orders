@@ -4,7 +4,8 @@ use UkrSolution\BarcodeScanner\API\classes\SearchFilter;
 use UkrSolution\BarcodeScanner\API\classes\WPML;
 use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
 ?>
-<form class="bs-settings-input-conditions" id="bs-settings-search-tab" method="POST" action="<?php echo esc_url($actualLink); ?>">
+<form class="bs-settings-input-conditions" id="bs-settings-search-tab" method="POST"
+    action="<?php echo esc_url($actualLink); ?>">
     <input type="hidden" name="tab" value="search" />
     <input type="hidden" name="storage" value="table" />
     <input type="hidden" name="nonce" value="<?php echo esc_attr($nonce); ?>" />
@@ -25,13 +26,15 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                     $field = $settings->getSettings("productStatuses");
                     $productStatusesValue = $field === null ? "trash" : $field->value;
                     ?>
+                    <input type="hidden" name="productStatuses" value="" />
                     <select name="productStatuses[]" class="usbs_product_statuses" multiple="true" style="width:300px;">
                         <option value="publish"><?php echo esc_html__("Publish", "us-barcode-scanner"); ?></option>
                         <option value="future"><?php echo esc_html__("Future", "us-barcode-scanner"); ?></option>
                         <option value="draft"><?php echo esc_html__("Draft", "us-barcode-scanner"); ?></option>
                         <option value="pending"><?php echo esc_html__("Pending", "us-barcode-scanner"); ?></option>
                         <option value="private"><?php echo esc_html__("Private", "us-barcode-scanner"); ?></option>
-                        <option value="auto-draft"><?php echo esc_html__("Auto-Draft", "us-barcode-scanner"); ?></option>
+                        <option value="auto-draft"><?php echo esc_html__("Auto-Draft", "us-barcode-scanner"); ?>
+                        </option>
                         <option value="inherit"><?php echo esc_html__("Inherit", "us-barcode-scanner"); ?></option>
                         <option value="trash"><?php echo esc_html__("Trash", "us-barcode-scanner"); ?></option>
                     </select>
@@ -48,8 +51,9 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                     $productsCatalogVisibilityValue = $field === null ? "" : $field->value;
                     ?>
                     <input type="hidden" name="productsCatalogVisibility" value="" />
-                    <select name="productsCatalogVisibility[]" class="usbs_products_catalog_visibility" multiple="true" style="width:300px;">
-                        <?php foreach ($settings->getCatalogVisibility() as $key => $value) : ?>
+                    <select name="productsCatalogVisibility[]" class="usbs_products_catalog_visibility" multiple="true"
+                        style="width:300px;">
+                        <?php foreach ($settings->getCatalogVisibility() as $key => $value): ?>
                             <option value="<?php echo esc_attr($key); ?>"><?php echo esc_html($value); ?></option>
                         <?php endforeach; ?>
                     </select>
@@ -65,8 +69,9 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                     $field = $settings->getSettings("orderStatuses");
                     $orderStatusesValue = $field === null ? "wc-checkout-draft,trash" : $field->value;
                     ?>
+                    <input type="hidden" name="orderStatuses" value="" />
                     <select name="orderStatuses[]" class="usbs_order_statuses" multiple="true" style="width:300px;">
-                        <?php foreach (SettingsHelper::getOrderStatuses() as $key => $value) : ?>
+                        <?php foreach (SettingsHelper::getOrderStatuses() as $key => $value): ?>
                             <option value="<?php echo esc_attr($key); ?>"><?php echo esc_html($value); ?></option>
                         <?php endforeach; ?>
                         <option value="trash"><?php echo esc_html__("Trash", "us-barcode-scanner"); ?></option>
@@ -85,9 +90,13 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                         $defaultValue = $defaultValue === null ? 'off' : $defaultValue->value;
                         $checked = $defaultValue !== "off" ? ' checked=checked ' : '';
                         ?>
-                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> data-main="disabledVariationsProducts" onchange="WebbsSettingsCheckboxChange(`#disabled_variations_products input[name='disabledVariationsProducts']`,this.checked ? 'on' : 'off')" />
-                        <input type="hidden" name="disabledVariationsProducts" value="<?php echo $checked ? "on" : "off"; ?>" />
-                        <?php echo esc_html__("Enable", "us-barcode-scanner"); ?> <span class="usbs-option-notice"></span>
+                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?>
+                            data-main="disabledVariationsProducts"
+                            onchange="WebbsSettingsCheckboxChange(`#disabled_variations_products input[name='disabledVariationsProducts']`,this.checked ? 'on' : 'off')" />
+                        <input type="hidden" name="disabledVariationsProducts"
+                            value="<?php echo $checked ? "on" : "off"; ?>" />
+                        <?php echo esc_html__("Enable", "us-barcode-scanner"); ?> <span
+                            class="usbs-option-notice"></span>
                     </label>
                 </td>
             </tr>
@@ -103,14 +112,18 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                         $defaultValue = $defaultValue === null ? 'on' : $defaultValue->value;
                         $checked = $defaultValue !== "off" ? ' checked=checked ' : '';
                         ?>
-                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> data-main="disabledVariationsOrders" onchange="WebbsSettingsCheckboxChange(`#disabled_variations_orders input[name='disabledVariationsOrders']`,this.checked ? 'on' : 'off')" />
-                        <input type="hidden" name="disabledVariationsOrders" value="<?php echo $checked ? "on" : "off"; ?>" />
-                        <?php echo esc_html__("Enable", "us-barcode-scanner"); ?> <span class="usbs-option-notice"></span>
+                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?>
+                            data-main="disabledVariationsOrders"
+                            onchange="WebbsSettingsCheckboxChange(`#disabled_variations_orders input[name='disabledVariationsOrders']`,this.checked ? 'on' : 'off')" />
+                        <input type="hidden" name="disabledVariationsOrders"
+                            value="<?php echo $checked ? "on" : "off"; ?>" />
+                        <?php echo esc_html__("Enable", "us-barcode-scanner"); ?> <span
+                            class="usbs-option-notice"></span>
                     </label>
                 </td>
             </tr>
             <!-- WPML languages -->
-            <?php if (WPML::status()) : ?>
+            <?php if (WPML::status()): ?>
                 <?php
                 $searchFilter = SearchFilter::get();
                 $translations = null;
@@ -119,20 +132,22 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                     $translations = WPML::getTranslations();
                 }
                 ?>
-                <?php if ($translations) : ?>
+                <?php if ($translations): ?>
                     <tr id="wpml_translations">
                         <th scope="row">
                             <?php echo esc_html__('Include product languages in the search', "us-barcode-scanner"); ?>
                         </th>
                         <td>
                             <div style="display: flex; align-items: center; gap: 15px;">
-                                <?php foreach ($translations as $key => $value) : ?>
+                                <?php foreach ($translations as $key => $value): ?>
                                     <label style="display: flex; align-items: center; gap: 5px;">
                                         <?php
                                         $checked = isset($searchFilter['wpml']) && isset($searchFilter['wpml'][$key]) && $searchFilter['wpml'][$key] == 1 ? ' checked=checked ' : '';
                                         ?>
-                                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> name="wpml[languages][<?php echo esc_attr($key) ?>]" value="1" style="margin-top: 2px;" />
-                                        <?php if (isset($value["country_flag_url"])) : ?>
+                                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?>
+                                            name="wpml[languages][<?php echo esc_attr($key) ?>]" value="1"
+                                            style="margin-top: 2px;" />
+                                        <?php if (isset($value["country_flag_url"])): ?>
                                             <img src="<?php echo esc_url($value["country_flag_url"]) ?>" height="15" />
                                         <?php endif; ?>
                                         <?php echo $value["native_name"]; ?>
@@ -157,8 +172,10 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                     <?php
                     $link = '#barcode-scanner-search-filter';
                     ?>
-                    <a href="<?php echo esc_url($link); ?>" class="usbs-btn"><?php echo esc_html__("Setup fields", "us-barcode-scanner"); ?></a>
-                    <i style="padding-left: 10px;"><?php echo esc_html__("Select which product/order fields should be used by the search to find the item.", "us-barcode-scanner"); ?></i>
+                    <a href="<?php echo esc_url($link); ?>"
+                        class="usbs-btn"><?php echo esc_html__("Setup fields", "us-barcode-scanner"); ?></a>
+                    <i
+                        style="padding-left: 10px;"><?php echo esc_html__("Select which product/order fields should be used by the search to find the item.", "us-barcode-scanner"); ?></i>
                 </td>
             </tr>
             <tr id="bs_search_indexation">
@@ -167,7 +184,7 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                 </th>
                 <td>
                     <div>
-                        <?php if (!$settings->getField("indexing", "indexed", false)) : ?>
+                        <?php if (!$settings->getField("indexing", "indexed", false)): ?>
                             <div id="bs_search_indexation_notice">
                                 <div class="notice-error notice" style="margin: 0 0 10px; display: inline-block;">
                                     <p>Please start indexation to speed up search</p>
@@ -177,8 +194,10 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                         <?php
                         $link = '#barcode-scanner-products-indexation';
                         ?>
-                        <a href="<?php echo esc_url($link); ?>"><?php echo esc_html__("Start indexation", "us-barcode-scanner"); ?></a>
-                        <i style="padding-left: 10px;"><?php echo esc_html__("Re-create index tables and make full indexation of products and orders.", "us-barcode-scanner"); ?></i>
+                        <a
+                            href="<?php echo esc_url($link); ?>"><?php echo esc_html__("Start indexation", "us-barcode-scanner"); ?></a>
+                        <i
+                            style="padding-left: 10px;"><?php echo esc_html__("Re-create index tables and make full indexation of products and orders.", "us-barcode-scanner"); ?></i>
                     </div>
                     <div style="padding-top: 5px;">
                         <?php
@@ -186,10 +205,14 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                         $total = $settings->getTotalPosts();
                         $cannotIndexed = $settings->getTotalCantIndexedRecords();
                         ?>
-                        <span id="barcode-scanner-products-total-indexed" style="color: #008b00;"><?php echo esc_html($indexed < $total ? $indexed : $total); ?></span>
-                        <?php echo esc_html__("successfully indexed of", "us-barcode-scanner"); ?> <span id="barcode-scanner-products-total"><?php echo esc_html($total); ?></span>
-                        <?php if ($cannotIndexed) : ?>
-                            <?php echo esc_html__("Can't index", "us-barcode-scanner"); ?> <span style="color: #ff0000;" id="barcode-scanner-products-fail-indexed"><?php echo esc_html($cannotIndexed); ?></span> <?php echo esc_html__("items", "us-barcode-scanner"); ?>.
+                        <span id="barcode-scanner-products-total-indexed"
+                            style="color: #008b00;"><?php echo esc_html($indexed < $total ? $indexed : $total); ?></span>
+                        <?php echo esc_html__("successfully indexed of", "us-barcode-scanner"); ?> <span
+                            id="barcode-scanner-products-total"><?php echo esc_html($total); ?></span>
+                        <?php if ($cannotIndexed): ?>
+                            <?php echo esc_html__("Can't index", "us-barcode-scanner"); ?> <span style="color: #ff0000;"
+                                id="barcode-scanner-products-fail-indexed"><?php echo esc_html($cannotIndexed); ?></span>
+                            <?php echo esc_html__("items", "us-barcode-scanner"); ?>.
                         <?php endif; ?>
                     </div>
                 </td>
@@ -203,10 +226,11 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                     <label>
                         <?php
                         $field = $settings->getSettings("indexationStep");
-                        $value = $field === null ? 50 : (int)$field->value;
+                        $value = $field === null ? 50 : (int) $field->value;
                         $value = $value ? $value : 50;
                         ?>
-                        <input type="number" name="indexationStep" value="<?php echo esc_html($value); ?>" placeholder="50" min="1" max="1000" />
+                        <input type="number" name="indexationStep" value="<?php echo esc_html($value); ?>"
+                            placeholder="50" min="1" max="1000" />
                     </label>
                 </td>
             </tr>
@@ -222,9 +246,12 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                         $defaultValue = $defaultValue === null ? 'on' : $defaultValue->value;
                         $checked = $defaultValue !== "off" ? ' checked=checked ' : '';
                         ?>
-                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> data-main="productsIndexation" onchange="WebbsSettingsCheckboxChange(`#products_indexation input[name='productsIndexation']`,this.checked ? 'on' : 'off')" />
+                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?>
+                            data-main="productsIndexation"
+                            onchange="WebbsSettingsCheckboxChange(`#products_indexation input[name='productsIndexation']`,this.checked ? 'on' : 'off')" />
                         <input type="hidden" name="productsIndexation" value="<?php echo $checked ? "on" : "off"; ?>" />
-                        <?php echo esc_html__("Enable", "us-barcode-scanner"); ?> <span class="usbs-option-notice"></span>
+                        <?php echo esc_html__("Enable", "us-barcode-scanner"); ?> <span
+                            class="usbs-option-notice"></span>
                     </label>
                 </td>
             </tr>
@@ -240,9 +267,12 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                         $defaultValue = $defaultValue === null ? 'on' : $defaultValue->value;
                         $checked = $defaultValue !== "off" ? ' checked=checked ' : '';
                         ?>
-                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> data-main="ordersIndexation" onchange="WebbsSettingsCheckboxChange(`#orders_indexation input[name='ordersIndexation']`,this.checked ? 'on' : 'off')" />
+                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?>
+                            data-main="ordersIndexation"
+                            onchange="WebbsSettingsCheckboxChange(`#orders_indexation input[name='ordersIndexation']`,this.checked ? 'on' : 'off')" />
                         <input type="hidden" name="ordersIndexation" value="<?php echo $checked ? "on" : "off"; ?>" />
-                        <?php echo esc_html__("Enable", "us-barcode-scanner"); ?> <span class="usbs-option-notice"></span>
+                        <?php echo esc_html__("Enable", "us-barcode-scanner"); ?> <span
+                            class="usbs-option-notice"></span>
                     </label>
                 </td>
             </tr>
@@ -262,9 +292,13 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                         $value = $field === null ? $settings->getField("general", "displaySearchCounter", "") : $field->value;
                         $checked = $value === "on" ? ' checked=checked ' : '';
                         ?>
-                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> data-main="displaySearchCounter" onchange="WebbsSettingsCheckboxChange(`#bs_display_search_counter input[name='displaySearchCounter']`,this.checked ? 'on' : 'off')" />
-                        <input type="hidden" name="displaySearchCounter" value="<?php echo $checked ? "on" : "off"; ?>" />
-                        <?php echo esc_html__("Enable", "us-barcode-scanner"); ?> <span class="usbs-option-notice"></span>
+                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?>
+                            data-main="displaySearchCounter"
+                            onchange="WebbsSettingsCheckboxChange(`#bs_display_search_counter input[name='displaySearchCounter']`,this.checked ? 'on' : 'off')" />
+                        <input type="hidden" name="displaySearchCounter"
+                            value="<?php echo $checked ? "on" : "off"; ?>" />
+                        <?php echo esc_html__("Enable", "us-barcode-scanner"); ?> <span
+                            class="usbs-option-notice"></span>
                     </label><br />
                     <i>
                         <?php echo esc_html__("Displays the counter of how much times the product/order has been opened using barcode scanner."); ?>
@@ -280,10 +314,11 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                     <label>
                         <?php
                         $field = $settings->getSettings("searchResultsLimit");
-                        $value = $field === null ? 20 : (int)$field->value;
+                        $value = $field === null ? 20 : (int) $field->value;
                         $value = $value ? $value : 20;
                         ?>
-                        <input type="number" name="searchResultsLimit" value="<?php echo esc_html($value); ?>" placeholder="20" min="1" max="999" />
+                        <input type="number" name="searchResultsLimit" value="<?php echo esc_html($value); ?>"
+                            placeholder="20" min="1" max="999" />
                     </label>
                     <br />
                     <i><?php echo esc_html__("Specify how much maximum search result you would like to see in search suggestion dropdown.", "us-barcode-scanner"); ?></i>
@@ -299,10 +334,11 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                     <label>
                         <?php
                         $field = $settings->getSettings("delayBetweenScanning");
-                        $value = $field === null ? 300 : (int)$field->value;
+                        $value = $field === null ? 300 : (int) $field->value;
                         $value = $value ? $value : 300;
                         ?>
-                        <input type="number" name="delayBetweenScanning" value="<?php echo esc_html($value); ?>" placeholder="300" min="50" max="1000" />
+                        <input type="number" name="delayBetweenScanning" value="<?php echo esc_html($value); ?>"
+                            placeholder="300" min="50" max="1000" />
                     </label>
                     <br />
                     <i><?php echo esc_html__('Plugin waits for "X" ms while barcode scanner is filling the search input with code.', "us-barcode-scanner"); ?></i>
@@ -313,7 +349,8 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                 <th scope="row">
                     <?php echo esc_html__("Enable direct DB mode", "us-barcode-scanner"); ?>
                     <div style="font-weight: 400; padding-top: 5px;">
-                        <a href="<?php echo esc_url(admin_url('/admin.php?page=barcode-scanner-settings&tab=plugins')); ?>"><?php echo esc_html__("Allow plugins", "us-barcode-scanner"); ?></a>
+                        <a
+                            href="<?php echo esc_url(admin_url('/admin.php?page=barcode-scanner-settings&tab=plugins')); ?>"><?php echo esc_html__("Allow plugins", "us-barcode-scanner"); ?></a>
                         <?php echo esc_html__("which should interfere into \"Barcode Scanner\" plugin's work", "us-barcode-scanner"); ?>
                     </div>
                 </th>
@@ -330,9 +367,12 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                             $checked = '';
                         }
                         ?>
-                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> data-main="directDbSearch" onchange="WebbsSettingsCheckboxChange(`#bs_direct_db_search input[name='directDbSearch']`,this.checked ? 'on' : 'off')" />
+                        <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?>
+                            data-main="directDbSearch"
+                            onchange="WebbsSettingsCheckboxChange(`#bs_direct_db_search input[name='directDbSearch']`,this.checked ? 'on' : 'off')" />
                         <input type="hidden" name="directDbSearch" value="<?php echo $checked ? "on" : "off"; ?>" />
-                        <?php echo esc_html__("Enable", "us-barcode-scanner"); ?> <span class="usbs-option-notice"></span>
+                        <?php echo esc_html__("Enable", "us-barcode-scanner"); ?> <span
+                            class="usbs-option-notice"></span>
                     </label><br />
                     <i>
                         <?php echo esc_html__("This option may speed up barcode scanner work dramatically as it avoids some third-party plugin initialization."); ?><br />
@@ -351,21 +391,49 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                         $field = $settings->getSettings("modifyPreProcessSearchString");
                         $value = $field === null ? "" : trim($field->value);
                         ?>
-                        <textarea type="number" name="modifyPreProcessSearchString" value="<?php echo esc_html($value); ?>" rows="5" cols="55"><?php echo wp_kses_post(stripslashes($value)); ?></textarea>
+                        <textarea type="number" name="modifyPreProcessSearchString"
+                            value="<?php echo base64_encode($value); ?>" rows="5" cols="55"></textarea>
+                        <script>
+                            var text = document.querySelector('textarea[name="modifyPreProcessSearchString"]').getAttribute('value');
+                            var decodedText = atob(text);
+                            document.querySelector('textarea[name="modifyPreProcessSearchString"]').value = decodedText;
+                        </script>
                     </label>
                     <br />
                     <i><?php echo esc_html__('Use JavaScript to edit search string (use JS variable "bs_search_string" for work).', "us-barcode-scanner"); ?></i>
+                </td>
+            </tr>
+            <!-- After search JavaScript -->
+            <tr>
+                <th scope="row">
+                    <?php echo esc_html__("After search JavaScript", "us-barcode-scanner"); ?>
+                </th>
+                <td>
+                    <label>
+                        <?php
+                        $field = $settings->getSettings("afterSearchJavaScript");
+                        $value = $field === null ? "" : trim($field->value);
+                        ?>
+                        <textarea type="number" name="afterSearchJavaScript"
+                            value="<?php echo base64_encode($value); ?>" rows="5" cols="55"></textarea>
+                        <script>
+                            var text = document.querySelector('textarea[name="afterSearchJavaScript"]').getAttribute('value');
+                            var decodedText = atob(text);
+                            document.querySelector('textarea[name="afterSearchJavaScript"]').value = decodedText;
+                        </script>
+                    </label>
                 </td>
             </tr>
             <?php  ?>
         </tbody>
     </table>
     <div class="submit">
-        <input type="submit" class="button button-primary" value="<?php echo esc_html__("Save Changes", "us-barcode-scanner"); ?>">
+        <input type="submit" class="button button-primary"
+            value="<?php echo esc_html__("Save Changes", "us-barcode-scanner"); ?>">
     </div>
 </form>
 <script>
-    jQuery(document).ready(function() {
+    jQuery(document).ready(function () {
         jQuery(".usbs_product_statuses").chosen({
             search_contains: true,
             no_results_text: "<?php echo esc_html__("Nothing found for:", "us-barcode-scanner"); ?> ",

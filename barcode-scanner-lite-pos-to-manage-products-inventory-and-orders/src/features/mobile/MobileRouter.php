@@ -43,7 +43,9 @@ class MobileRouter
             if ($_GET && count($_GET) === 1 || isset($_SERVER["REQUEST_URI"])) {
                 $key = $_SERVER["REQUEST_URI"];
 
-                if (!$key) return null;
+                if (!$key) {
+                    return null;
+                }
 
                 if (preg_match("/^(.*?)mobile-barcode-scanner_(plugin|android|ios)_(checker|display|auth)(.*?)?$/", $key, $m)) {
                     if (count($m) >= 4) {
@@ -149,9 +151,6 @@ class MobileRouter
         echo "/";
         esc_html_e($this->tn, 'us-barcode-scanner');
         echo ">";
-
-
-
 
         require __DIR__ . '/index.php';
         exit();

@@ -75,9 +75,14 @@ class PostActions
             return rest_ensure_response(array("error" => __("Field is empty", "us-barcode-scanner")));
         }
 
+        // @codingStandardsIgnoreStart
         $productsCustomField = $wpdb->get_row(
-            $wpdb->prepare("SELECT COUNT(P.ID) AS total FROM {$wpdb->posts} AS P, {$wpdb->postmeta} AS PM WHERE PM.post_id = P.ID AND P.post_type IN('product','product_variation') AND PM.meta_key = %s;", $field)
+            $wpdb->prepare(
+                "SELECT COUNT(P.ID) AS total FROM {$wpdb->posts} AS P, {$wpdb->postmeta} AS PM WHERE PM.post_id = P.ID AND P.post_type IN('product','product_variation') AND PM.meta_key = %s;",
+                $field
+            )
         );
+        // @codingStandardsIgnoreEnd
         $total = $productsCustomField->total;
 
         if ($total) {
@@ -93,6 +98,7 @@ class PostActions
         global $wp_version;
 
         $inputs = $request->get_param("inputs");
+        $tab = $request->get_param("tab");
 
         $field = "";
 
@@ -108,13 +114,30 @@ class PostActions
             return rest_ensure_response(array("error" => __("Field is empty", "us-barcode-scanner")));
         }
 
-        $productsCustomField = $wpdb->get_row(
-            $wpdb->prepare("SELECT COUNT(P.ID) AS total FROM {$wpdb->posts} AS P, {$wpdb->postmeta} AS PM WHERE PM.post_id = P.ID AND P.post_type IN('product','product_variation') AND PM.meta_key = %s;", $field)
-        );
-        $total = $productsCustomField->total;
+        // @codingStandardsIgnoreStart
+        $metaCustomField = $wpdb->get_row($wpdb->prepare(
+            "SELECT COUNT(P.ID) AS total FROM {$wpdb->posts} AS P, {$wpdb->postmeta} AS PM WHERE PM.post_id = P.ID AND P.post_type IN('product','product_variation','shop_order','shop_order_placehold') AND PM.meta_key = %s;",
+            $field
+        ));
+        $total = $metaCustomField->total;
+        // @codingStandardsIgnoreEnd
+
+        if (!$total && HPOS::getStatus()) {
+            // @codingStandardsIgnoreStart
+            $ordermetaCustomField = $wpdb->get_row($wpdb->prepare(
+                "SELECT COUNT(om.ID) AS total FROM {$wpdb->prefix}wc_orders_meta AS om WHERE om.meta_key = %s LIMIT 1;",
+                $field
+            ));
+            $total = $ordermetaCustomField->total;
+            // @codingStandardsIgnoreEnd
+        }
 
         if ($total) {
-            return rest_ensure_response(array("success" => sprintf("Custom field found for %s product%s.", $total, $total > 1 ? "s" : "")));
+            if ($tab == "orders") {
+                return rest_ensure_response(array("success" => sprintf("Custom field found for %s order%s.", $total, $total > 1 ? "s" : "")));
+            } else {
+                return rest_ensure_response(array("success" => sprintf("Custom field found for %s product%s.", $total, $total > 1 ? "s" : "")));
+            }
         } else {
             return rest_ensure_response(array("error" => __("Field not found", "us-barcode-scanner")));
         }

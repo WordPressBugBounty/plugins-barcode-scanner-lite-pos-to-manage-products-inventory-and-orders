@@ -70,15 +70,25 @@ class DbActions
                         continue;
                     }
 
-                    $customField = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->postmeta} AS pm WHERE pm.meta_key = %s LIMIT 1;", $name));
+                    // @codingStandardsIgnoreStart
+                    if (preg_match("/^(.*?)\*(.*?)$/", $name, $m)) {
+                        $nameLike = str_replace("*", "%", $name);
+                        $customField = $wpdb->get_results($wpdb->prepare("SELECT * FROM {$wpdb->postmeta} AS pm WHERE pm.meta_key LIKE %s;", $nameLike));
+                    }
+                    else {
+                        $customField = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->postmeta} AS pm WHERE pm.meta_key = %s LIMIT 1;", $name));
+                    }
+                    // @codingStandardsIgnoreEnd
 
                     if ($type === "order" && HPOS::getStatus() && !$customField) {
+                        // @codingStandardsIgnoreStart
                         $customField = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}wc_orders_meta AS om WHERE om.meta_key = %s LIMIT 1;", $name));
+                        // @codingStandardsIgnoreEnd
                     }
 
                     if (!$customField && !key_exists($name, Database::$postsFields)) {
                         $key = $settings->getField("license", "key", "");
-                        $url = "https://www.ukrsolution.com/ExtensionsSupport/Support?extension=24&version=1.11.0&pversion=" . $wp_version . "&d=" . base64_encode($key);
+                        $url = "https://www.ukrsolution.com/ExtensionsSupport/Support?extension=24&version=1.12.0&pversion=" . $wp_version . "&d=" . base64_encode($key);
                         if ($type === "order") {
                             $message = __("Order's custom field \"{$name}\" not found. Please make sure you entered a correct database value or <a href='{$url}' target='_blank'>contact us</a> for help.", "us-barcode-scanner");
                         } else if ($type === "order-item") {
@@ -124,7 +134,7 @@ class DbActions
 
                     if (!$existingLocalAttribute && !$existingGlobalAttribute) {
                         $key = $settings->getField("license", "key", "");
-                        $url = "https://www.ukrsolution.com/ExtensionsSupport/Support?extension=24&version=1.11.0&pversion=" . $wp_version . "&d=" . base64_encode($key);
+                        $url = "https://www.ukrsolution.com/ExtensionsSupport/Support?extension=24&version=1.12.0&pversion=" . $wp_version . "&d=" . base64_encode($key);
                         $message = __("Attribute \"{$name}\" not found. Please make sure you entered a correct database value or <a href='{$url}' target='_blank'>contact us</a> for help.", "us-barcode-scanner");
                         $result = array("error" => $message);
 
@@ -146,15 +156,11 @@ class DbActions
             }
 
             if ($isNewFields) {
+                // @codingStandardsIgnoreStart
                 $table = $wpdb->prefix . Database::$posts;
                 $wpdb->query("UPDATE {$table} SET `updated` = '0000-00-00 00:00:00';");
+                // @codingStandardsIgnoreEnd
                 return rest_ensure_response(array("success" => 1, "isNewField" => 1));
-
-
-
-
-
-                return rest_ensure_response($result);
             }
         }
 
@@ -207,8 +213,6 @@ class DbActions
 
     public function postsInitialization(WP_REST_Request $request)
     {
-        global $wpdb;
-
         $progress = $request->get_param("progress");
 
         if ($progress) {
@@ -232,12 +236,14 @@ class DbActions
         global $wpdb;
 
         if (mt_rand(0, 100) === 100) {
+            // @codingStandardsIgnoreStart
             $wpdb->query("DELETE FROM {$wpdb->prefix}barcode_scanner_posts WHERE post_id NOT IN(SELECT ID FROM {$wpdb->prefix}posts) LIMIT 1000;");
+            // @codingStandardsIgnoreEnd
         }
 
         $settings = new Settings();
         $indexationStep = $settings->getSettings("indexationStep");
-        $limit = $indexationStep && (int)$indexationStep->value ? (int)$indexationStep->value : 50;
+        $limit = $indexationStep && (int) $indexationStep->value ? (int) $indexationStep->value : 50;
         $result = Database::updatePostsTable(0, $limit, true);
 
         return rest_ensure_response($result);

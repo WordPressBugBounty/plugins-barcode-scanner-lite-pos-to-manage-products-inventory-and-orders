@@ -23,11 +23,15 @@ if ($roleActive) {
 <div class="usbs-subtubs">
     <div>
         <select id="usbs-role-selector">
-            <option value="default" <?php echo $roleActive == 'default' ? esc_attr("selected") : "" ?>><?php echo esc_html('Default', "us-barcode-scanner"); ?> (<?php echo esc_html('On', "us-barcode-scanner"); ?>)</option>
-            <?php foreach ($fieldsRoles as $role => $value) : ?>
-                <option value="<?php echo esc_attr($role) ?>" data-bs_fields="<?php echo isset($value['bs_fields']) ? esc_attr($value['bs_fields']) : '' ?>" <?php echo $roleActive == $role ? esc_attr("selected") : "" ?>>
+            <option value="default" <?php echo $roleActive == 'default' ? esc_attr("selected") : "" ?>>
+                <?php echo esc_html('Default', "us-barcode-scanner"); ?>
+                (<?php echo esc_html('On', "us-barcode-scanner"); ?>)
+            </option>
+            <?php foreach ($fieldsRoles as $role => $value): ?>
+                <option value="<?php echo esc_attr($role) ?>"
+                    data-bs_fields="<?php echo isset($value['bs_fields']) ? esc_attr($value['bs_fields']) : '' ?>" <?php echo $roleActive == $role ? esc_attr("selected") : "" ?>>
                     <?php echo $value['name']; ?>
-                    <?php if (isset($value['bs_fields'])) : ?>
+                    <?php if (isset($value['bs_fields'])): ?>
                         (<?php echo esc_html('On', "us-barcode-scanner"); ?>)
                     <?php endif; ?>
                 </option>
@@ -37,8 +41,12 @@ if ($roleActive) {
     <div>&nbsp;</div>
     <div>
         <select id="usbs-device-selector">
-            <option value="desktop" <?php echo $deviceActive == "desktop" ? esc_attr("selected") : "" ?>><?php echo esc_html('Desktop', "us-barcode-scanner"); ?></option>
-            <option value="mobile" <?php echo $deviceActive == "mobile" ? esc_attr("selected") : "" ?>><?php echo esc_html('Mobile', "us-barcode-scanner"); ?></option>
+            <option value="desktop" <?php echo $deviceActive == "desktop" ? esc_attr("selected") : "" ?>>
+                <?php echo esc_html('Desktop', "us-barcode-scanner"); ?>
+            </option>
+            <option value="mobile" <?php echo $deviceActive == "mobile" ? esc_attr("selected") : "" ?>>
+                <?php echo esc_html('Mobile', "us-barcode-scanner"); ?>
+            </option>
         </select>
     </div>
 </div>
@@ -49,7 +57,7 @@ if ($roleActive) {
 <?php
 ?>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         const roleSelector = document.getElementById('usbs-role-selector');
         const deviceSelector = document.getElementById('usbs-device-selector');
         const loadDefaultSettingsSelector = document.getElementById('usbs-fields-load-default-settings');
@@ -103,8 +111,11 @@ if ($roleActive) {
     <input type="hidden" name="role" value="<?php echo esc_attr($roleActive); ?>" />
     <input type="hidden" name="storage" value="table" />
     <input type="hidden" name="nonce" value="<?php echo esc_attr($nonce); ?>" />
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; max-width: 1190px;">
-        <div style="padding: 0px 0 0 10px;"><?php echo esc_html('Here you can add/edit/remove fields which displays in the "Inventory" tab (in popup).', "us-barcode-scanner"); ?></div>
+    <div
+        style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; max-width: 1190px;">
+        <div style="padding: 0px 0 0 10px;">
+            <?php echo esc_html('Here you can add/edit/remove fields which displays in the "Product" tab (in popup).', "us-barcode-scanner"); ?>
+        </div>
     </div>
     <div style="display: flex; padding: 25px 0 0 10px; flex-flow: row wrap;">
         <?php
@@ -117,13 +128,18 @@ if ($roleActive) {
     </div>
 
     <div class="submit" style="gap: 30px; display: flex; align-items: center; flex-wrap: wrap;">
-        <input type="submit" class="button button-primary" value="<?php echo esc_html__("Save Changes", "us-barcode-scanner"); ?>">
+        <input type="submit" class="button button-primary"
+            value="<?php echo esc_html__("Save Changes", "us-barcode-scanner"); ?>">
 
-        <?php if ($roleActive && $roleActive != 'default') : ?>
+        <?php if ($roleActive && $roleActive != 'default'): ?>
             <?php $url = admin_url('/admin.php?page=barcode-scanner-settings&tab=fields&role=' . $roleActive . '&sub=' . $deviceActive . '&ld=1'); ?>
-            <div style="margin-left: 20px;"><a id="usbs-fields-load-default-settings" href="<?php echo esc_url($url); ?>&sub=desktop"><?php echo esc_html__('Load default field settings', "us-barcode-scanner"); ?></a></div>
+            <div style="margin-left: 20px;"><a id="usbs-fields-load-default-settings"
+                    href="<?php echo esc_url($url); ?>&sub=desktop"><?php echo esc_html__('Load default field settings', "us-barcode-scanner"); ?></a>
+            </div>
             <?php $url = admin_url('/admin.php?page=barcode-scanner-settings&tab=fields&role=' . $roleActive . '&sub=' . $deviceActive . '&rm=1'); ?>
-            <div><a id="usbs-fields-remove-settings" href="<?php echo esc_url($url); ?>&sub=desktop"><?php echo sprintf(esc_html__('Remove setting for "%s" role', "us-barcode-scanner"), esc_html($roleActiveName ? $roleActiveName : $roleActive)); ?></a></div>
+            <div><a id="usbs-fields-remove-settings"
+                    href="<?php echo esc_url($url); ?>&sub=desktop"><?php echo sprintf(esc_html__('Remove setting for "%s" role', "us-barcode-scanner"), esc_html($roleActiveName ? $roleActiveName : $roleActive)); ?></a>
+            </div>
         <?php endif; ?>
     </div>
 </form>
@@ -188,6 +204,40 @@ if ($roleActive) {
             textarea.classList.add('initialized');
         }
     }
+</script>
+
+<script>
+    document.getElementById('bs-settings-fields-tab').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const form = e.target;
+
+        jQuery(form).find('.CodeMirror').each(function () {
+            this.CodeMirror.save();
+        });
+
+        const formData = new FormData(form);
+        const data = {};
+
+        formData.forEach((value, key) => {
+            const keys = key.match(/[^[\]]+/g);
+            let cur = data;
+
+            keys.forEach((k, i) => {
+                if (i === keys.length - 1) {
+                    cur[k] = value;
+                } else {
+                    if (!cur[k] || typeof cur[k] !== 'object') {
+                        cur[k] = {};
+                    }
+                    cur = cur[k];
+                }
+            });
+        });
+
+        document.body.insertAdjacentHTML('beforeend', '<div id="barcode-scanner-preloader"><span class="a4b-preloader-icon"></span></div>');
+        fetch(form.action, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).finally(() => { window.location.reload() });
+    });
 </script>
 
 <style>

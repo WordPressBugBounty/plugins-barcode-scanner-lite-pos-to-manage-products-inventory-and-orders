@@ -17,6 +17,7 @@ class UsersActions
         global $wpdb;
 
         $query = RequestHelper::getQuery($request, "user_find");
+        $source = $request->get_param("source");
         $users = array();
         $errors = array();
 
@@ -24,11 +25,12 @@ class UsersActions
         $currentIds = $currentIds && is_array($currentIds) ? array_map('intval', $currentIds) : array();
 
         try {
+            // @codingStandardsIgnoreStart
             $sql = "SELECT * FROM {$wpdb->users} as u ";
             $sql .= " WHERE u.ID = %s OR u.user_nicename LIKE %s OR u.user_email LIKE %s OR u.display_name LIKE %s ";
 
             if (count($currentIds) > 0) {
-                $ids = implode(",",  $currentIds);
+                $ids = implode(",", $currentIds);
                 $sql .= "  OR ID IN({$ids}) ";
             }
 
@@ -36,10 +38,11 @@ class UsersActions
             $rows = $wpdb->get_results(
                 $wpdb->prepare($sql, $wpdb->esc_like($query), '%' . $wpdb->esc_like($query) . '%', '%' . $wpdb->esc_like($query) . '%', '%' . $wpdb->esc_like($query) . '%')
             );
+            // @codingStandardsIgnoreEnd
 
             foreach ($rows as $value) {
                 $userMeta = get_userdata($value->ID);
-                $roles =  array();
+                $roles = array();
 
                 if ($userMeta->roles) {
                     foreach ($userMeta->roles as $_role) {
@@ -65,6 +68,8 @@ class UsersActions
             $errors[] = $th->getMessage();
         }
 
+        $users = apply_filters("barcode_scanner_find_customer", $users, $query, $source);
+
         $result = array(
             "users" => $users,
             "usersErrors" => $errors,
@@ -76,9 +81,21 @@ class UsersActions
 
     public function getUsersByIds(WP_REST_Request $request)
     {
+        global $wpdb;
+
         $ids = $request->get_param("ids");
+        $checkForDeletedIds = $request->get_param("checkForDeletedIds");
         $users = array();
+        $deletedIds = array();
         $errors = array();
+
+        if ($checkForDeletedIds && is_array($checkForDeletedIds) && !empty($checkForDeletedIds)) {
+            $checkIds = array_map('intval', $checkForDeletedIds);
+            $placeholders = implode(',', array_fill(0, count($checkIds), '%d'));
+            $sql = $wpdb->prepare("SELECT u.ID FROM {$wpdb->users} AS u WHERE u.ID IN ($placeholders)", $checkIds);
+            $existingIds = $wpdb->get_col($sql);
+            $deletedIds = array_values(array_diff($checkIds, $existingIds));
+        }
 
         try {
             $users = get_users(array('include' => $ids));
@@ -103,7 +120,7 @@ class UsersActions
             $errors[] = $th->getMessage();
         }
 
-        return rest_ensure_response(array("users" => $users, "errors" => $errors));
+        return rest_ensure_response(array("users" => $users, "deletedIds" => $deletedIds, "errors" => $errors));
     }
 
     public function getRoleData(WP_REST_Request $request)
@@ -117,7 +134,7 @@ class UsersActions
         if ($roleSlug) {
             $role = get_role($roleSlug);
 
-                        if ($role) {
+            if ($role) {
                 if (!isset($wp_roles)) {
                     $wp_roles = new WP_Roles();
                 }
@@ -218,8 +235,9 @@ class UsersActions
         $user = array();
 
         try {
-            $sql = "SELECT * FROM {$wpdb->users} as u WHERE u.ID = {$userId};";
-            $row = $wpdb->get_row($sql);
+            // @codingStandardsIgnoreStart
+            $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->users} as u WHERE u.ID = %d;", $userId));
+            // @codingStandardsIgnoreEnd
 
             $user = array(
                 'ID' => $row->ID,
@@ -241,7 +259,7 @@ class UsersActions
         $states = array();
 
         try {
-            $countries_obj   = new \WC_Countries();
+            $countries_obj = new \WC_Countries();
             $states = $countries_obj->get_states($country);
         } catch (\Throwable $th) {
             $errors[] = $th->getMessage();
@@ -293,7 +311,9 @@ class UsersActions
 
         $users = array();
 
+        // @codingStandardsIgnoreStart
         $usersMeta = $wpdb->get_results("SELECT * FROM {$wpdb->usermeta} AS UM WHERE UM.meta_key IN ('barcode_scanner_app_otp')");
+        // @codingStandardsIgnoreEnd
 
         foreach ($usersMeta as $value) {
             $users[$value->user_id] = $value->meta_value;
@@ -308,7 +328,9 @@ class UsersActions
 
         $users = array();
 
+        // @codingStandardsIgnoreStart
         $usersMeta = $wpdb->get_results("SELECT * FROM {$wpdb->usermeta} AS UM WHERE UM.meta_key IN ('barcode_scanner_app_otp_expired_dt')");
+        // @codingStandardsIgnoreEnd
 
         try {
             foreach ($usersMeta as $value) {
@@ -322,8 +344,9 @@ class UsersActions
         return $users;
     }
 
-    public function getUserMeta($userId) {
-        $fields = array("orderFulfillmentByDefault");
+    public function getUserMeta($userId)
+    {
+        $fields = array("orderFulfillmentByDefault", "usbs_search_input_type");
         $fieldsData = array();
 
         try {
@@ -336,14 +359,19 @@ class UsersActions
         return $fieldsData;
     }
 
-    public function setUserMeta(WP_REST_Request $request) {
-        $userId = $request->get_param("userId");
+    public function setUserMeta(WP_REST_Request $request)
+    {
+        $userId = Users::getUserId($request);
         $fields = $request->get_param("fields");
         $errors = array();
 
         try {
+            $available = array('usbs_search_input_type', 'orderFulfillmentByDefault');
+
             foreach ($fields as $field) {
-                \update_user_meta($userId, $field['meta_key'], $field['meta_value']);
+                if (in_array($field['meta_key'], $available)) {
+                    \update_user_meta($userId, $field['meta_key'], $field['meta_value']);
+                }
             }
         } catch (\Throwable $th) {
             $errors[] = $th->getMessage();

@@ -63,7 +63,7 @@ class Auth
             $appLoginMethods = $appLoginMethods === null ? 'both' : $appLoginMethods->value;
 
             if ($username && $password) {
-                if($appLoginMethods === "login_pass" || $appLoginMethods === "both") {
+                if ($appLoginMethods === "login_pass" || $appLoginMethods === "both") {
                     $user = get_user_by('login', $username);
 
                     if (!$user) {
@@ -71,18 +71,23 @@ class Auth
                     }
 
                     if ($user && !is_wp_error($user) && isset($user->data) && wp_check_password($password, $user->data->user_pass, $user->ID)) {
-                        $password = "";                    
+                        $password = "";
                     } else {
                         $user = null;
                     }
-                }                
+                }
 
                 $method = "login_password";
             }
             else if ($password) {
                 if ($appLoginMethods === "one_time_password" || $appLoginMethods === "both" || $username === "") {
                     $p = strlen($password) < 40 ? md5(strtoupper($password)) : $password;
-                    $userMeta = $wpdb->get_row("SELECT UM.meta_key, UM.meta_value, UM.user_id FROM {$wpdb->usermeta} AS UM WHERE UM.meta_key IN ('barcode_scanner_app_otp') AND UM.meta_value = '{$p}'");
+                    // @codingStandardsIgnoreStart
+                    $userMeta = $wpdb->get_row($wpdb->prepare(
+                        "SELECT UM.meta_key, UM.meta_value, UM.user_id FROM {$wpdb->usermeta} AS UM WHERE UM.meta_key IN ('barcode_scanner_app_otp') AND UM.meta_value = %s",
+                        $p
+                    ));
+                    // @codingStandardsIgnoreEnd
 
                     if ($userMeta && $userMeta->user_id) {
                         $user = get_user_by("ID", $userMeta->user_id);
@@ -122,7 +127,7 @@ class Auth
                     $data["token"] = $password;
                 }
             } else if (!$user) {
-                $data["securityIssue"] = $method === "login_password" ? 2 : 1;                
+                $data["securityIssue"] = $method === "login_password" ? 2 : 1;
             }
         } catch (\Throwable $th) {
             $data = array("error" => $th->getMessage());
@@ -173,9 +178,12 @@ class Auth
 
         if ($userToken) {
             $user = null;
-            $userMeta = $wpdb->get_row(
-                $wpdb->prepare("SELECT UM.meta_key, UM.meta_value, UM.user_id FROM {$wpdb->usermeta} AS UM WHERE UM.meta_key IN ('barcode_scanner_app_otp', 'barcode_scanner_web_otp') AND UM.meta_value = '%s';", $userToken)
-            );
+            // @codingStandardsIgnoreStart
+            $userMeta = $wpdb->get_row($wpdb->prepare(
+                "SELECT UM.meta_key, UM.meta_value, UM.user_id FROM {$wpdb->usermeta} AS UM WHERE UM.meta_key IN ('barcode_scanner_app_otp', 'barcode_scanner_web_otp') AND UM.meta_value = '%s';",
+                $userToken
+            ));
+            // @codingStandardsIgnoreEnd
 
             if ($userMeta && $userMeta->user_id) {
                 $user = get_user_by("ID", $userMeta->user_id);
@@ -183,34 +191,22 @@ class Auth
 
             return $userMeta && $userMeta->user_id && $user;
         } else if ($token && !in_array($token, array("web", "usersFind"))) {
-            $userMeta = $wpdb->get_row(
-                $wpdb->prepare("SELECT UM.meta_key, UM.meta_value, UM.user_id FROM {$wpdb->usermeta} AS UM WHERE UM.meta_key IN ('barcode_scanner_app_otp', 'barcode_scanner_web_otp') AND UM.meta_value = '%s';", $token)
-            );
+            // @codingStandardsIgnoreStart
+            $userMeta = $wpdb->get_row($wpdb->prepare(
+                "SELECT UM.meta_key, UM.meta_value, UM.user_id FROM {$wpdb->usermeta} AS UM WHERE UM.meta_key IN ('barcode_scanner_app_otp', 'barcode_scanner_web_otp') AND UM.meta_value = '%s';",
+                $token
+            ));
+            // @codingStandardsIgnoreEnd
 
             if ($userMeta && $userMeta->user_id) {
                 return true;
             }
 
-            $data = @base64_decode($token);
 
-            if (preg_match('/([\d]+).*/', $data, $m)) {
-                $userId = count($m) === 2 && (int)$m[1] ? $m[1] : 0;
 
-                if ($userSession && (int)$userSession === (int)$userId) {
-                    return true;
-                }
 
-                $users = $settings->getAppUsersPermissions();
 
-                foreach ($users as $user) {
-                    if ($user->ID == $userId && $user->get($settings->userAppPermissionKey)) return true;
-                }
 
-                if (!$users) {
-                    $users = get_users(array('meta_key' => 'barcode_scanner_app_otp', 'meta_value' => $token));
-                    return count($users) > 0 && $users[0]->ID;
-                }
-            }
 
             return false;
         }
@@ -223,9 +219,14 @@ class Auth
         global $wpdb;
         $settings = new Settings();
 
-         if ($userToken) {
+        if ($userToken) {
             $user = null;
-            $userMeta = $wpdb->get_row("SELECT UM.meta_key, UM.meta_value, UM.user_id FROM {$wpdb->usermeta} AS UM WHERE UM.meta_key IN ('barcode_scanner_app_otp') AND UM.meta_value = '{$userToken}'");
+            // @codingStandardsIgnoreStart
+            $userMeta = $wpdb->get_row($wpdb->prepare(
+                "SELECT UM.meta_key, UM.meta_value, UM.user_id FROM {$wpdb->usermeta} AS UM WHERE UM.meta_key IN ('barcode_scanner_app_otp') AND UM.meta_value = %s",
+                $userToken
+            ));
+            // @codingStandardsIgnoreEnd
 
             if ($userMeta && $userMeta->user_id) {
                 $user = get_user_by("ID", $userMeta->user_id);
@@ -233,32 +234,22 @@ class Auth
 
             return $userMeta && $userMeta->user_id && $user ? $userMeta->user_id : null;
         } else if ($token && !in_array($token, array("web", "usersFind"))) {
-            $userMeta = $wpdb->get_row("SELECT UM.meta_key, UM.meta_value, UM.user_id FROM {$wpdb->usermeta} AS UM WHERE UM.meta_key IN ('barcode_scanner_app_otp', 'barcode_scanner_web_otp') AND UM.meta_value = '{$token}'");
+            // @codingStandardsIgnoreStart
+            $userMeta = $wpdb->get_row($wpdb->prepare(
+                "SELECT UM.meta_key, UM.meta_value, UM.user_id FROM {$wpdb->usermeta} AS UM WHERE UM.meta_key IN ('barcode_scanner_app_otp', 'barcode_scanner_web_otp') AND UM.meta_value = %s",
+                $token
+            ));
+            // @codingStandardsIgnoreEnd
 
             if ($userMeta && $userMeta->user_id) {
                 return $userMeta->user_id;
             }
 
-            $data = @base64_decode($token);
 
-            if (preg_match('/([\d]+).*/', $data, $m)) {
-                $userId = count($m) === 2 && (int)$m[1] ? $m[1] : 0;
 
-                if ($userSession && (int)$userSession === (int)$userId) {
-                    return $userId;
-                }
 
-                $users = $settings->getAppUsersPermissions();
 
-                foreach ($users as $user) {
-                    if ($user->ID == $userId && $user->get($settings->userAppPermissionKey)) return true;
-                }
 
-                if (!$users) {
-                    $users = get_users(array('meta_key' => 'barcode_scanner_app_otp', 'meta_value' => $token));
-                    return count($users) > 0 && $users[0]->ID ? $users[0]->ID : null;
-                }
-            }
 
             return null;
         }
@@ -281,7 +272,7 @@ class Auth
                 "username" => $user->display_name ? $user->display_name : $user->user_nicename,
                 "website" => $domain,
                 "protocol" => $protocol,
-                "pluginVersion" => "1.11.0",
+                "pluginVersion" => "1.12.0",
                 "wpVersion" => $wp_version,
                 "wooVersion" => $this->getWooVersion(),
                 "phpVersion" => phpversion(),

@@ -21,7 +21,7 @@ var WebBarcodeScannerAdminMenuList = function () {
     jQuery("#adminmenu span.barcode_scanner_faq")
       .closest("a")
       .attr("target", "_blank")
-      .attr("href", "https://www.ukrsolution.com/ExtensionsSupport/Support?extension=25&version=1.11.0&pversion=");
+      .attr("href", "https://www.ukrsolution.com/ExtensionsSupport/Support?extension=25&version=1.12.0&pversion=");
     jQuery("#adminmenu span.barcode_scanner_faq")
       .closest("a")
       .attr("target", "_blank")
@@ -29,7 +29,7 @@ var WebBarcodeScannerAdminMenuList = function () {
     jQuery("#adminmenu span.barcode_scanner_support")
       .closest("a")
       .attr("target", "_blank")
-      .attr("href", "https://www.ukrsolution.com/ExtensionsSupport/Support?extension=24&version=1.11.0&pversion=" + wpVersion + "&d=" + btoa(wpKey));
+      .attr("href", "https://www.ukrsolution.com/ExtensionsSupport/Support?extension=24&version=1.12.0&pversion=" + wpVersion + "&d=" + btoa(wpKey));
   } catch (error) {
     console.error(error.message);
   }
@@ -297,7 +297,9 @@ jQuery(document).ready(function () {
       '<div id="ukrsolution-barcode-scanner"></div>' +
       '<div id="ukrsolution-barcode-scanner-modal"></div>' +
       '<div id="ukrsolution-barcode-scanner-alert"></div>' +
-      '<div id="ukrsolution-barcode-scanner-settings"></div>'
+      '<div id="ukrsolution-barcode-scanner-settings"></div>' +
+      '<script>window.stripeTerminalDiscoverReadersSimulated = false</script>',
+      '<script src="https://js.stripe.com/terminal/v1/" async></script>'
     );
     iframeDocument.body.appendChild(scripLS);
 
@@ -340,8 +342,12 @@ jQuery(document).ready(function () {
                 if (response.cartExtraData) window.parent.cartExtraData = response.cartExtraData;
                 if (response.usbsModifyPreProcessSearchString) window.usbsModifyPreProcessSearchString = response.usbsModifyPreProcessSearchString;
                 if (response.usbsModifyPreProcessSearchString) window.parent.usbsModifyPreProcessSearchString = response.usbsModifyPreProcessSearchString;
+                if (response.usbsAfterSearchJavaScript) window.usbsAfterSearchJavaScript = response.usbsAfterSearchJavaScript;
+                if (response.usbsAfterSearchJavaScript) window.parent.usbsAfterSearchJavaScript = response.usbsAfterSearchJavaScript;
                 if (response.userFormCF) window.userFormCF = response.userFormCF;
                 if (response.userFormCF) window.parent.userFormCF = response.userFormCF;
+                if (response.usbsOrdersListFilter) window.usbsOrdersListFilter = response.usbsOrdersListFilter;
+                if (response.usbsOrdersListFilter) window.parent.usbsOrdersListFilter = response.usbsOrdersListFilter;
 
                 window.barcodeScannerStartApp();
               }

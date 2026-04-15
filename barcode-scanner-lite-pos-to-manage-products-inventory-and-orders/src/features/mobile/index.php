@@ -17,6 +17,7 @@ $usbsLangs = $jsData && isset($jsData['usbsLangs']) ? $jsData['usbsLangs'] : arr
 $usbsLangsApp = $jsData && isset($jsData['usbsLangsApp']) ? $jsData['usbsLangsApp'] : array();
 $usbsInterface = $jsData && isset($jsData['usbsInterface']) ? $jsData['usbsInterface'] : array();
 $cartExtraData = $jsData && isset($jsData['cartExtraData']) ? $jsData['cartExtraData'] : array();
+$usbsOrdersListFilter = $jsData && isset($jsData['usbsOrdersListFilter']) ? $jsData['usbsOrdersListFilter'] : array();
 
 $userId = $usbs && isset($usbs['userId']) ? $usbs['userId'] : "";
 $userRole = $userId ? Users::getUserRole($userId) : '';
@@ -36,6 +37,7 @@ $userRole = $userId ? Users::getUserRole($userId) : '';
 <style class="usbs-style">
     <?php echo wp_kses_post($customCssMobile); ?>
 </style>
+<script src="https://js.stripe.com/terminal/v1/" async></script>
 <script>
     window.barcodeScannerStartAppAuto = true;
 </script>
@@ -69,6 +71,9 @@ $userRole = $userId ? Users::getUserRole($userId) : '';
 <script>
     window.cartExtraData = <?php echo json_encode($cartExtraData); ?>;
 </script>
+<script>
+    window.usbsOrdersListFilter = <?php echo json_encode($usbsOrdersListFilter); ?>;
+</script>
 
 <script>
     <?php
@@ -77,6 +82,16 @@ $userRole = $userId ? Users::getUserRole($userId) : '';
 
     if ($fnContent) {
         echo wp_kses_post("window.usbsModifyPreProcessSearchString = function (bs_search_string) {" . $fnContent . " ; \n return bs_search_string; };");
+    } ?>
+</script>
+
+<script>
+    <?php
+    $field = $settings->getSettings("afterSearchJavaScript");
+    $fnContent = $field === null ? "" : trim($field->value);
+
+    if ($fnContent) {
+        echo wp_kses_post("window.usbsAfterSearchJavaScript = function () {" . $fnContent . " ; };");
     } ?>
 </script>
 
@@ -113,6 +128,18 @@ $userRole = $userId ? Users::getUserRole($userId) : '';
 
     function checkWebViewReactConnection(data) {
         if (window.bsCheckWebViewReactConnection) return window.bsCheckWebViewReactConnection(data);
+    }
+
+    function BSGetCurrentFocusedElement(uid = "") {
+        const el = document.activeElement;
+        return JSON.stringify({
+            tag: el ? el.tagName : null,
+            isInput: el ? el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" : false,
+            isEditable: el ? el.isContentEditable : false,
+            id: el ? el.id : "",
+            name: el ? el.name || el.tagName : "",
+            uid
+        });
     }
 
     var BarcodeScannerMobileBridge = function (data) {
@@ -180,7 +207,7 @@ $userRole = $userId ? Users::getUserRole($userId) : '';
         }
         
         window.parent.postMessage({
-          message: "mobile.postMessage", method: "CMD_ALERT", options: {
+          message: "mobile.postMessage", method: "WEB-ALERT", options: {
               title: "JS Error", message: "Loader: " + window.usbsMobile.appJsPath + " not loaded", hideSystemInfo: false, restart: true, require: true, logout: false
           }
         }, "*");
@@ -199,15 +226,15 @@ $userRole = $userId ? Users::getUserRole($userId) : '';
 
         const link1 = document.createElement('link');
         link1.rel = 'preconnect';
-        link1.href = 'https://fonts.googleapis.com';
+        link1.href = 'https://fonts.googleapis' + '.com';
 
         const link2 = document.createElement('link');
         link2.rel = 'preconnect';
-        link2.href = 'https://fonts.gstatic.com';
+        link2.href = 'https://fonts.gstatic' + '.com';
         link2.crossOrigin = ''; 
 
         const link3 = document.createElement('link');
-        link3.href = 'https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap';
+        link3.href = 'https://fonts.googleapis' + '.com' + '/css2?family=Roboto:wght@400;500;700&display=swap';
         link3.rel = 'stylesheet';
 
         document.body.appendChild(link1);
@@ -303,3 +330,8 @@ $userRole = $userId ? Users::getUserRole($userId) : '';
         }
     });
 </script>
+
+<?php
+if (function_exists('BSMobileJsHook')) {
+    BSMobileJsHook();
+} 

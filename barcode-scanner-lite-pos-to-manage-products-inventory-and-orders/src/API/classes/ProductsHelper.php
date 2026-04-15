@@ -3,6 +3,7 @@
 namespace UkrSolution\BarcodeScanner\API\classes;
 
 use UkrSolution\BarcodeScanner\Database;
+use UkrSolution\BarcodeScanner\features\settings\Settings;
 
 class ProductsHelper
 {
@@ -123,9 +124,11 @@ class ProductsHelper
         if ($id && in_array($post_type, array('variation', 'product_variation'))) {
             $posts = $wpdb->prefix . Database::$posts;
 
+            // @codingStandardsIgnoreStart
             $row = $wpdb->get_row(
                 $wpdb->prepare("SELECT P.post_title FROM {$posts} AS P WHERE P.post_id = %d;", $id)
             );
+            // @codingStandardsIgnoreEnd
 
             if ($row && $row->post_title) {
                 $name = $row->post_title;
@@ -161,7 +164,9 @@ class ProductsHelper
     {
         try {
             $fields = array("_sku" => $sku);
-            if (PostHelper::productSave($productId, $fields)) return true;
+            if (PostHelper::productSave($productId, $fields)) {
+                return true;
+            }
 
             $product = \wc_get_product($productId);
 
@@ -207,5 +212,36 @@ class ProductsHelper
         }
 
         return $itemCategories;
+    }
+
+    public static function findProductPrice($product, $customerId)
+    {
+        $settings = new Settings();
+        $priceFieldPriority = $settings->getSettings("priceFieldPriority");
+        $priceFieldPriority = $priceFieldPriority === null ? "wc_default" : $priceFieldPriority->value;
+
+        $price = null;
+
+        if ($priceFieldPriority) {
+            $fields = explode(",", $priceFieldPriority);
+
+            if (is_array($fields)) {
+                foreach ($fields as $field) {
+                    if ($field) {
+                        if ($field == "wc_default") {
+                            $price = $product->get_price();
+                        } else {
+                            $price = get_post_meta($product->get_id(), $field, true);
+                        }
+
+                        if ($price) {
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        return $price;
     }
 }

@@ -114,14 +114,14 @@ use UkrSolution\BarcodeScanner\API\PluginsHelper;
                 <td>
                     <?php
                     $field = $settings->getSettings("notifyUsersStock");
-                    $productStatusesValue = $field === null ? "" : $field->value;
-                    $productStatusesValueArr = $productStatusesValue ? explode(",", $productStatusesValue) : array();
+                    $notifyUsersStockValue = $field === null ? "" : $field->value;
+                    $notifyUsersStockValueArr = $notifyUsersStockValue ? explode(",", $notifyUsersStockValue) : array();
                     ?>
                     <input type="hidden" name="notifyUsersStock[]" value="" />
                     <select name='notifyUsersStock[]' multiple data-placeholder='Choose a user...' multiple class='chosen-select-users-products' style="width:300px;">
-                        <?php if ($productStatusesValueArr) : ?>
-                            <?php foreach (get_users(array("orderby" => "ID", "include" => $productStatusesValueArr)) as $user) : ?>
-                                <?php if (!in_array($user->ID, $productStatusesValueArr)) continue; ?>
+                        <?php if ($notifyUsersStockValueArr) : ?>
+                            <?php foreach (get_users(array("orderby" => "ID", "include" => $notifyUsersStockValueArr)) as $user) : ?>
+                                <?php if (!in_array($user->ID, $notifyUsersStockValueArr)) continue; ?>
                                 <?php $name = $user->display_name == $user->user_login ? $user->display_name : $user->display_name . " (" . $user->user_login . ")"; ?>
                                 <option value="<?php echo esc_attr($user->ID); ?>"><?php echo esc_html($name); ?></option>
                             <?php endforeach; ?>
@@ -188,7 +188,7 @@ use UkrSolution\BarcodeScanner\API\PluginsHelper;
                     <label>
                         <?php
                         $field = $settings->getSettings("cartDecimalQuantity");
-                        $value = $field === null ? "off" : $field->value;
+                        $value = $field === null ? "on" : $field->value;
                         ?>
                         <?php
                         if ($value === "on") {
@@ -265,7 +265,7 @@ $stockLocations = get_terms(array(
             });
         });
 
-        var defaultValue = '<?php echo esc_html($productStatusesValue); ?>'.split(',');
+        var defaultValue = '<?php echo esc_html($notifyUsersStockValue); ?>'.split(',');
         jQuery(".chosen-select-users-products").val(defaultValue).trigger("chosen:updated");
     });
 </script>

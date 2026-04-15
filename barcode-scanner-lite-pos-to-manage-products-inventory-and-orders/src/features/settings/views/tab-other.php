@@ -160,7 +160,7 @@ use UkrSolution\BarcodeScanner\features\sounds\Sounds;
                 </th>
                 <td>
                     <?php
-                    $link = admin_url("/admin.php?page=barcode-scanner-settings-reset&tab=css");
+                    $link = admin_url("/admin.php?page=barcode-scanner-settings-reset&tab=css&nonce=" . esc_attr($nonce));
                     ?>
                     <a href="<?php echo esc_url($link); ?>" class="usbs-btn" id="reset-all-settings-to-default" onclick="return confirm('<?php echo esc_html__("All current configuration will be ERASED and replaced with the default one, proceed?", "us-barcode-scanner"); ?>');"><?php echo esc_html__("Reset", "us-barcode-scanner"); ?></a>
 

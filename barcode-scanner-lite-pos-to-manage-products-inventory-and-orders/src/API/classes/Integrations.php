@@ -140,7 +140,9 @@ class Integrations
             global $wpdb;
 
             try {
+                // @codingStandardsIgnoreStart
                 $record = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}atum_product_data WHERE product_id = %d;", $post_id));
+                // @codingStandardsIgnoreEnd
 
                 if ($record) {
                     return $record->supplier_sku ? $record->supplier_sku : "";
@@ -155,17 +157,23 @@ class Integrations
             global $wpdb;
 
             try {
+                // @codingStandardsIgnoreStart
                 $record = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}atum_product_data WHERE product_id = %d", $post_id));
+                // @codingStandardsIgnoreEnd
 
                 if (!$record) {
+                    // @codingStandardsIgnoreStart
                     $wpdb->insert("{$wpdb->prefix}atum_product_data", array("product_id" => $post_id, "supplier_sku" => $value));
+                    // @codingStandardsIgnoreEnd
                 }
 
+                // @codingStandardsIgnoreStart
                 if ($value === "") {
                     $wpdb->query($wpdb->prepare("UPDATE {$wpdb->prefix}atum_product_data SET supplier_sku = null WHERE product_id = %d", $post_id));
                 } else {
                     $wpdb->update("{$wpdb->prefix}atum_product_data", array("supplier_sku" => $value), array("product_id" => $post_id));
                 }
+                // @codingStandardsIgnoreEnd
             } catch (\Throwable $th) {
             }
 
@@ -176,7 +184,9 @@ class Integrations
             global $wpdb;
 
             try {
+                // @codingStandardsIgnoreStart
                 $record = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}atum_product_data WHERE product_id = %d;", $post_id));
+                // @codingStandardsIgnoreEnd
 
                 if ($record) {
                     return $record->barcode ? $record->barcode : "";
@@ -191,17 +201,23 @@ class Integrations
             global $wpdb;
 
             try {
+                // @codingStandardsIgnoreStart
                 $record = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}atum_product_data WHERE product_id = %d", $post_id));
+                // @codingStandardsIgnoreEnd
 
                 if (!$record) {
+                    // @codingStandardsIgnoreStart
                     $wpdb->insert("{$wpdb->prefix}atum_product_data", array("product_id" => $post_id, "supplier_sku" => $value));
+                    // @codingStandardsIgnoreEnd
                 }
 
+                // @codingStandardsIgnoreStart
                 if ($value === "") {
                     $wpdb->query($wpdb->prepare("UPDATE {$wpdb->prefix}atum_product_data SET barcode = null WHERE product_id = %d", $post_id));
                 } else {
                     $wpdb->update("{$wpdb->prefix}atum_product_data", array("barcode" => $value), array("product_id" => $post_id));
                 }
+                // @codingStandardsIgnoreEnd
             } catch (\Throwable $th) {
             }
 
@@ -212,7 +228,9 @@ class Integrations
             global $wpdb;
 
             try {
+                // @codingStandardsIgnoreStart
                 $record = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}atum_product_data WHERE product_id = %d;", $post_id));
+                // @codingStandardsIgnoreEnd
 
                 if ($record) {
                     return $record->purchase_price ? $record->purchase_price : "";
@@ -236,9 +254,13 @@ class Integrations
                 $value = str_replace($priceDecimalSeparator, ".", $value);
 
                 if ($value === "") {
+                    // @codingStandardsIgnoreStart
                     $wpdb->query($wpdb->prepare("UPDATE {$wpdb->prefix}atum_product_data SET purchase_price = null WHERE product_id = %d", $post_id));
+                    // @codingStandardsIgnoreEnd
                 } else {
+                    // @codingStandardsIgnoreStart
                     $wpdb->update("{$wpdb->prefix}atum_product_data", array("purchase_price" => $value), array("product_id" => $post_id));
+                    // @codingStandardsIgnoreEnd
                 }
             } catch (\Throwable $th) {
             }
@@ -250,7 +272,9 @@ class Integrations
             global $wpdb;
 
             try {
+                // @codingStandardsIgnoreStart
                 $suppliers = $wpdb->get_results("SELECT P.ID, P.post_title FROM {$wpdb->posts} AS P WHERE P.post_type = 'atum_supplier' AND P.post_status = 'publish';");
+                // @codingStandardsIgnoreEnd
 
                 $options = array();
 
@@ -267,7 +291,9 @@ class Integrations
             global $wpdb;
 
             try {
+                // @codingStandardsIgnoreStart
                 $record = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}atum_product_data WHERE product_id = %d;", $post_id));
+                // @codingStandardsIgnoreEnd
 
                 if ($record) {
                     return $record->supplier_id ? $record->supplier_id : "";
@@ -282,11 +308,13 @@ class Integrations
             global $wpdb;
 
             try {
+                // @codingStandardsIgnoreStart
                 if ($value === "") {
                     $wpdb->query($wpdb->prepare("UPDATE {$wpdb->prefix}atum_product_data SET supplier_id = null WHERE product_id = %d", $post_id));
                 } else {
                     $wpdb->update("{$wpdb->prefix}atum_product_data", array("supplier_id" => $value), array("product_id" => $post_id));
                 }
+                // @codingStandardsIgnoreEnd
             } catch (\Throwable $th) {
             }
 

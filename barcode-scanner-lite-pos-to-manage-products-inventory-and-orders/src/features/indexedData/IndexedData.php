@@ -26,8 +26,10 @@ class IndexedData
     {
         global $wpdb;
 
+        // @codingStandardsIgnoreStart
         $columnsTable = $wpdb->prefix . Database::$columns;
         $columns = $wpdb->get_results("SELECT * FROM {$columnsTable};");
+        // @codingStandardsIgnoreEnd
 
         return $columns;
     }
@@ -36,10 +38,10 @@ class IndexedData
     {
         global $wpdb;
 
+        // @codingStandardsIgnoreStart
         $postsTable = $wpdb->prefix . Database::$posts;
-        $row = $wpdb->get_row(
-            $wpdb->prepare("SELECT * FROM {$postsTable} AS P WHERE P.post_id = '%d';", trim($postId))
-        );
+        $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$postsTable} AS P WHERE P.post_id = '%d';", trim($postId)));
+        // @codingStandardsIgnoreEnd
 
         return $row;
     }
@@ -60,7 +62,8 @@ class IndexedData
         try {
             global $sitepress;
 
-            if (!isset($sitepress)) return $result;
+            if (!isset($sitepress))
+                return $result;
 
             $trid = $sitepress->get_element_trid($postId, 'post_product');
 
@@ -69,14 +72,12 @@ class IndexedData
             $result["trid"] = $trid;
             $result["translations"] = $translations;
 
+            // @codingStandardsIgnoreStart
             $table = $wpdb->prefix . "icl_translations";
-            $row = $wpdb->get_row(
-                $wpdb->prepare("SELECT * FROM {$table} AS P WHERE P.element_id = '%d';", trim($postId))
-            );
+            $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} AS P WHERE P.element_id = '%d';", trim($postId)));
             $result["wpml_row"] = $row;
-            $result["wpml_rows"] = $row ? $wpdb->get_results(
-                $wpdb->prepare("SELECT * FROM {$table} AS P WHERE P.trid = '%d';", trim($row->trid))
-            ) : "";
+            $result["wpml_rows"] = $row ? $wpdb->get_results($wpdb->prepare("SELECT * FROM {$table} AS P WHERE P.trid = '%d';", trim($row->trid))) : "";
+            // @codingStandardsIgnoreEnd
         } catch (\Throwable $th) {
             $result["error"] = $th->getMessage();
         }
@@ -91,7 +92,9 @@ class IndexedData
         $columns = array();
         $postsTable = $wpdb->prefix . Database::$posts;
         $columnsTable = $wpdb->prefix . Database::$columns;
+        // @codingStandardsIgnoreStart
         $posts = $wpdb->get_results("DESCRIBE $postsTable");
+        // @codingStandardsIgnoreEnd
 
         foreach ($posts as $value) {
             if (!in_array($value->Field, ["id", "created", "updated"]) && !preg_match("/column_[\d]{1,3}/", $value->Field)) {
@@ -99,7 +102,9 @@ class IndexedData
             }
         }
 
+        // @codingStandardsIgnoreStart
         $cf = $wpdb->get_results("SELECT * FROM {$columnsTable};");
+        // @codingStandardsIgnoreEnd
 
         if ($cf) {
             foreach ($cf as $value) {

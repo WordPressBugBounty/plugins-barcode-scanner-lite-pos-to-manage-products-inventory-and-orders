@@ -21,6 +21,7 @@ class Database
     public static $columns = "barcode_scanner_posts_columns";
     public static $settings = "barcode_scanner_settings";
     public static $logs = "barcode_scanner_logs";
+    public static $systemLogs = "barcode_scanner_system_logs";
     public static $locations = "barcode_scanner_locations";
     public static $locationsTree = "barcode_scanner_locations_tree";
     public static $interface = "barcode_scanner_interface";
@@ -33,12 +34,44 @@ class Database
     private static $isTriggerTracked = null;
     private static $managementActions = null;
 
+    public static $postMetaFields = array(
+        "`postmeta__sku`",
+        "`postmeta__variation_description`",
+        "`postmeta__customer_user`",
+        "`postmeta__alg_ean`",
+        "`postmeta__wpm_gtin_code`",
+        "`postmeta_hwp_product_gtin`",
+        "`postmeta__ywbc_barcode_display_value`",
+        "`postmeta__wepos_barcode`",
+        "`postmeta__ts_gtin`",
+        "`postmeta__ts_mpn`",
+        "`postmeta__zettle_barcode`",
+        "`postmeta__order_number`",
+        "`postmeta__billing_address_index`",
+        "`postmeta__shipping_address_index`",
+        "`postmeta__wc_shipment_tracking_items`",
+        "`postmeta__aftership_tracking_items`",
+        "`postmeta_ywot_tracking_code`",
+        "`postmeta__global_unique_id`",
+        "`hook_order_number`",
+        "`usbs_barcode_field`",
+        "`atum_supplier_sku`",
+        "`atum_barcode`",
+        "`atum_supplier_id`",
+        "`uegen_code`",
+        "`client_email`",
+        "`client_name`",
+        "`customer_id`",
+    );
+
     public static function setupTables($network_wide)
     {
         global $wpdb;
 
         if (is_multisite() && $network_wide) {
+            // @codingStandardsIgnoreStart
             $blog_ids = $wpdb->get_col("SELECT blog_id FROM $wpdb->blogs");
+            // @codingStandardsIgnoreEnd
 
             foreach ($blog_ids as $blog_id) {
                 switch_to_blog($blog_id);
@@ -65,6 +98,7 @@ class Database
             self::setupTableColumns();
             self::setupTableSettings();
             self::setupTableLogs();
+            self::setupTableSystemLogs();
             self::setupTableLocations();
             self::setupTableLocationsTree();
             self::setupTableInterface();
@@ -148,8 +182,10 @@ class Database
     {
         global $wpdb;
 
+        // @codingStandardsIgnoreStart
         $table = $wpdb->prefix . self::$columns;
         $wpdb->query("DELETE FROM {$table};");
+        // @codingStandardsIgnoreEnd
     }
 
     public static function initDataTableColumns()
@@ -166,7 +202,9 @@ class Database
             if (isset($filterRecord->value['products']) && $filterRecord->value['products']) {
                 foreach ($filterRecord->value['products'] as $key => $value) {
                     if (preg_match("/^(custom)-\d+$/", $key, $m) || $key === 'custom') {
-                        if (!in_array($value, $fields) && !key_exists($value, self::$postsFields)) $fields[] = trim($value);
+                        if (!in_array($value, $fields) && !key_exists($value, self::$postsFields)) {
+                            $fields[] = trim($value);
+                        }
                     } else if (preg_match("/^(attribute)-\d+$/", $key, $m)) {
                         $productAttributes[] = array("field" => trim($value), "table" => "attributes");
                     }
@@ -178,7 +216,9 @@ class Database
             if (isset($filterRecord->value['orders']) && $filterRecord->value['orders']) {
                 foreach ($filterRecord->value['orders'] as $key => $value) {
                     if ($key === 'custom') {
-                        if (!in_array($value, $fields) && !key_exists($value, self::$postsFields)) $fields[] = trim($value);
+                        if (!in_array($value, $fields) && !key_exists($value, self::$postsFields)) {
+                            $fields[] = trim($value);
+                        }
                     } else if (preg_match("/^(order-custom)-\d+$/", $key, $m)) {
                         $orderFields[] = array("field" => trim($value), "table" => "postmeta");
                     } else if (preg_match("/^(order-item)-\d+$/", $key, $m)) {
@@ -187,6 +227,7 @@ class Database
                 }
             }
 
+            // @codingStandardsIgnoreStart
             $tableColumns = $wpdb->prefix . self::$columns;
 
             $columnsMaxId = $wpdb->get_row("SELECT MAX(id) AS maxId FROM {$tableColumns} LIMIT 1;");
@@ -212,6 +253,7 @@ class Database
                 $wpdb->insert($tableColumns, array("name" => $field["field"], "column" => "column_{$maxId}", "table" => $field["table"]), array('%s', '%s', '%s'));
                 $maxId++;
             }
+            // @codingStandardsIgnoreEnd
         }
     }
 
@@ -219,14 +261,17 @@ class Database
     {
         global $wpdb;
 
+        // @codingStandardsIgnoreStart
         $table = $wpdb->prefix . self::$posts;
         $wpdb->query("DROP TABLE IF EXISTS {$table};");
+        // @codingStandardsIgnoreEnd
     }
 
     public static function removeAllTables()
     {
         global $wpdb;
 
+        // @codingStandardsIgnoreStart
 
 
         $table = $wpdb->prefix . self::$settings;
@@ -252,6 +297,7 @@ class Database
 
         $table = $wpdb->prefix . self::$cartData;
         $wpdb->query("DROP TABLE IF EXISTS {$table};");
+        // @codingStandardsIgnoreEnd
     }
 
     public static function setupTableProducts($useUniqueIndex = true, $isCHeckCustomColumns = false)
@@ -261,34 +307,6 @@ class Database
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
 
         $table = $wpdb->prefix . self::$posts;
-        $prefixMF = self::$postMetaFieldPrefix;
-        $postMetaFields = array(
-            "`{$prefixMF}_sku`",
-            "`{$prefixMF}_variation_description`",
-            "`{$prefixMF}_customer_user`",
-            "`{$prefixMF}_alg_ean`",
-            "`{$prefixMF}_wpm_gtin_code`",
-            "`{$prefixMF}hwp_product_gtin`",
-            "`{$prefixMF}_ywbc_barcode_display_value`",
-            "`{$prefixMF}_wepos_barcode`",
-            "`{$prefixMF}_ts_gtin`",
-            "`{$prefixMF}_ts_mpn`",
-            "`{$prefixMF}_zettle_barcode`",
-            "`{$prefixMF}_order_number`",
-            "`{$prefixMF}_billing_address_index`",
-            "`{$prefixMF}_shipping_address_index`",
-            "`{$prefixMF}_wc_shipment_tracking_items`",
-            "`{$prefixMF}_aftership_tracking_items`",
-            "`{$prefixMF}ywot_tracking_code`",
-            "`hook_order_number`",
-            "`usbs_barcode_field`",
-            "`atum_supplier_sku`",
-            "`atum_barcode`",
-            "`atum_supplier_id`",
-            "`uegen_code`",
-            "`client_email`",
-            "`client_name`",
-        );
 
         $uniqueIndex = $useUniqueIndex ? " UNIQUE INDEX `post_id` (`post_id`), " : "";
 
@@ -305,7 +323,7 @@ class Database
             `post_parent` bigint(20) DEFAULT NULL,
             `post_author` bigint(20) DEFAULT NULL,
             `attributes` text DEFAULT NULL,
-            " . implode(" longtext DEFAULT NULL,\n", $postMetaFields) . " longtext DEFAULT NULL,
+            " . implode(" longtext DEFAULT NULL,\n", self::$postMetaFields) . " longtext DEFAULT NULL,
             `created` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
             `updated` datetime DEFAULT NULL,
             `post_date` datetime DEFAULT NULL,
@@ -318,8 +336,10 @@ class Database
         \dbDelta($sql);
 
         if ($isCHeckCustomColumns) {
+            // @codingStandardsIgnoreStart
             $tableColumns = $wpdb->prefix . self::$columns;
             $columns = $wpdb->get_results("SELECT * FROM {$tableColumns}");
+            // @codingStandardsIgnoreEnd
 
             if (!$columns) {
                 return;
@@ -328,8 +348,10 @@ class Database
             foreach ($columns as $column) {
                 try {
                     if ($column->column) {
+                        // @codingStandardsIgnoreStart
                         $alterTable = "ALTER TABLE `{$table}` ADD `{$column->column}` longtext DEFAULT NULL; ";
                         $alterTable = $wpdb->query($alterTable);
+                        // @codingStandardsIgnoreEnd
                     }
                 } catch (\Throwable $th) {
                 }
@@ -404,6 +426,24 @@ class Database
         \dbDelta($sql);
     }
 
+    public static function setupTableSystemLogs()
+    {
+        global $wpdb;
+
+        $table = $wpdb->prefix . self::$systemLogs;
+
+        $sql = "CREATE TABLE `{$table}` (
+            `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+            `user_id` bigint(20) DEFAULT NULL,
+            `message` longtext DEFAULT NULL,
+            `type` varchar(255) DEFAULT NULL,
+            `created` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (`id`)
+        ) CHARSET=UTF8MB4 COLLATE=utf8mb4_unicode_ci ENGINE=InnoDB";
+
+        \dbDelta($sql);
+    }
+
     public static function setupTableLocations()
     {
         global $wpdb;
@@ -452,6 +492,7 @@ class Database
         $sql = "CREATE TABLE `{$table}` (
             `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
             `field_name` varchar(255) DEFAULT NULL,
+            `term` varchar(255) DEFAULT NULL,
             `field_label` varchar(255) DEFAULT NULL,
             `label_position` varchar(255) DEFAULT NULL,
             `field_height` int(10) DEFAULT NULL,
@@ -472,6 +513,7 @@ class Database
             `role` varchar(255) DEFAULT NULL,
             `status` int(1) DEFAULT 1,
             `mobile_status` int(1) DEFAULT 1,
+            `show_on_mobile_preview` int(1) DEFAULT 0,
             `created` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
             `updated` datetime DEFAULT NULL,
             PRIMARY KEY (`id`)
@@ -498,35 +540,47 @@ class Database
             array("field_name" => "usbs_stock_location_level_1", "field_label" => "Warehouse", "label_position" => "top", "label_width" => $widthRight, "position" => "product-left-sidebar", "type" => "text", "field_height" => 0, "status" => 1, "order" => 300),
             array("field_name" => "usbs_stock_location_level_2", "field_label" => "Rack", "label_position" => "top", "label_width" => $widthRight, "position" => "product-left-sidebar", "type" => "text", "field_height" => 0, "status" => 1, "order" => 290),
             array("field_name" => "usbs_stock_location_level_3", "field_label" => "Shelf", "label_position" => "top", "label_width" => $widthRight, "position" => "product-left-sidebar", "type" => "text", "field_height" => 0, "status" => 1, "order" => 280),
-            );
-            $defaultFieldsForAll = array(
+        );
+        $defaultFieldsForAll = array(
             array("field_name" => "usbs_variation_attributes", "field_label" => "Variation attributes", "label_position" => "top", "label_width" => $widthRight, "position" => "product-middle-right", "type" => "variation_attributes", "field_height" => 0, "status" => 1, "order" => 870),
             array("field_name" => "product_cat", "field_label" => "Categories", "label_position" => "left", "label_width" => $widthLeft, "position" => "product-middle-left", "type" => "taxonomy", "field_height" => 0, "status" => 1, "order" => 400),
+            array("field_name" => "_global_unique_id", "field_label" => "GTIN, UPC, EAN, ISBN", "label_position" => "left", "label_width" => $widthLeft, "position" => "product-middle-left", "type" => "text", "field_height" => 0, "status" => 1, "order" => 985),
             array("field_name" => "_tax_class", "field_label" => "Tax class", "label_position" => "top", "label_width" => $widthRight, "position" => "product-middle-right", "type" => "select", "field_height" => 0, "status" => 0, "mobile_status" => 0, "order" => 850),
             array("field_name" => "_shipping_class", "field_label" => "Shipping class", "label_position" => "top", "label_width" => $widthRight, "position" => "product-middle-right", "type" => "select", "field_height" => 0, "status" => 0, "mobile_status" => 0, "order" => 860),
             array("field_name" => "_dokan_vendor", "field_label" => "Dokan vendor", "label_position" => "top", "label_width" => $widthRight, "position" => "product-middle-right", "type" => "select", "field_height" => 0, "status" => 1, "mobile_status" => 1, "order" => 860),
 
             array("field_name" => "_backorders", "field_label" => "Allow backorders?", "label_position" => "top", "label_width" => $widthRight, "position" => "product-middle-right", "type" => "select", "field_height" => 0, "status" => 0, "options" => json_encode($_backorders), "order" => 920),
             array("field_name" => "_switch_status", "field_label" => "Checkbox", "label_position" => "top", "label_width" => $widthRight, "position" => "product-middle-right", "type" => "checkbox", "field_height" => 0, "status" => 0, "mobile_status" => 0, "order" => 920),
+            array("field_name" => "product_visibility", "term" => "featured", "field_label" => "Featured product", "label_position" => "left", "label_width" => $widthLeft, "position" => "product-middle-right", "type" => "taxonomy_term", "field_height" => 0, "status" => 1, "order" => 0),
 
             array("field_name" => "product_name_section", "field_label" => "Product name section", "label_position" => "", "label_width" => $widthLeft, "position" => "product-middle-top", "type" => "product_name_section", "field_height" => 0, "status" => 1, "mobile_status" => 0, "order" => 3000),
-            );
+        );
 
 
+
+        if (\get_option("woocommerce_feature_cost_of_goods_sold_enabled", null) == "yes") {
+            $defaultFieldsForAll[] = array("field_name" => "_cogs_total_value", "field_label" => __('Cost of goods', 'woocommerce'), "label_position" => "left", "label_width" => $widthLeft, "position" => "product-middle-left", "type" => "price", "field_height" => 0, "status" => 0, "mobile_status" => 0, "order" => 970);
+        }
 
         $dt = new \DateTime("now");
         $created = $dt->format("Y-m-d H:i:s");
+        // @codingStandardsIgnoreStart
         $records = $wpdb->get_row("SELECT COUNT(T.id) AS 'count' FROM {$table} AS T;");
+        // @codingStandardsIgnoreEnd
 
         if (!$records || $records->count == 0) {
             foreach ($defaultFieldsForNewInstal as $field) {
                 try {
+                    // @codingStandardsIgnoreStart
                     $record = $wpdb->get_row($wpdb->prepare("SELECT T.id FROM {$table} AS T WHERE T.field_name = %s;", $field["field_name"]));
+                    // @codingStandardsIgnoreEnd
 
                     if (!$record) {
                         $field["updated"] = $created;
                         $field["order_mobile"] = $field["order"];
+                        // @codingStandardsIgnoreStart
                         $wpdb->insert($table, $field);
+                        // @codingStandardsIgnoreEnd
                     }
                 } catch (\Throwable $th) {
                 }
@@ -535,12 +589,16 @@ class Database
 
         foreach ($defaultFieldsForAll as $field) {
             try {
+                // @codingStandardsIgnoreStart
                 $record = $wpdb->get_row($wpdb->prepare("SELECT T.id FROM {$table} AS T WHERE T.field_name = %s;", $field["field_name"]));
+                // @codingStandardsIgnoreEnd
 
                 if (!$record) {
                     $field["updated"] = $created;
                     $field["order_mobile"] = $field["order"];
+                    // @codingStandardsIgnoreStart
                     $wpdb->insert($table, $field);
+                    // @codingStandardsIgnoreEnd
                 }
             } catch (\Throwable $th) {
             }
@@ -549,7 +607,9 @@ class Database
         $plugins = PluginsHelper::customPluginFields();
         $position = "product-middle-left";
 
+        // @codingStandardsIgnoreStart
         $orderData = $wpdb->get_row("SELECT T.* FROM {$table} AS T WHERE T.field_name = '_sale_price';");
+        // @codingStandardsIgnoreEnd
 
         $order = 500;
 
@@ -597,11 +657,15 @@ class Database
                         "order_mobile" => $_order_mobile,
                     );
 
+                    // @codingStandardsIgnoreStart
                     $record = $wpdb->get_row($wpdb->prepare("SELECT T.id FROM {$table} AS T WHERE T.field_name = %s;", $field["field_name"]));
+                    // @codingStandardsIgnoreEnd
 
                     if (!$record) {
                         $field["updated"] = $created;
+                        // @codingStandardsIgnoreStart
                         $wpdb->insert($table, $field);
+                        // @codingStandardsIgnoreEnd
                         $position = $position == "product-middle-right" ? "product-middle-left" : "product-middle-right";
                     }
                 } catch (\Throwable $th) {
@@ -694,9 +758,13 @@ class Database
         $tablePosts = $wpdb->prefix . self::$posts;
         $tableColumns = $wpdb->prefix . self::$columns;
 
+        // @codingStandardsIgnoreStart
         $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$tableColumns} AS C WHERE C.name = %s AND C.table = %s;", $name, $fieldTable));
+        // @codingStandardsIgnoreEnd
 
+        // @codingStandardsIgnoreStart
         $columnsMaxId = $wpdb->get_row("SELECT MAX(id) AS maxId FROM {$tableColumns} LIMIT 1;");
+        // @codingStandardsIgnoreEnd
         $maxId = 1;
 
         if ($columnsMaxId && $columnsMaxId->maxId) {
@@ -707,15 +775,21 @@ class Database
             $alterTable = null;
 
             try {
+                // @codingStandardsIgnoreStart
                 $alterTable = "ALTER TABLE `{$tablePosts}` ADD `column_{$maxId}` longtext DEFAULT NULL; ";
                 $alterTable = $wpdb->query($alterTable);
+                // @codingStandardsIgnoreEnd
             } catch (\Throwable $th) {
             }
 
             if ($alterTable) {
+                // @codingStandardsIgnoreStart
                 $wpdb->insert($tableColumns, array("name" => $name, "column" => "column_{$maxId}", "table" => $fieldTable), array('%s', '%s', '%s'));
+                // @codingStandardsIgnoreEnd
 
+                // @codingStandardsIgnoreStart
                 $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$tableColumns} AS C WHERE C.id = %d;", $wpdb->insert_id));
+                // @codingStandardsIgnoreEnd
                 $result["isNew"] = true;
 
                 $settings = new Settings();
@@ -748,7 +822,9 @@ class Database
         $debugInfo = $debugInfo !== null ? $debugInfo->value : "";
         $debugInfoStatus = $debugInfo === "on";
 
-        if ($debugInfoStatus) Debug::addPoint("UpdatePosts->start");
+        if ($debugInfoStatus) {
+            Debug::addPoint("UpdatePosts->start");
+        }
 
         if (HPOS::getStatus()) {
             $types = array('product', 'product_variation', 'shop_order', 'shop_order_placehold');
@@ -808,13 +884,19 @@ class Database
             }
         }
 
+        // @codingStandardsIgnoreStart
         $posts->posts = $wpdb->get_results($sql . $where . $order . $sqlLimit);
+        // @codingStandardsIgnoreEnd
+        // @codingStandardsIgnoreStart
         $count = $wpdb->get_row($sqlCount . $where);
 
-        $posts->found_posts = $count ? (int)$count->count : 0;
+        // @codingStandardsIgnoreEnd
+        $posts->found_posts = $count ? (int) $count->count : 0;
         $total = $posts->found_posts;
 
-        if ($debugInfoStatus) Debug::addPoint("UpdatePosts->after WP_Query");
+        if ($debugInfoStatus) {
+            Debug::addPoint("UpdatePosts->after WP_Query");
+        }
 
         $newIds = array();
         foreach ($posts->posts as $post) {
@@ -825,7 +907,9 @@ class Database
         $additionalColumns = array();
 
         if ($total) {
+            // @codingStandardsIgnoreStart
             $additionalColumns = $wpdb->get_results("SELECT C.name, C.column, C.table FROM {$tableColumns} AS C;", ARRAY_A);
+            // @codingStandardsIgnoreEnd
         }
 
         if (!$isCheck) {
@@ -901,6 +985,10 @@ class Database
             }
         }
 
+        if (!$post || !in_array($post->post_type, array('product', 'product_variation', 'shop_order', 'shop_order_placehold'))) {
+            return;
+        }
+
         if ($post && in_array($post->post_type, $types) && !$isHPOSorder) {
             $isUpdated = true;
             $hwp_product_gtin = get_post_meta($id, "hwp_product_gtin", true);
@@ -920,7 +1008,9 @@ class Database
 
             if ($wcShipmentTrackingItems && is_array($wcShipmentTrackingItems)) {
                 foreach ($wcShipmentTrackingItems as $value) {
-                    if (isset($value["tracking_number"])) $_wc_shipment_tracking_items .= " " . $value["tracking_number"];
+                    if (isset($value["tracking_number"])) {
+                        $_wc_shipment_tracking_items .= " " . $value["tracking_number"];
+                    }
                 }
             }
 
@@ -929,7 +1019,9 @@ class Database
 
             if ($aftershipTrackingItems && is_array($aftershipTrackingItems)) {
                 foreach ($aftershipTrackingItems as $value) {
-                    if (isset($value["tracking_number"])) $_aftership_tracking_items .= " " . $value["tracking_number"];
+                    if (isset($value["tracking_number"])) {
+                        $_aftership_tracking_items .= " " . $value["tracking_number"];
+                    }
                 }
             }
 
@@ -949,6 +1041,8 @@ class Database
             $ywot_tracking_code = get_post_meta($id, "ywot_tracking_code", true);
             $usbs_barcode_field = get_post_meta($id, "usbs_barcode_field", true);
             $_billing_email = get_post_meta($id, "_billing_email", true);
+            $_customer_id = get_post_meta($id, "_customer_id", true);
+            $_global_unique_id = get_post_meta($id, "_global_unique_id", true);
 
             $post_title = $wpdb->get_row($wpdb->prepare("SELECT post_title FROM {$wpdb->posts} WHERE ID = %d", $id));
             $post_title = $post_title ? $post_title->post_title : "";
@@ -996,6 +1090,7 @@ class Database
                 "{$prefix}_wc_shipment_tracking_items" => trim($_wc_shipment_tracking_items),
                 "{$prefix}_aftership_tracking_items" => trim($_aftership_tracking_items),
                 "{$prefix}ywot_tracking_code" => $ywot_tracking_code ? trim($ywot_tracking_code) : $ywot_tracking_code,
+                "{$prefix}_global_unique_id" => $_global_unique_id ? trim($_global_unique_id) : $_global_unique_id,
                 "usbs_barcode_field" => $usbs_barcode_field ? trim($usbs_barcode_field) : $usbs_barcode_field,
                 "atum_supplier_sku" => $atum["atum_supplier_sku"],
                 "atum_barcode" => $atum["atum_barcode"],
@@ -1004,6 +1099,7 @@ class Database
                 "product_type" => $productType,
                 "client_name" => $clientName ? trim($clientName) : $clientName,
                 "client_email" => $_billing_email ? trim($_billing_email) : $_billing_email,
+                "customer_id" => $_customer_id ? trim($_customer_id) : $_customer_id,
                 "successful_update" => 1,
             );
 
@@ -1014,21 +1110,42 @@ class Database
             }
 
             if (!$additionalColumns) {
+                // @codingStandardsIgnoreStart
                 $additionalColumns = $wpdb->get_results("SELECT C.name, C.column, C.table FROM {$tableColumns} AS C;", ARRAY_A);
+                // @codingStandardsIgnoreEnd
             }
 
             foreach ($additionalColumns as $value) {
                 $column_value = array();
 
                 if ($value['table'] == 'postmeta') {
-                    $_value = get_post_meta($id, $value["name"], true);
-                    if ($_value && trim($_value)) $column_value[] = trim($_value);
+                    // @codingStandardsIgnoreStart
+                    if (preg_match("/^(.*?)\*(.*?)$/", $value["name"], $m)) {
+                        $nameLike = str_replace("*", "%", $value["name"]);
+                        $fieldsValue = $wpdb->get_row($wpdb->prepare("SELECT GROUP_CONCAT(`meta_value`) AS 'values' FROM {$wpdb->postmeta} AS pm WHERE pm.post_id = %d AND pm.meta_key LIKE %s;", $id, $nameLike));
+
+                        if ($fieldsValue && $fieldsValue->values) {
+                            $_value = $fieldsValue->values;
+                        } else {
+                            $_value = "";
+                        }
+                    }
+                    else {
+                        $_value = get_post_meta($id, $value["name"], true);
+                    }
+                    // @codingStandardsIgnoreEnd
+
+                    if ($_value && trim($_value)) {
+                        $column_value[] = trim($_value);
+                    }
                 } else if ($value['table'] == 'attributes') {
                     $product_attributes = get_post_meta($id, '_product_attributes', true);
 
                     if (isset($product_attributes[$value["name"]]) && empty($product_attributes[$value["name"]]['is_taxonomy'])) {
                         $_value = $product_attributes[$value["name"]]['value'];
-                        if ($_value && trim($_value)) $column_value[] = trim($_value);
+                        if ($_value && trim($_value)) {
+                            $column_value[] = trim($_value);
+                        }
                     }
                     else {
                         $attribute_slug = "pa_" . $value["name"];
@@ -1047,7 +1164,9 @@ class Database
 
                             if ($pid && $value["name"]) {
                                 $item_value = get_post_meta($pid, $value["name"], true);
-                                if ($item_value) $column_value[] = $item_value;
+                                if ($item_value) {
+                                    $column_value[] = $item_value;
+                                }
                             }
                         }
                     }
@@ -1056,12 +1175,12 @@ class Database
                 $data["{$value["column"]}"] = count($column_value) ? implode(",", $column_value) : "";
             }
 
-            $parentPostTitle =  $parent ? $parent->post_title : null;
+            $parentPostTitle = $parent ? $parent->post_title : null;
 
             if ($data['post_type'] === "product_variation" && $parentPostTitle) {
                 $attributesValue = array();
 
-                $attributes =  wc_get_product_variation_attributes($id);
+                $attributes = wc_get_product_variation_attributes($id);
 
                 foreach ($attributes as $attribute_name => $attribute_value) {
                     if (strpos($attribute_name, 'attribute_pa_') === 0) {
@@ -1085,7 +1204,9 @@ class Database
                 }
             }
 
+            // @codingStandardsIgnoreStart
             $wpdb->update($tablePosts, array("post_parent_status" => $data["post_status"]), array("post_parent" => $id));
+            // @codingStandardsIgnoreEnd
         }
         else if (HPOS::getStatus()) {
             $order = null;
@@ -1093,7 +1214,9 @@ class Database
             try {
                 $order = new \WC_Order($id);
             } catch (\Throwable $th) {
+                // @codingStandardsIgnoreStart
                 $wpdb->query($wpdb->prepare("INSERT IGNORE INTO {$tablePosts} (`post_id`, `successful_update`, `updated`) VALUES (%s, %s, %s);", $id, 0, date("Y-m-d H:i:s", time() + 2)));
+                // @codingStandardsIgnoreEnd
             }
 
             if ($order) {
@@ -1108,7 +1231,9 @@ class Database
 
                 if ($wcShipmentTrackingItems && is_array($wcShipmentTrackingItems)) {
                     foreach ($wcShipmentTrackingItems as $value) {
-                        if (isset($value["tracking_number"])) $_wc_shipment_tracking_items .= " " . $value["tracking_number"];
+                        if (isset($value["tracking_number"])) {
+                            $_wc_shipment_tracking_items .= " " . $value["tracking_number"];
+                        }
                     }
                 }
 
@@ -1117,11 +1242,13 @@ class Database
 
                 if ($aftershipTrackingItems && is_array($aftershipTrackingItems)) {
                     foreach ($aftershipTrackingItems as $value) {
-                        if (isset($value["tracking_number"])) $_aftership_tracking_items .= " " . $value["tracking_number"];
+                        if (isset($value["tracking_number"])) {
+                            $_aftership_tracking_items .= " " . $value["tracking_number"];
+                        }
                     }
                 }
 
-                                $date_modified = $order->get_date_modified();
+                $date_modified = $order->get_date_modified();
 
                 $data = array(
                     'post_title' => $post->post_title,
@@ -1144,13 +1271,16 @@ class Database
                     "uegen_code" => $uegenCode,
                     "client_name" => $order->get_formatted_billing_full_name(),
                     "client_email" => $order->get_billing_email(),
+                    "customer_id" => $order->get_customer_id(),
                     "successful_update" => 1,
                 );
 
                 $data["hook_order_number"] = $order->get_order_number();
 
                 if (!$additionalColumns) {
+                    // @codingStandardsIgnoreStart
                     $additionalColumns = $wpdb->get_results("SELECT C.name, C.column, C.table FROM {$tableColumns} AS C;", ARRAY_A);
+                    // @codingStandardsIgnoreEnd
                 }
 
                 foreach ($additionalColumns as $value) {
@@ -1165,7 +1295,9 @@ class Database
 
                             if ($pid && $value["name"]) {
                                 $item_value = get_post_meta($pid, $value["name"], true);
-                                if ($item_value) $_items_velues[] = $item_value;
+                                if ($item_value) {
+                                    $_items_velues[] = $item_value;
+                                }
                             }
                         }
 
@@ -1177,14 +1309,18 @@ class Database
 
         if ($isUpdated) {
             try {
+                // @codingStandardsIgnoreStart
                 $wpdb->query($wpdb->prepare("INSERT IGNORE INTO {$tablePosts} (`post_id`, `successful_update`, `updated`) VALUES (%s, %s, %s);", $id, 0, date("Y-m-d H:i:s", time() + 2)));
+                // @codingStandardsIgnoreEnd
 
             } catch (\Throwable $th) {
             }
 
             try {
                 $data["updated"] = date("Y-m-d H:i:s", time() + 2);
+                // @codingStandardsIgnoreStart
                 $updated = $wpdb->update($tablePosts, $data, array("post_id" => $id));
+                // @codingStandardsIgnoreEnd
                 Debug::addPoint("UpdatePosts->update = " . json_encode($data));
 
                 if ($trigger == "pageIndexedData" && $wpdb->last_error) {
@@ -1192,7 +1328,9 @@ class Database
                 }
 
                 if ($updated == 0 && $wpdb->last_error) {
+                    // @codingStandardsIgnoreStart
                     $wpdb->update($tablePosts, array("successful_update" => 0, "updated" => date("Y-m-d H:i:s", time() + 2)), array("post_id" => $id));
+                    // @codingStandardsIgnoreEnd
                     Debug::addPoint("UpdatePosts->update error: " . $updated . " = " . ($wpdb->last_error));
                 }
             } catch (\Throwable $th) {
@@ -1206,7 +1344,9 @@ class Database
                 self::countIndexItem($trigger);
             }
         } else {
+            // @codingStandardsIgnoreStart
             $wpdb->update($tablePosts, array("successful_update" => 0, "updated" => date("Y-m-d H:i:s", time() + 2)), array("post_id" => $id));
+            // @codingStandardsIgnoreEnd
             Debug::addPoint("UpdatePosts->update error: " . $id . " cant update");
         }
 
@@ -1224,6 +1364,16 @@ class Database
         \update_option("usbs_iic_" . $trigger, ++$counter);
     }
 
+    public static function removeIndexedRecord($postId)
+    {
+        global $wpdb;
+
+        // @codingStandardsIgnoreStart
+        $wpdb->delete($wpdb->prefix . self::$posts, array("post_id" => $postId));
+        $wpdb->delete($wpdb->prefix . self::$posts, array("post_parent" => $postId));
+        // @codingStandardsIgnoreEnd
+    }
+
     public static function pluginUpdateHistory()
     {
         global $wpdb;
@@ -1237,9 +1387,9 @@ class Database
         $lastVersion = $settings->getSettings("web_active-barcode-scanner-version");
         $lastVersion = $lastVersion !== null ? $lastVersion->value : "";
 
-                $pluginData = \get_plugin_data(dirname($rootFile) . "/barcode-scanner.php");
+        $pluginData = \get_plugin_data(dirname($rootFile) . "/barcode-scanner.php");
 
-        $fileData = get_file_data(dirname($rootFile) . "/barcode-scanner.php",  array('Version' => 'Version', 'Build' => 'Build'));
+        $fileData = get_file_data(dirname($rootFile) . "/barcode-scanner.php", array('Version' => 'Version', 'Build' => 'Build'));
 
         $lastBuild = $settings->getSettings("web_active-barcode-scanner-build");
         $lastBuild = $lastBuild !== null ? $lastBuild->value : "";
@@ -1250,10 +1400,13 @@ class Database
             try {
                 Database::setupTables(null);
                 $table = $wpdb->prefix . Database::$posts;
+                // @codingStandardsIgnoreStart
                 $wpdb->query("UPDATE {$table} SET `updated` = '0000-00-00 00:00:00';");
+                // @codingStandardsIgnoreEnd
 
                 $settings->updateSettings("web_active-barcode-scanner-version", $pluginData["Version"], "text");
 
+                // @codingStandardsIgnoreStart
                 $updateHistory = $wpdb->get_row("SELECT `value` FROM {$wpdb->prefix}barcode_scanner_settings WHERE `field_name` = 'updateHistory';");
 
                 if (!$updateHistory) {
@@ -1262,13 +1415,16 @@ class Database
                 } else {
                     $updateHistory = $updateHistory->value ? explode(",", $updateHistory->value) : array();
                 }
+                // @codingStandardsIgnoreEnd
 
                 $dt = new \DateTime("now");
                 $updateHistory[] = $lastVersion . " -> " . $pluginData["Version"] . " - " . $dt->format("Y-m-d H:i:s");
 
+                // @codingStandardsIgnoreStart
                 $wpdb->update("{$wpdb->prefix}barcode_scanner_settings", array("value" => implode(",", $updateHistory)), array("field_name" => "updateHistory"));
+                // @codingStandardsIgnoreEnd
 
-                            } catch (\Throwable $th) {
+            } catch (\Throwable $th) {
             }
         } elseif ($build && $lastBuild != $build) {
             try {
@@ -1301,6 +1457,8 @@ class Database
             "barcode_scanner_app_auth_method"
         );
 
+        // @codingStandardsIgnoreStart
         $wpdb->query($wpdb->prepare("DELETE FROM {$wpdb->usermeta} WHERE `meta_key` IN ('" . implode("', '", $cf) . "');"));
+        // @codingStandardsIgnoreEnd
     }
 }

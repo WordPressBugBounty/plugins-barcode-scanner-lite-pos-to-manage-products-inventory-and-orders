@@ -27,10 +27,12 @@ class BatchNumbersWebis
 
         if (!$fields || !isset($fields['ID'])) return;
 
+        // @codingStandardsIgnoreStart
         $batchNumbers = $wpdb->get_results($wpdb->prepare(
             "SELECT * FROM {$wpdb->prefix}webis_pbet AS BN WHERE BN.post_id = %d;",
             $fields['ID']
         ));
+        // @codingStandardsIgnoreEnd
 
         $fields['batchNumbersWebis'] = array();
         $fields['wpbet-product-tracking-mode'] = '';
@@ -56,7 +58,9 @@ class BatchNumbersWebis
         if ($batchId && $postId) {
             apply_filters(self::$hook_before_delete_batch, $postId, $batchId);
 
+            // @codingStandardsIgnoreStart
             $wpdb->delete("{$wpdb->prefix}webis_pbet", array("id" => $batchId));
+            // @codingStandardsIgnoreEnd
 
             apply_filters(self::$hook_after_delete_batch, $postId);
         }
@@ -77,10 +81,12 @@ class BatchNumbersWebis
         if ($postId) {
             apply_filters(self::$hook_before_create_batch, $postId);
 
+            // @codingStandardsIgnoreStart
             $wpdb->insert("{$wpdb->prefix}webis_pbet", array(
                 "post_id" => $postId,
                 "quantity" => 0,
             ));
+            // @codingStandardsIgnoreEnd
 
             apply_filters(self::$hook_after_created_batch, $postId, $wpdb->insert_id);
         }
@@ -107,7 +113,9 @@ class BatchNumbersWebis
 
             $fields = apply_filters(self::$hook_update_batch_fields, $fields, $batchId);
 
+            // @codingStandardsIgnoreStart
             $wpdb->update("{$wpdb->prefix}webis_pbet", $fields, array("id" => $batchId));
+            // @codingStandardsIgnoreEnd
 
             apply_filters(self::$hook_after_update_batch_fields, $fields, $batchId, $postId);
         }
@@ -137,7 +145,9 @@ class BatchNumbersWebis
 
                 $fields = apply_filters(self::$hook_update_batch_fields, $fields, $value['id']);
 
+                // @codingStandardsIgnoreStart
                 $wpdb->update("{$wpdb->prefix}webis_pbet", $fields, array("id" => $value['id']));
+                // @codingStandardsIgnoreEnd
 
                 apply_filters(self::$hook_after_update_batch_fields, $fields, $value['id'], $postId);
             }

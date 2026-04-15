@@ -8,10 +8,13 @@ use UkrSolution\BarcodeScanner\API\actions\ManagementActions;
 use UkrSolution\BarcodeScanner\API\actions\OrdersActions;
 use UkrSolution\BarcodeScanner\API\actions\PostActions;
 use UkrSolution\BarcodeScanner\API\actions\UsersActions;
+use UkrSolution\BarcodeScanner\API\classes\ACFRepeater;
 use UkrSolution\BarcodeScanner\API\classes\BatchNumbers;
 use UkrSolution\BarcodeScanner\API\classes\BatchNumbersWebis;
+use UkrSolution\BarcodeScanner\API\classes\OrdersHelper;
 use UkrSolution\BarcodeScanner\API\classes\PostsList;
 use UkrSolution\BarcodeScanner\API\classes\Users;
+use UkrSolution\BarcodeScanner\API\stripe\StripeTerminalService;
 use UkrSolution\BarcodeScanner\Database;
 use UkrSolution\BarcodeScanner\features\Debug\Debug;
 use UkrSolution\BarcodeScanner\features\history\History;
@@ -33,7 +36,7 @@ class AjaxRoutes
 
         $this->coreInstance = $coreInstance;
 
-            if (isset($post["rout"]) && $post["rout"]) {
+        if (isset($post["rout"]) && $post["rout"]) {
             $route = sanitize_text_field($post["rout"]);
 
             add_filter('scanner_filter_cart_item_price', function ($productId, $price, $customFilter) {
@@ -63,7 +66,8 @@ class AjaxRoutes
 
             if ($tokenUserId) {
                 $userLocale = get_user_meta($tokenUserId, 'locale', true);
-                if ($userLocale) switch_to_locale($userLocale);
+                if ($userLocale)
+                    switch_to_locale($userLocale);
 
                 $userRole = $tokenUserId ? Users::getUserRole($tokenUserId) : '';
                 Users::setUserId($tokenUserId);
@@ -90,17 +94,19 @@ class AjaxRoutes
                 wp_die();
             }
 
-            if (!$checker && !in_array($route, array(
-                "recalculate",
-                "backgroundIndexing",
-                "checkOtherPrices",
-                "checkFieldName",
-                "exportLog",
-                "saveLog",
-                "indexingClearTable",
-                "getHistory",
-                "getItemsList"
-            ))) {
+            if (
+                !$checker && !in_array($route, array(
+                    "recalculate",
+                    "backgroundIndexing",
+                    "checkOtherPrices",
+                    "checkFieldName",
+                    "exportLog",
+                    "saveLog",
+                    "indexingClearTable",
+                    "getHistory",
+                    "getItemsList"
+                ))
+            ) {
                 $MobileRouter = new MobileRouter();
                 $platform = $this->getParam($get, "platform", "");
 
@@ -126,6 +132,7 @@ class AjaxRoutes
             $keysString = array(
                 "id",
                 "orderId",
+                "noteId",
                 "userId",
                 "itemId",
                 "customField",
@@ -196,6 +203,9 @@ class AjaxRoutes
                 "resultSortBy",
                 "checkFulfillment",
                 "request_priority",
+                "content",
+                "type",
+                "integration",
             );
             $keysArray = array(
                 "filter",
@@ -234,7 +244,12 @@ class AjaxRoutes
                 "globalOptions",
                 "customOptions",
                 "ids",
-                "prices"
+                "checkForDeletedIds",
+                "prices",
+                "values",
+                "source",
+                "metaFields",
+                "payload"
             );
             $response = array();
 
@@ -297,7 +312,7 @@ class AjaxRoutes
                     PermissionsHelper::onePermRequired(['inventory', 'newprod']);
                     $response = $managementActions->updateProductCustomPrice($request);
                     break;
-                case 'updateProductMeta':                    
+                case 'updateProductMeta':
                     PermissionsHelper::onePermRequired(['inventory', 'newprod']);
                     $response = $managementActions->productUpdateMeta($request);
                     break;
@@ -354,9 +369,9 @@ class AjaxRoutes
                     PermissionsHelper::onePermRequired(['order_edit_address']);
                     $response = $managementActions->changeOrderAddress($request);
                     break;
-                case 'orderChangePrices':
+                case 'orderItemUpdate':
                     PermissionsHelper::onePermRequired(['orders']);
-                    $response = $managementActions->orderChangePrices($request);
+                    $response = $managementActions->orderItemUpdate($request);
                     break;
                 case 'orderChangeShippingMethod':
                     PermissionsHelper::onePermRequired(['orders']);
@@ -381,6 +396,10 @@ class AjaxRoutes
                 case 'updateOrderMeta':
                     PermissionsHelper::onePermRequired(['orders']);
                     $response = $managementActions->updateOrderMeta($request);
+                    break;
+                case 'updateOrderMetaFields':
+                    PermissionsHelper::onePermRequired(['orders']);
+                    $response = $managementActions->updateOrderMetaFields($request);
                     break;
                 case 'orderUpdateItemsMeta':
                     PermissionsHelper::onePermRequired(['orders']);
@@ -450,6 +469,14 @@ class AjaxRoutes
                     PermissionsHelper::onePermRequired(['orders']);
                     $response = $managementActions->getOrdersList($request);
                     break;
+                case 'getNextOrder':
+                    PermissionsHelper::onePermRequired(['orders']);
+                    $response = $managementActions->getNextOrder($request);
+                    break;
+                case 'getPrevOrder':
+                    PermissionsHelper::onePermRequired(['orders']);
+                    $response = $managementActions->getPrevOrder($request);
+                    break;
                 case 'updateOrderFulfilledObject':
                     PermissionsHelper::onePermRequired(['orders']);
                     $response = $managementActions->updateOrderFulfilledObject($request);
@@ -489,6 +516,42 @@ class AjaxRoutes
                 case 'getItemsCustomFields':
                     PermissionsHelper::onePermRequired(['orders']);
                     $response = $managementActions->getItemsCustomFields($request);
+                    break;
+                case 'removeOrderNote':
+                    PermissionsHelper::onePermRequired(['orders']);
+                    $response = OrdersHelper::removeOrderNote($request);
+                    break;
+                case 'addOrderNote':
+                    PermissionsHelper::onePermRequired(['orders']);
+                    $response = OrdersHelper::addOrderNote($request);
+                    break;
+                case 'orderAddProduct':
+                    PermissionsHelper::onePermRequired(['orders']);
+                    $response = OrdersHelper::orderAddProduct($request);
+                    break;
+                case 'removeProduct':
+                    PermissionsHelper::onePermRequired(['orders']);
+                    $response = OrdersHelper::removeProduct($request);
+                    break;
+                case 'checkEnableFFforOrder':
+                    PermissionsHelper::onePermRequired(permissions: ['orders']);
+                    $response = OrdersHelper::checkEnableFFforOrder($request);
+                    break;
+                case 'disableFFforOrder':
+                    PermissionsHelper::onePermRequired(permissions: ['orders']);
+                    $response = OrdersHelper::disableFFforOrder($request);
+                    break;
+                case 'setEditingFlagToOrder':
+                    PermissionsHelper::onePermRequired(permissions: ['orders']);
+                    $response = OrdersHelper::setEditingFlagToOrder($request);
+                    break;
+                case 'stripeFetchConnectionToken':
+                    PermissionsHelper::onePermRequired(permissions: ['orders']);
+                    $response = StripeTerminalService::stripeFetchConnectionToken($request);
+                    break;
+                case 'stripeCreatePaymentIntent':
+                    PermissionsHelper::onePermRequired(permissions: ['orders']);
+                    $response = StripeTerminalService::stripeCreatePaymentIntent($request);
                     break;
                 case 'usersFind':
                     PermissionsHelper::onePermRequired(['linkcustomer', 'plugin_settings']);
@@ -623,7 +686,7 @@ class AjaxRoutes
                         }
                     }
 
-		                        $urlData = $MobileRouter->getParamsFromPlainUrl();
+                    $urlData = $MobileRouter->getParamsFromPlainUrl();
                     $jsData = $this->coreInstance->adminEnqueueScripts(true, true, $urlData);
                     $usbs = $jsData && isset($jsData['usbs']) ? $jsData['usbs'] : array();
                     $response = rest_ensure_response(array("usbs" => $usbs, "password" => $password));
@@ -680,13 +743,21 @@ class AjaxRoutes
                     PermissionsHelper::onePermRequired(['inventory', 'newprod']);
                     $response = BatchNumbersWebis::saveBatchField($request);
                     break;
-                default: {
-                        echo json_encode(array(
-                            "errors" => array("Invalid input"),
-                            "token" => $token
-                        ));
-                        exit;
+                case 'integrationsUpdate':
+                    PermissionsHelper::onePermRequired(['inventory', 'newprod']);
+                    $integration = "UkrSolution\BarcodeScanner\API\classes\\" . $request->get_param("integration");
+
+                    if (class_exists($integration) && method_exists($integration, "update")) {
+                        $response = $integration::update($request);
                     }
+                    break;
+                default: {
+                    echo json_encode(array(
+                        "errors" => array("Invalid input"),
+                        "token" => $token
+                    ));
+                    exit;
+                }
             }
 
             $filter = $this->getParam($post, "filter", array());
@@ -697,7 +768,7 @@ class AjaxRoutes
 
             PluginsHelper::responseHeaders();
 
-                        if ($response && $response->data) {
+            if ($response && $response->data) {
                 $updatedTimestamp = $settings->getSettings("updated_timestamp");
                 $response->data["settings_updated_timestamp"] = $updatedTimestamp ? $updatedTimestamp->value : "";
                 $response->data["microtime"] = microtime(true);

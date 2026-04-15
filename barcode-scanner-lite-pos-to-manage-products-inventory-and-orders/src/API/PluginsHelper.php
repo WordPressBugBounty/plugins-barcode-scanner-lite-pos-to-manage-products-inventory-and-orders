@@ -22,7 +22,14 @@ class PluginsHelper
         $hwp_gtin_text = (!empty($hwp_gtin_text) ? $hwp_gtin_text : 'GTIN');
 
         $plugins = array(
-            array('key' => 'us_print_labels', 'status' => class_exists('UkrSolution\ProductLabelsPrinting\Helpers\Variables'), 'label' => 'Barcode Printing', 'version' => self::getPrintingVersion()),
+            array('key' => 'postmeta__global_unique_id', 'status' => true, 'label' => 'Global unique ID', 'fieldLabel' => 'Global unique ID', 'title' => 'WooCommerce'),
+            array(
+                'key' => 'us_print_labels',
+                'status' => class_exists('UkrSolution\ProductLabelsPrinting\Helpers\Variables'),
+                'label' => 'Barcode Printing',
+                'version' => self::getPrintingVersion(),
+                'permissionStatus' => function_exists('ProductLabelPrintingApp_getScripts') && function_exists('ProductLabelPrintingApp_getDOMData') && function_exists('ProductLabelPrintingApp_getInitHTML')
+            ),
             "wc_appointments" => array('status' => self::is_plugin_active('woocommerce-appointments/woocommerce-appointments.php'), 'label' => 'WooCommerce Appointments'),
             array('key' => '_alg_ean', 'status' => function_exists('alg_wc_ean'), 'label' => 'EAN for WooCommerce', 'fieldLabel' => $alg_wc_ean_title . ' <sup>(EAN for WooCommerce)</sup>', 'title' => 'EAN for WooCommerce'),
             array('key' => '_wpm_gtin_code', 'status' => function_exists('wpm_product_gtin_wc'), 'label' => 'Product GTIN (EAN, UPC, ISBN) for WooCommerce', 'fieldLabel' => $wpm_pgw_label . ' <sup>(Product GTIN (EAN, UPC, ISBN) for WooCommerce)</sup>', 'title' => 'Product GTIN (EAN, UPC, ISBN)'),
@@ -39,12 +46,14 @@ class PluginsHelper
             array('key' => 'atum_supplier_id', 'status' => is_plugin_active('atum-stock-manager-for-woocommerce/atum-stock-manager-for-woocommerce.php'), 'label' => 'ATUM Supplier', 'fieldLabel' => 'ATUM Supplier', 'title' => 'ATUM Inventory Management for WooCommerce'),
             array('key' => 'usbs_barcode_field', 'status' => 1, 'label' => '', 'title' => 'Field created by Barcode Scanner plugin'),
             array('key' => '_order_number', 'status' => defined('WT_SEQUENCIAL_ORDNUMBER_VERSION') || is_plugin_active("woocommerce-sequential-order-numbers-pro/woocommerce-sequential-order-numbers-pro.php"), 'label' => 'Sequential Order Number for WooCommerce', 'fieldLabel' => 'Sequential Order Number<sup>(for WooCommerce)</sup>', 'title' => 'Sequential Order Numbers for WooCommerce'),
+            array('key' => 'hook_order_number', 'status' => true, 'label' => 'Order Number', 'fieldLabel' => 'Order Number', 'title' => 'Order Numbers'),
             array('key' => '_billing_address_index', 'status' => true, 'label' => 'Billing address', 'fieldLabel' => 'Billing address'),
             array('key' => '_shipping_address_index', 'status' => true, 'label' => 'Shipping address', 'fieldLabel' => 'Shipping address'),
             array('key' => 'ywot_tracking_code', 'status' => self::is_plugin_active('yith-woocommerce-order-tracking/init.php'), 'label' => 'Order Tracking', 'fieldLabel' => 'Order Tracking', 'title' => 'YITH WooCommerce Order & Shipment Tracking'),
             array('key' => '_wc_shipment_tracking_items', 'status' => self::is_plugin_active('woo-advanced-shipment-tracking/woocommerce-advanced-shipment-tracking.php'), 'label' => 'Order Tracking', 'fieldLabel' => 'Order Tracking', 'title' => 'Advanced Shipment Tracking for WooCommerce'),
             array('key' => '_aftership_tracking_items', 'status' => self::is_plugin_active('aftership-woocommerce-tracking/aftership-woocommerce-tracking.php'), 'label' => 'Order Tracking', 'fieldLabel' => 'Order Tracking', 'title' => 'AfterShip Tracking – All-In-One WooCommerce Order Tracking'),
             array('key' => '_yith_pos_multistock', 'status' => self::is_plugin_active('yith-point-of-sale-for-woocommerce-premium/init.php'), 'label' => 'YITH Point of Sale'),
+            array('key' => '_dokan_vendor', 'status' => self::is_plugin_active('dokan-lite/dokan.php'), 'label' => 'Dokan Vendor', 'fieldLabel' => 'Dokan Vendor', 'title' => 'Dokan'),
         );
 
         $settings = new Settings();
@@ -145,7 +154,8 @@ class PluginsHelper
         }
     }
 
-    public static function responseHeaders() {
+    public static function responseHeaders()
+    {
         header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0, s-maxage=0, private');
         header('Pragma: no-cache');
         header('Expires: 0');

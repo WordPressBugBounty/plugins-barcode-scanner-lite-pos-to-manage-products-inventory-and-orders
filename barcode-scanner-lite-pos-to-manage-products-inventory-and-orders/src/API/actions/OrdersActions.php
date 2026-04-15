@@ -28,8 +28,8 @@ class OrdersActions
         $data = (new Post())->find($query, $filter, false, true, null, "product", array(), array(), array(), "orders");
 
         $postsCount = $data && isset($data["posts"]) ? count($data["posts"]) : 0;
-        $total =  $data && isset($data["total"]) ? $data["total"] : 0;
-        $limit =  $data && isset($data["limit"]) ? $data["limit"] : 0;
+        $total = $data && isset($data["total"]) ? $data["total"] : 0;
+        $limit = $data && isset($data["limit"]) ? $data["limit"] : 0;
 
         $result["total"] = $total && $limit && $total >= $limit ? $total : 0;
 
@@ -91,6 +91,7 @@ class OrdersActions
         $orderId = $request->get_param("orderId");
         $itemId = $request->get_param("itemId");
         $qty = $request->get_param("quantity");
+        $metaFields = $request->get_param("metaFields");
 
         if (!$orderId || !$itemId || !$qty) {
             return rest_ensure_response(array("success" => false));
@@ -111,7 +112,7 @@ class OrdersActions
         foreach ($items as $value) {
             if ($itemId == $value->get_id()) {
                 $pid = $value->get_variation_id() ? $value->get_variation_id() : $value->get_product_id();
-                $productData  = array(
+                $productData = array(
                     "ID" => $value->get_product_id(),
                     "variation_id" => $value->get_variation_id() ? $value->get_variation_id() : 0,
                     "number_field_step" => get_post_meta($pid, "number_field_step", true)
@@ -140,17 +141,21 @@ class OrdersActions
                         $result["updatedItems"] = $fulfillmentResult["updatedItems"];
                     }
                 }
+
+                if ($metaFields && $result["updatedItems"] && count($result["updatedItems"]) > 0) {
+                    OrdersHelper::updateOrderItemMetaFields($result["updatedItems"][0], $itemId, $orderId, $metaFields);
+                }
             }
         }
 
-        $result["updatedOrder"]["usbs_order_fulfillment_data"] = get_post_meta($orderId, "usbs_order_fulfillment_data", true);
-
         $order = new \WC_Order($orderId);
 
-                $result["updatedOrder"]["data"] = array(
+        $result["updatedOrder"]["usbs_order_fulfillment_data"] = OrdersHelper::get_meta_value($order, $orderId, "usbs_order_fulfillment_data");
+        $result["updatedOrder"]["data"] = array(
             "status" => $order->get_status(),
             "status_name" => wc_get_order_status_name($order->get_status()),
         );
+        $result["order_notes"] = OrdersHelper::getOrderNotes($order);
 
         return rest_ensure_response($result);
     }
@@ -170,17 +175,18 @@ class OrdersActions
             return rest_ensure_response(array("success" => false));
         }
 
-        $data = get_post_meta($orderId, "usbs_fulfillment_objects", true);
-        $value = get_post_meta($orderId, $customField, true);
+        $data = OrdersHelper::get_meta_value($order, $orderId, "usbs_fulfillment_objects");
+        $value = OrdersHelper::get_meta_value($order, $orderId, $customField);
         $type = "tracking-code";
 
-        if (!$data) $data = array();
+        if (!$data)
+            $data = array();
 
         if ($value) {
             $data[$customField] = array("value" => $value, "type" => $type);
-            update_post_meta($orderId, "usbs_fulfillment_objects", $data);
+            OrdersHelper::set_meta_value($order, $orderId, "usbs_fulfillment_objects", $data);
 
-            $usbs_order_fulfillment_data = get_post_meta($orderId, "usbs_order_fulfillment_data", true);
+            $usbs_order_fulfillment_data = OrdersHelper::get_meta_value($order, $orderId, "usbs_order_fulfillment_data");
 
             if ($usbs_order_fulfillment_data && isset($usbs_order_fulfillment_data['codes']) && is_array($usbs_order_fulfillment_data['codes'])) {
                 $usbs_order_fulfillment_data_updated = false;
@@ -194,8 +200,7 @@ class OrdersActions
 
                 if ($usbs_order_fulfillment_data_updated) {
                     OrdersHelper::setOrderFulfillmentDate($usbs_order_fulfillment_data, $orderId);
-
-                    update_post_meta($orderId, "usbs_order_fulfillment_data", $usbs_order_fulfillment_data);
+                    OrdersHelper::set_meta_value($order, $orderId, "usbs_order_fulfillment_data", $usbs_order_fulfillment_data);
                 }
             }
         }
@@ -209,8 +214,8 @@ class OrdersActions
 
         $result = array(
             "success" => true,
-            "usbs_order_fulfillment_data" => get_post_meta($orderId, "usbs_order_fulfillment_data", true),
-            "usbs_fulfillment_objects" => get_post_meta($orderId, "usbs_fulfillment_objects", true)
+            "usbs_order_fulfillment_data" => OrdersHelper::get_meta_value($order, $orderId, "usbs_order_fulfillment_data"),
+            "usbs_fulfillment_objects" => OrdersHelper::get_meta_value($order, $orderId, "usbs_fulfillment_objects")
         );
 
         return rest_ensure_response($result);
@@ -243,7 +248,7 @@ class OrdersActions
                 if ($item->attributes) {
                     $invalidValues = count($product["attributes"]);
                     $itemAttributes = @json_decode($item->attributes, false);
-                    $itemAttributes = $itemAttributes ? (array)$itemAttributes : array();
+                    $itemAttributes = $itemAttributes ? (array) $itemAttributes : array();
 
                     foreach ($product["attributes"] as $attr => $value) {
                         if (

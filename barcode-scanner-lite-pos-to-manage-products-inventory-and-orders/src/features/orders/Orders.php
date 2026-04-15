@@ -2,6 +2,7 @@
 
 namespace UkrSolution\BarcodeScanner\features\orders;
 
+use UkrSolution\BarcodeScanner\API\classes\OrdersHelper;
 use UkrSolution\BarcodeScanner\features\settings\Settings;
 
 class Orders
@@ -25,7 +26,7 @@ class Orders
                 }
             });
 
-                   } catch (\Throwable $th) {
+        } catch (\Throwable $th) {
         }
     }
 
@@ -44,7 +45,8 @@ class Orders
             if ($column == 'order_status') {
                 $postId = $this->postId ? $this->postId : $post->ID;
 
-                $data = get_post_meta($postId, "usbs_order_fulfillment_data", true);
+                $order = wc_get_order($postId);
+                $data = $order ? OrdersHelper::get_meta_value($order, $postId, "usbs_order_fulfillment_data") : null;
 
                 if ($data && isset($data["totalQty"]) && isset($data["totalScanned"]) && isset($data["items"]) && isset($data["codes"])) {
                     $picked = 0;

@@ -25,7 +25,9 @@ class InterfaceData
 
         $table = $wpdb->prefix . Database::$interface;
 
-        if (!isset(self::$allFields[$role])) self::$allFields[$role] = array();
+        if (!isset(self::$allFields[$role])) {
+            self::$allFields[$role] = array();
+        }
 
 
         $orderKey = $plugin == "mobile" ? "order_mobile" : "order";
@@ -33,9 +35,9 @@ class InterfaceData
         if (self::$allFields[$role] && self::$plugin == $plugin && !$isReload) {
             usort(self::$allFields[$role], function ($a, $b) use ($orderKey) {
                 return $a[$orderKey] && $b[$orderKey] && $a[$orderKey] < $b[$orderKey] ? 1 : 0;
-            });            
+            });
 
-                        return self::$allFields[$role];
+            return self::$allFields[$role];
         }
 
         if ($plugin == "mobile") {
@@ -45,9 +47,13 @@ class InterfaceData
         }
 
         if (!$role || $role == 'default') {
+            // @codingStandardsIgnoreStart
             $fields = $wpdb->get_results("SELECT *, `disabled_field` as 'read_only' FROM {$table} WHERE `role` IS NUll ORDER BY `" . $orderField . "` DESC;", ARRAY_A);
+            // @codingStandardsIgnoreEnd
         } else {
+            // @codingStandardsIgnoreStart
             $fields = $wpdb->get_results($wpdb->prepare("SELECT * FROM {$table} WHERE `role` = %s ORDER BY `" . $orderField . "` DESC;", $role), ARRAY_A);
+            // @codingStandardsIgnoreEnd
         }
 
 
@@ -67,7 +73,7 @@ class InterfaceData
             $options = $value["options"] ? @json_decode($value["options"], false) : array();
 
             $filterName = str_replace("%field", $value["field_name"], self::$filter_dropdown_options);
-            $filteredOptions = apply_filters($filterName, (array)$options, $value["field_name"]);
+            $filteredOptions = apply_filters($filterName, (array) $options, $value["field_name"]);
             $value["options"] = json_encode($filteredOptions);
         }
 
@@ -85,8 +91,10 @@ class InterfaceData
     {
         global $wpdb;
 
+        // @codingStandardsIgnoreStart
         $table = $wpdb->prefix . Database::$interface;
         return $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE `field_name` = '%s';", $fieldName), ARRAY_A);
+        // @codingStandardsIgnoreEnd
     }
 
     public static function saveFields($fields, $role)
@@ -97,27 +105,49 @@ class InterfaceData
         $dt = new \DateTime("now");
         $created = $dt->format("Y-m-d H:i:s");
 
+        $deviceActive = isset($_POST['sub']) ? sanitize_text_field($_POST['sub']) : '';
+
         foreach ($fields as $id => $value) {
             $data = array(
                 "field_label" => $value["field_label"],
-                "field_name" => $value["type"] == "taxonomy" ? $value["taxonomy_field_name"] : $value["field_name"],
+                "field_name" => in_array($value["type"], array("taxonomy", "taxonomy_term")) ? $value["taxonomy_field_name"] : $value["field_name"],
+                "term" => $value["term"],
                 "type" => $value["type"],
-                "label_position" => $value["label_position"],
+                "label_position" => isset($value["label_position"]) ? $value["label_position"] : "",
                 "field_height" => $value["field_height"],
                 "label_width" => $value["label_width"],
-                "show_in_create_order" => $value["show_in_create_order"],
+                "show_in_create_order" => isset($value["show_in_create_order"]) ? $value["show_in_create_order"] : "",
                 "show_in_products_list" => $value["show_in_products_list"],
                 "read_only" => $value["read_only"],
                 "disabled_field" => $value["read_only"],
-                "role" => !$role || $role == 'default'  ? null : $role,
+                "role" => !$role || $role == 'default' ? null : $role,
                 "updated" => $created,
                 "attribute_id" => $value["attribute_id"] ? $value["attribute_id"] : null,
                 "button_js" => $value["button_js"] ? $value["button_js"] : null,
                 "button_width" => $value["button_width"] ? $value["button_width"] : null,
             );
 
-            if (isset($value['status'])) $data['status'] = $value["status"];
-            if (isset($value['mobile_status'])) $data['mobile_status'] = $value["mobile_status"];
+            if (isset($value['status'])) {
+                $data['status'] = $value["status"];
+            }
+            if (isset($value['mobile_status'])) {
+                $data['mobile_status'] = $value["mobile_status"];
+            }
+
+            if (isset($value['order'])) {
+                $data['order'] = $value["order"];
+            }
+            if (isset($value['order_mobile'])) {
+                $data['order_mobile'] = $value["order_mobile"];
+            }
+
+            if ($deviceActive == "desktop" && isset($value['position'])) {
+                $data['position'] = $value["position"];
+            }
+
+            if (isset($value['show_on_mobile_preview'])) {
+                $data['show_on_mobile_preview'] = $value["show_on_mobile_preview"];
+            }
 
             $options = array();
 
@@ -130,23 +160,23 @@ class InterfaceData
             }
 
 
-            if (isset($value["order_mobile"])) {
-                $data["order_mobile"] = $value["order_mobile"];
-            } else {
-                $data["position"] = $value["position"];
-                $data["order"] = $value["order"];
-            }
 
             if ($value["remove"] == 1) {
+                // @codingStandardsIgnoreStart
                 $wpdb->delete($table, array("id" => $id));
+                // @codingStandardsIgnoreEnd
             } else if (preg_match("/^[0-9]+$/", $id, $m)) {
+                // @codingStandardsIgnoreStart
                 $wpdb->update($table, $data, array("id" => $id));
+                // @codingStandardsIgnoreEnd
             } else {
                 if (!isset($data["position"])) {
                     $data["position"] = "product-middle-left";
                 }
 
+                // @codingStandardsIgnoreStart
                 $wpdb->insert($table, $data);
+                // @codingStandardsIgnoreEnd
             }
         }
 
@@ -157,8 +187,10 @@ class InterfaceData
     {
         global $wpdb;
 
+        // @codingStandardsIgnoreStart
         $table = $wpdb->prefix . Database::$interface;
         return $wpdb->get_row("SELECT * FROM {$table} WHERE `use_for_auto_action` = '1';");
+        // @codingStandardsIgnoreEnd
     }
 
     public static function generateFieldsTranslationsFile($fields)
@@ -294,7 +326,9 @@ class InterfaceData
                 $countries = $WC_Countries->get_countries();
 
 
+                // @codingStandardsIgnoreStart
                 $providers = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}woo_shippment_provider;");
+                // @codingStandardsIgnoreEnd
 
                 if ($providers) {
                     foreach ($providers as &$value) {
@@ -315,7 +349,7 @@ class InterfaceData
     {
         $fields = self::getFields();
 
-        $excludesList = array('usbs_categories', 'usbs_taxonomy', 'usbs_product_status', '_stock_status', '_sale_price', '_regular_price', '_sku', '_stock', 'usbs_variation_attributes');
+        $excludesList = array('usbs_categories', 'usbs_taxonomy', 'taxonomy_term', 'usbs_product_status', '_stock_status', '_sale_price', '_regular_price', '_sku', '_stock', 'usbs_variation_attributes');
         $fieldsToExport = array();
 
         if ($fields) {
@@ -334,7 +368,9 @@ class InterfaceData
         global $wpdb;
 
         if ($postId) {
+            // @codingStandardsIgnoreStart
             $indexedOrderData = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}barcode_scanner_posts AS P WHERE post_id = %d", $postId));
+            // @codingStandardsIgnoreEnd
 
             if ($indexedOrderData) {
                 return $indexedOrderData;

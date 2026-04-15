@@ -71,7 +71,11 @@ class Frontend
                         }
                     }
 
-                    wp_enqueue_media();
+
+
+                    $isDisabledMediaLoader = apply_filters('barcode_scanner_is_disabled_wp_enqueue_media', false);
+
+                    if (!$isDisabledMediaLoader) wp_enqueue_media();
                 });
             }
 

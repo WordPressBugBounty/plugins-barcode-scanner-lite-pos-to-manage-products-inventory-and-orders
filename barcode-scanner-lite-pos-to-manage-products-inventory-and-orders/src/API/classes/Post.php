@@ -32,7 +32,7 @@ class Post
         $settings = new Settings();
 
         $field = $settings->getSettings("searchResultsLimit");
-        $searchResultsLimit = $field === null ? 20 : (int)$field->value;
+        $searchResultsLimit = $field === null ? 20 : (int) $field->value;
         $searchResultsLimit = $searchResultsLimit ? $searchResultsLimit : 20;
         $searchResultsLimit = $searchResultsLimit > 999 ? 999 : $searchResultsLimit;
 
@@ -42,14 +42,16 @@ class Post
             $disabledVariationsProducts = $settings->getSettings("disabledVariationsProducts");
             $disabledVariationsProducts = $disabledVariationsProducts === null ? 'off' : $disabledVariationsProducts->value;
 
-            if ($disabledVariationsProducts == 'on') $isDisabledVariations = true;
+            if ($disabledVariationsProducts == 'on')
+                $isDisabledVariations = true;
         }
 
         if ($tab == "cart" || $tab == "orders") {
             $disabledVariationsOrders = $settings->getSettings("disabledVariationsOrders");
             $disabledVariationsOrders = $disabledVariationsOrders === null ? 'on' : $disabledVariationsOrders->value;
 
-            if ($disabledVariationsOrders == 'on') $isDisabledVariations = true;
+            if ($disabledVariationsOrders == 'on')
+                $isDisabledVariations = true;
         }
 
         $queryRequest = apply_filters($this->filter_search_query, trim($queryRequest));
@@ -78,6 +80,21 @@ class Post
         } else if ($searchType === "order" && $withoutStatuses === false) {
             $field = $settings->getSettings("orderStatuses");
             $excludeStatuses = $field === null ? "wc-checkout-draft,trash" : $field->value;
+
+            if ($excludeStatuses) {
+                $excludeStatusesArr = explode(",", $excludeStatuses);
+
+                if ($excludeStatusesArr) {
+                    foreach ($excludeStatusesArr as $value) {
+                        if (preg_match('/^wc\-(.*?)?$/', $value, $m)) {
+                            $excludeStatusesArr[] = $m[1];
+                        }
+                    }
+                    $excludeStatuses = implode(',', $excludeStatusesArr);
+                }
+            }
+
+            $availableStatuses = apply_filters('scanner_orders_available_statuses', array());
         }
 
         $filterWithoutTitle = $filter;
@@ -111,8 +128,10 @@ class Post
             $tab
         );
 
+        // @codingStandardsIgnoreStart
         $postsSearchData = $wpdb->get_results($sql);
         $total = $wpdb->get_row("SELECT FOUND_ROWS() as `total`");
+        // @codingStandardsIgnoreEnd
 
         Debug::addPoint("1. sql");
         Debug::addPoint($sql);
@@ -122,8 +141,10 @@ class Post
             $types = "'shop_order', 'product', 'product_variation'";
             $ids = implode(",", array_column($postsSearchData, 'ID'));
 
-            $sql =  "SELECT P.* FROM {$wpdb->posts} AS P WHERE P.ID IN( {$ids} ) AND P.post_type IN( {$types} ) ORDER BY P.post_modified DESC LIMIT {$this->limit}; ";
+            // @codingStandardsIgnoreStart
+            $sql = "SELECT P.* FROM {$wpdb->posts} AS P WHERE P.ID IN( {$ids} ) AND P.post_type IN( {$types} ) ORDER BY P.post_modified DESC LIMIT {$this->limit}; ";
             $posts = $wpdb->get_results($sql);
+            // @codingStandardsIgnoreEnd
 
             Debug::addPoint("1. wpml status = " . (WPML::status() ? 1 : 0) . ', by id ' . ($onlyById ? 1 : 0));
 
@@ -194,12 +215,15 @@ class Post
         $columns = $wpdb->prefix . Database::$columns;
         $metaFieldPrefix = Database::$postMetaFieldPrefix;
 
+        // @codingStandardsIgnoreStart
         $tableColumns = $wpdb->get_results("SELECT * FROM {$columns} AS C;");
+        // @codingStandardsIgnoreEnd
 
         $statuses = explode(",", $excludeStatuses);
         $catalogVisibility = explode(",", $excludeProductsCatalogVisibility);
 
-        if (!count($statuses)) $statuses[] = "trash";
+        if (!count($statuses))
+            $statuses[] = "trash";
 
         $filterSql = "";
         $selectColumns = array();
@@ -338,7 +362,7 @@ class Post
 
             if (key_exists($field, Database::$postsFields)) {
                 $filterSql .= (strlen($filterSql)) ? " OR " : "";
-                $_sql = $params["statusProductCF"] == 2 ? " ( P.post_type IN( {$types} ) AND  P.`{$field}` LIKE '%{$query}%' ) " :  " ( P.post_type IN( {$types} ) AND  P.`{$field}` = '{$query}' ) ";
+                $_sql = $params["statusProductCF"] == 2 ? " ( P.post_type IN( {$types} ) AND  P.`{$field}` LIKE '%{$query}%' ) " : " ( P.post_type IN( {$types} ) AND  P.`{$field}` = '{$query}' ) ";
 
                 $filterSql .= $_sql;
                 $selectColumns[] = "{$_sql} AS '{$field}'";
@@ -363,7 +387,7 @@ class Post
 
             if (key_exists($field, Database::$postsFields)) {
                 $filterSql .= (strlen($filterSql)) ? " OR " : "";
-                $_sql = Database::$postsFields[$field] === "like" || $params["statusProductCF"] == 2 ? " ( P.post_type IN( {$types} ) AND  P.`{$field}` LIKE '%{$query}%' ) " :  " ( P.post_type IN( {$types} ) AND  P.`{$field}` = '{$query}' ) ";
+                $_sql = Database::$postsFields[$field] === "like" || $params["statusProductCF"] == 2 ? " ( P.post_type IN( {$types} ) AND  P.`{$field}` LIKE '%{$query}%' ) " : " ( P.post_type IN( {$types} ) AND  P.`{$field}` = '{$query}' ) ";
 
                 $filterSql .= $_sql;
                 $selectColumns[] = "{$_sql} AS '{$field}'";
@@ -459,6 +483,14 @@ class Post
             $selectColumns[] = "{$_sql} AS '_order_number'";
         }
 
+        if ($params["hook_order_number"] != 0) {
+            $filterSql .= (strlen($filterSql)) ? " OR " : "";
+            $types = "'shop_order'";
+            $_sql = $this->sqlComp($params["hook_order_number"], $types, $query, "P.hook_order_number");
+            $filterSql .= $_sql;
+            $selectColumns[] = "{$_sql} AS 'hook_order_number'";
+        }
+
         if ($params["_billing_address_index"] != 0) {
             $filterSql .= (strlen($filterSql)) ? " OR " : "";
             $types = "'shop_order'";
@@ -531,6 +563,19 @@ class Post
 
             $filterSql .= $_sql;
             $selectColumns[] = "{$_sql} AS 'usbs_barcode_field'";
+        }
+
+        $_fields = array("postmeta__global_unique_id");
+
+        foreach ($_fields as $_field) {
+            if (isset($params[$_field]) && $params[$_field] != 0) {
+                $filterSql .= (strlen($filterSql)) ? " OR " : "";
+                $types = "'product', 'product_variation'";
+                $_sql = $this->sqlComp($params[$_field], $types, $query, "P.{$_field}");
+
+                $filterSql .= $_sql;
+                $selectColumns[] = "{$_sql} AS '{$_field}'";
+            }
         }
 
         foreach ($params as $_key => $_fieldName) {
@@ -688,6 +733,7 @@ class Post
             "client_name" => "1",
             "client_email" => "1",
             "_order_number" => defined('WT_SEQUENCIAL_ORDNUMBER_VERSION') || is_plugin_active("woocommerce-sequential-order-numbers-pro/woocommerce-sequential-order-numbers-pro.php") ? "1" : "0",
+            "hook_order_number" => "1",
             "_billing_address_index" => "2",
             "_shipping_address_index" => "2",
             "ywot_tracking_code" => PluginsHelper::is_plugin_active('yith-woocommerce-order-tracking/init.php') ? "2" : "0",
@@ -744,7 +790,7 @@ class Post
 
             foreach ($filter["orders"] as $key => $value) {
                 if ($key == 'ID' && $value != "0") {
-                    $params["postID"] = (int)$filter["orders"]["ID"];
+                    $params["postID"] = (int) $filter["orders"]["ID"];
                 } else if ($key == 'customStatus' && $value && isset($filter["orders"]["custom"]) && $filter["orders"]["custom"]) {
                     $params["orderCF"] = trim($filter["orders"]["custom"]);
                     $params["statusOrderCF"] = $value;
@@ -764,7 +810,8 @@ class Post
     private function filterById(&$params)
     {
         foreach ($params as $key => &$value) {
-            if (in_array($key, array('post_author'))) continue;
+            if (in_array($key, array('post_author')))
+                continue;
 
             switch ($key) {
                 case 'postID':
@@ -810,9 +857,13 @@ class Post
     private function checkUrlInQuery($query, $filter)
     {
         try {
-            if (!$filter || !isset($filter["products"])) return $query;
+            if (!$filter || !isset($filter["products"])) {
+                return $query;
+            }
 
-            if (!isset($filter["products"]["prod_link"]) || $filter["products"]["prod_link"] != "1") return $query;
+            if (!isset($filter["products"]["prod_link"]) || $filter["products"]["prod_link"] != "1") {
+                return $query;
+            }
 
             $id = $this->isUrl($query) ? url_to_postid($query) : "";
             $id = $this->tryToGetVariationId($id, $query);
@@ -836,11 +887,13 @@ class Post
     private function tryToGetVariationId($id, $url)
     {
         try {
-            if (!$id || !$url) return $id;
+            if (!$id || !$url)
+                return $id;
 
             $parsedUrl = wp_parse_url($url);
 
-            if (!$parsedUrl || !isset($parsedUrl["query"]) || !$parsedUrl["query"]) return $id;
+            if (!$parsedUrl || !isset($parsedUrl["query"]) || !$parsedUrl["query"])
+                return $id;
 
             $params = explode("&", $parsedUrl["query"]);
             $urlAttrs = array();
@@ -853,10 +906,12 @@ class Post
                 }
             }
 
-            if (!$urlAttrs || count($urlAttrs) < 1) return $id;
+            if (!$urlAttrs || count($urlAttrs) < 1)
+                return $id;
 
             $product = \wc_get_product($id);
-            if (!$product || !$product->is_type('variable')) return $id;
+            if (!$product || !$product->is_type('variable'))
+                return $id;
 
             $variations = $product->get_available_variations();
 
@@ -870,7 +925,8 @@ class Post
                     }
                 }
 
-                if ($counter == count($attributes)) return $variation['variation_id'];
+                if ($counter == count($attributes))
+                    return $variation['variation_id'];
             }
 
             return $id;

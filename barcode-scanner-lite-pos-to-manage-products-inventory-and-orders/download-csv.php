@@ -38,7 +38,7 @@ if ($tempFileName && current_user_can('administrator')) {
     $wp_upload_dir = wp_upload_dir();
     $upload_dir = $wp_upload_dir['basedir'] . '/barcode-scanner/';
     $csvFileName = "Barcode_scanner_logs_" . $dt->format("d-m-Y_h-i-s") . ".csv";
-    $csvFilePath = $upload_dir . 'logs/' . $tempFileName;
+    $csvFilePath = $upload_dir . 'logs/' . $tempFileName . '.csv';
 
     $files = glob($upload_dir . 'logs/' . "*.csv");
 

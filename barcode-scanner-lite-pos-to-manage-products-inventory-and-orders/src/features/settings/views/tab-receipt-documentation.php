@@ -16,17 +16,23 @@ $tabs = array(
     'products-tab' => array(
         'name' => __('Products tab', "us-barcode-scanner"),
         'shortcodes' => array(
-            __('Product name', "us-barcode-scanner") => '[product-name]',
             __('Product SKU', "us-barcode-scanner") => '[product-sku]',
-            __('Purchased product quantity', "us-barcode-scanner") => '[order-product-qty]',
-            __('Product price for 1 item', "us-barcode-scanner") => '[item-price]',
-            __('Product price for 1 item with tax', "us-barcode-scanner") => '[item-price+tax]',
-            __('Product tax for 1 item', "us-barcode-scanner") => '[item-tax]',
-            __('Product price for all the same items', "us-barcode-scanner") => '[item-price-total]',
-            __('Product price for all the same items', "us-barcode-scanner") => '[item-price+tax-total]',
-            __('Product tax for all the same items', "us-barcode-scanner") => '[item-tax-total]',
             __('Pull data from the product custom/meta field', "us-barcode-scanner") => '[custom-field=XXXX]',
             __('Pull data from the main product custom/meta field', "us-barcode-scanner") => '[custom-field-parent=XXXX]',
+            __('Item price for 1 quantity', "us-barcode-scanner") => '[item-price]',
+            __('Product tax for all the same items', "us-barcode-scanner") => '[item-tax-total]',
+            __('Item price for all purchased quantity', "us-barcode-scanner") => '[item-price*qty]',
+            __('Item price for all purchased quantity + tax total', "us-barcode-scanner") => '[item-price*qty+tax-total]',
+            __('Item purchased quantity', "us-barcode-scanner") => '[item-qty]',
+            __('Item name', "us-barcode-scanner") => '[item-name]',
+        ),
+        'deprecated' => array(
+            __('Product name', "us-barcode-scanner") => '[product-name] <b class="deprecated">Deprecated</b>',
+            __('Purchased product quantity', "us-barcode-scanner") => '[order-product-qty] <b class="deprecated">Deprecated</b>',
+            __('Product price for 1 item with tax', "us-barcode-scanner") => '[item-price+tax] <b class="deprecated">Deprecated</b>',
+            __('Product tax for 1 item', "us-barcode-scanner") => '[item-tax] <b class="deprecated">Deprecated</b>',
+            __('Product price for all the same items', "us-barcode-scanner") => '[item-price-total] <b class="deprecated">Deprecated</b>',
+            __('Product price + tax for all the same items', "us-barcode-scanner") => '[item-price+tax-total] <b class="deprecated">Deprecated</b>'
         ),
         'blocks' => array(
             array(
@@ -34,9 +40,9 @@ $tabs = array(
                 'text' => "<table style='width: 100%;font-size: 12px'>
                 [product-list-start test-products=10]
                     <tr>
-                        <td style='width: 100%'>[product-name] | [product-sku]</td>
-                        <td style='padding-right: 1mm'>[order-product-qty] x [item-price]</td>
-                        <td>[item-price-total]</td>
+                        <td style='width: 100%'>[item-name] | [product-sku]</td>
+                        <td style='padding-right: 1mm'>[item-qty] x [item-price]</td>
+                        <td>[item-price*qty+tax-total]</td>
                     </tr>
                 [product-list-end]
                 </table>"
@@ -96,39 +102,53 @@ $tabs = array(
         ),
     ),
 )
-?>
+    ?>
 <div class="receipt-documentation-modal" data-rdm-wrapper="1" style="display: none;">
     <div class="rdm-content">
         <div class="rdm-header">
             <div></div>
             <span class="rdm-close">
                 <svg class="MuiSvgIcon-root" focusable="false" viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path>
+                    <path
+                        d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z">
+                    </path>
                 </svg>
             </span>
         </div>
         <div class="rdm-body">
             <div class="rdm-tabs">
-                <?php foreach ($tabs as $key => $tabValue) : ?>
-                    <div data-rdm-tab="<?php echo esc_attr($key); ?>" class="<?php echo $key === "store-tab" ? esc_html('active') : '' ?>"><?php echo esc_html($tabValue['name']); ?></div>
+                <?php foreach ($tabs as $key => $tabValue): ?>
+                    <div data-rdm-tab="<?php echo esc_attr($key); ?>"
+                        class="<?php echo $key === "store-tab" ? esc_html('active') : '' ?>">
+                        <?php echo esc_html($tabValue['name']); ?>
+                    </div>
                 <?php endforeach; ?>
             </div>
             <div class="rdm-tabs-content">
-                <?php foreach ($tabs as $key => $tabValue) : ?>
-                    <div data-rdm-tab="<?php echo esc_attr($key); ?>" class="<?php echo $key === "store-tab" ? esc_html('active') : '' ?>" style="max-height: 500px; overflow-y: auto;">
-                        <?php foreach ($tabValue['shortcodes'] as $shortcode => $label) : ?>
+                <?php foreach ($tabs as $key => $tabValue): ?>
+                    <div data-rdm-tab="<?php echo esc_attr($key); ?>"
+                        class="<?php echo $key === "store-tab" ? esc_html('active') : '' ?>"
+                        style="max-height: 500px; overflow-y: auto;">
+                        <?php foreach ($tabValue['shortcodes'] as $shortcode => $label): ?>
                             <div>
                                 <div><?php echo wp_kses_post($shortcode) ?></div>
-                                <div><?php echo esc_html($label) ?></div>
+                                <div><?php echo wp_kses_post($label) ?></div>
                             </div>
                         <?php endforeach; ?>
-                        <?php foreach ($tabValue['blocks'] as $blockValue) : ?>
+                        <?php foreach ($tabValue['blocks'] as $blockValue): ?>
                             <div>
                                 <div><?php echo esc_html($blockValue['name']) ?></div>
                                 <div><?php echo str_replace("\n", "<br/>", esc_html($blockValue['text'])) ?></div>
                             </div>
                         <?php endforeach; ?>
-
+                        <?php if (isset($tabValue['deprecated'])): ?>
+                            <?php foreach ($tabValue['deprecated'] as $shortcode => $label): ?>
+                                <div>
+                                    <div><?php echo wp_kses_post($shortcode) ?></div>
+                                    <div><?php echo wp_kses_post($label) ?></div>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
                     </div>
                 <?php endforeach; ?>
             </div>
@@ -229,6 +249,13 @@ $tabs = array(
     .rdm-tabs-content div[data-rdm-tab]>div>div:first-child {
         width: 45%;
         min-width: 45%;
+    }
+
+    .rdm-tabs-content b.deprecated {
+        color: red;
+        font-size: 12px;
+        position: relative;
+        top: -5px;
     }
 
     .rdm-block {

@@ -101,4 +101,6 @@ return array(
     "app_undefined_error_text" => __("Undefined error. Contact our support to help resolve this issue.", 'us-barcode-scanner'),
     "btn_app_ok" => __("OK", 'us-barcode-scanner'),
     "error" => __("Error", 'us-barcode-scanner'),
+    "webview_recovered_alert_title" => __("Recovered", 'us-barcode-scanner'),
+    "webview_recovered_alert_msg" => __("Web-view crashed and was automatically recovered.", 'us-barcode-scanner'),
 );
