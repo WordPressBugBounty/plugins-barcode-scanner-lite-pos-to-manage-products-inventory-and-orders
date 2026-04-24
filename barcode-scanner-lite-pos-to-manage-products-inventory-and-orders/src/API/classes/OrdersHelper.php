@@ -353,17 +353,25 @@ class OrdersHelper
         }
     }
 
-    public static function formatItemTaxesData($taxes)
+    public static function formatItemTaxesData($taxes, $isClear = false, $args = array())
     {
         if (isset(($taxes['subtotal']))) {
             foreach ($taxes['subtotal'] as &$value) {
-                $value = strip_tags(wc_price($value));
+                if ($isClear) {
+                    $value = self::clearPrice($value, $args);
+                } else {
+                    $value = strip_tags(wc_price($value));
+                }
             }
         }
 
         if (isset(($taxes['total']))) {
             foreach ($taxes['total'] as &$value) {
-                $value = strip_tags(wc_price($value));
+                if ($isClear) {
+                    $value = self::clearPrice($value, $args);
+                } else {
+                    $value = strip_tags(wc_price($value));
+                }
             }
         }
 
@@ -375,7 +383,7 @@ class OrdersHelper
         $price = trim(strip_tags($wcPrice));
         $price = str_replace("&nbsp;", "", $price);
         $price = str_replace("&#36;", "", $price);
-
+        $price = trim($price);
         return $price;
     }
 

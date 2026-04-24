@@ -31,7 +31,7 @@ class PermissionsHelper
         return self::$userPermissions;
     }
 
-    public static function onePermRequired($permissions, $isReturn = false)
+    public static function onePermRequired($permissions, $isReturn = false, $is403 = true)
     {
         foreach ($permissions as $item) {
             if (isset(self::$userPermissions[$item]) && self::$userPermissions[$item] == 1) {
@@ -39,7 +39,7 @@ class PermissionsHelper
             }
         }
 
-        return self::permissionDenied($isReturn);
+        return self::permissionDenied($isReturn, $is403);
     }
 
     public static function allPermsRequired($permissions)
@@ -70,12 +70,14 @@ class PermissionsHelper
         }
     }
 
-    private static function permissionDenied($isReturn = false)
+    private static function permissionDenied($isReturn = false, $is403 = true)
     {
-        if (function_exists("http_response_code")) {
-            http_response_code(403);
-        } else {
-            header("HTTP/1.1 403 Access denied");
+        if ($is403) {
+            if (function_exists("http_response_code")) {
+                http_response_code(403);
+            } else {
+                header("HTTP/1.1 403 Access denied");
+            }
         }
 
         if ($isReturn) {

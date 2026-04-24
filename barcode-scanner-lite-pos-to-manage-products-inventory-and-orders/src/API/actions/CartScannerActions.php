@@ -743,7 +743,7 @@ class CartScannerActions
                 "tax" => $line_subtotal_tax,
                 "total_tax" => $discountPrice + $line_subtotal_tax,
                 "total_tax_c" => strip_tags(\wc_price($discountPrice + $line_subtotal_tax)),
-                "_line_tax_data" => OrdersHelper::formatItemTaxesData($_line_tax_data),
+                "_line_tax_data" => OrdersHelper::formatItemTaxesData($_line_tax_data, true, array("currency" => " ")),
                 "_rate" => $_rate,
                 "tax_info" => $tax_info,
                 "use_custom_price" => $use_custom_price,

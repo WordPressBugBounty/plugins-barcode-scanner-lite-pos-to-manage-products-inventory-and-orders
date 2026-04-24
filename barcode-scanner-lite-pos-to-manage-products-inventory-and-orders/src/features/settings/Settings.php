@@ -240,7 +240,7 @@ class Settings
                 }
 
                 if (isset($this->post["key"])) {
-                    @delete_transient('ukrsolution_upgrade_scanner_1.12.0');
+                    @delete_transient('ukrsolution_upgrade_scanner_1.12.1');
                     $user_id = get_current_user_id();
                     update_option($user_id . '_' . basename(USBS_PLUGIN_BASE_PATH) . '_notice_dismissed', '', true);
                 }
@@ -319,13 +319,88 @@ class Settings
                 $settings["stripeApiEnabled"] = "on";
                 $settings["priceFieldPriority"] = "wc_default";
 
-                if (!isset($setting['sortOrderItemsByCategories']))
+                if (!isset($setting['sortOrderItemsByCategories'])) {
                     $settings["fulfillmentFrontendSearch"] = "on";
+                }
 
-                if (!isset($setting['appLoginMethods']))
+                if (!isset($setting['appLoginMethods'])) {
                     $settings["appLoginMethods"] = "both";
-                if (!isset($setting['defaultLoginMethod']))
+                }
+                if (!isset($setting['defaultLoginMethod'])) {
                     $settings["defaultLoginMethod"] = "login_pass";
+                }
+
+                $_fields_list = array(
+                    "modalShowLocations",
+                    "directDbUpdate",
+                    "directDbSearch",
+                    "cartDecimalQuantity",
+                    "newOrderUserRequired",
+                    "fulfillmentScanItemQty",
+                    "nowOrderDefaultUser",
+                    'displaySearchCounter',
+                    'openOrderAfterCreation',
+                    'shippingRequired',
+                    'paymentRequired',
+                    "fieldForNewProduct",
+                    'orderFulfillmentEnabled',
+                    'orderFulFillmentField',
+                    'receipt-width',
+                    'receipt-template',
+                    'modifyPreProcessSearchString',
+                    'afterSearchJavaScript',
+                    'updated_timestamp',
+                    'autoStatusFulfilled',
+                    'delayBetweenScanning',
+                    'displayCouponField',
+                    'displayNoteField',
+                    'displayPayButton',
+                    'autoGenInvoice',
+                    'orderFulfillmentByDefault',
+                    'productLeftSidebarWidth',
+                    'productMiddleRightWidth',
+                    'productMiddleLeftWidth',
+                    'productColumn4Width',
+                    'beforeProductWidth',
+                    'beforeProductRightWidth',
+                    'afterProductWidth',
+                    'afterProductRightWidth',
+                    'defaultPaymentMethod',
+                    'fulfilledNotAllowStatus',
+                    'fulfilledCloseOrderAfter',
+                    'dontAllowSwitchOrder',
+                    'productsIndexation',
+                    'ordersIndexation',
+                    'resetFulfillmentByCloseOrder',
+                    'sortOrderItemsByCategories',
+                    'pickListProductCode',
+                    'defaultProductQty',
+                    'allowMarkFulfilled',
+                    'disabledVariationsProducts',
+                    'disabledVariationsOrders',
+                    'defaultOrderTax',
+                    'cfForNewProduct',
+                    'newProductStatus',
+                    'uslpBtnAutoCreate',
+                    'uslpUseReceiptToPrint',
+                    'fulfillmentFrontendSearch',
+                    'appLoginMethods',
+                    'defaultLoginMethod',
+                    'FFrestrictOrderOpening',
+                    'FFexcludeIds',
+                    'FFerrorsInPopup',
+                    'displayTaxesForItems',
+                );
+
+                if (
+                    PermissionsHelper::onePermRequired(['orders'], true, false) === true
+                    || PermissionsHelper::onePermRequired(['cart'], true, false) === true
+                    || PermissionsHelper::onePermRequired(['plugin_settings'], true, false) === true
+                ) {
+                    $_fields_list[] = 'stripeApiEnabled';
+                    $_fields_list[] = 'stripeDefaultTerminalId';
+                    $_fields_list[] = 'stripeApiSecretKey';
+                }
 
                 foreach ($settingsTable as $key => $setting) {
                     if (in_array($setting->field_name, $excludes))
@@ -335,74 +410,11 @@ class Settings
                         if ($setting->value) {
                             $settings["prices"] = (array) $setting->value;
                         }
-                    } else if (
-                        in_array($setting->field_name, array(
-                            "modalShowLocations",
-                            "directDbUpdate",
-                            "directDbSearch",
-                            "cartDecimalQuantity",
-                            "newOrderUserRequired",
-                            "fulfillmentScanItemQty",
-                            "nowOrderDefaultUser",
-                            'displaySearchCounter',
-                            'openOrderAfterCreation',
-                            'shippingRequired',
-                            'paymentRequired',
-                            "fieldForNewProduct",
-                            'orderFulfillmentEnabled',
-                            'orderFulFillmentField',
-                            'receipt-width',
-                            'receipt-template',
-                            'modifyPreProcessSearchString',
-                            'afterSearchJavaScript',
-                            'updated_timestamp',
-                            'autoStatusFulfilled',
-                            'delayBetweenScanning',
-                            'displayCouponField',
-                            'displayNoteField',
-                            'displayPayButton',
-                            'autoGenInvoice',
-                            'orderFulfillmentByDefault',
-                            'productLeftSidebarWidth',
-                            'productMiddleRightWidth',
-                            'productMiddleLeftWidth',
-                            'productColumn4Width',
-                            'beforeProductWidth',
-                            'beforeProductRightWidth',
-                            'afterProductWidth',
-                            'afterProductRightWidth',
-                            'defaultPaymentMethod',
-                            'fulfilledNotAllowStatus',
-                            'fulfilledCloseOrderAfter',
-                            'dontAllowSwitchOrder',
-                            'productsIndexation',
-                            'ordersIndexation',
-                            'resetFulfillmentByCloseOrder',
-                            'sortOrderItemsByCategories',
-                            'pickListProductCode',
-                            'defaultProductQty',
-                            'allowMarkFulfilled',
-                            'disabledVariationsProducts',
-                            'disabledVariationsOrders',
-                            'defaultOrderTax',
-                            'cfForNewProduct',
-                            'newProductStatus',
-                            'uslpBtnAutoCreate',
-                            'uslpUseReceiptToPrint',
-                            'fulfillmentFrontendSearch',
-                            'appLoginMethods',
-                            'defaultLoginMethod',
-                            'FFrestrictOrderOpening',
-                            'stripeApiEnabled',
-                            'stripeDefaultTerminalId',
-                            'stripeApiSecretKey',
-                            'FFexcludeIds',
-                            'FFerrorsInPopup',
-                            'displayTaxesForItems',
-                        ))
-                    ) {
+                    }
+                    else if (in_array($setting->field_name, $_fields_list)) {
                         $settings[$setting->field_name] = $setting->value;
-                    } else if (in_array($setting->field_name, ["defaultOrderStatus", "orderStatusesAreStillNotCompleted", "defaultShippingMethod", "allowNegativeStock", 'defaultShippingMethods'])) {
+                    }
+                    else if (in_array($setting->field_name, ["defaultOrderStatus", "orderStatusesAreStillNotCompleted", "defaultShippingMethod", "allowNegativeStock", 'defaultShippingMethods'])) {
                         $settings[$setting->field_name] = $setting->value;
                     }
                 }

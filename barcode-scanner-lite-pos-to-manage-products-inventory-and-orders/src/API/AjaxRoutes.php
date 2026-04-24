@@ -66,8 +66,9 @@ class AjaxRoutes
 
             if ($tokenUserId) {
                 $userLocale = get_user_meta($tokenUserId, 'locale', true);
-                if ($userLocale)
+                if ($userLocale) {
                     switch_to_locale($userLocale);
+                }
 
                 $userRole = $tokenUserId ? Users::getUserRole($tokenUserId) : '';
                 Users::setUserId($tokenUserId);
@@ -110,11 +111,7 @@ class AjaxRoutes
                 $MobileRouter = new MobileRouter();
                 $platform = $this->getParam($get, "platform", "");
 
-                $data = array(
-                    "redirect" => 0,
-                    "data" => array("rout" => "invalid route"),
-                    "f" => 1
-                );
+                $data = array("redirect" => 0, "data" => array("rout" => "invalid route"), "f" => 1);
 
                 if ($platform == "android" || $platform == "ios") {
                     $urlData = $MobileRouter->getParamsFromPlainUrl();

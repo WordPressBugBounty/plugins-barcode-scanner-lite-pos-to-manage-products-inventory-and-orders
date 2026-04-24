@@ -3960,8 +3960,8 @@ class ManagementActions
         $type = isset($filter["type"]) ? $filter["type"] : "";
         $status = isset($filter["status"]) ? $filter["status"] : "";
         $statuses = isset($filter["statuses"]) ? $filter["statuses"] : array();
-        $from = isset($filter["from"]) ? $filter["from"] : "";
-        $to = isset($filter["to"]) ? $filter["to"] : "";
+        $from = isset($filter["from"]) ? \sanitize_text_field($filter["from"]) : "";
+        $to = isset($filter["to"]) ? \sanitize_text_field($filter["to"]) : "";
         $page = isset($filter["page"]) ? (int) $filter["page"] : "";
         $perPage = isset($filter["perPage"]) ? (int) $filter["perPage"] : 10;
         $customerId = isset($filter["customerId"]) ? (int) $filter["customerId"] : "";
@@ -3973,8 +3973,10 @@ class ManagementActions
         $excludeOrderStatuses = $excludeOrderStatuses === null ? "wc-checkout-draft,trash" : $excludeOrderStatuses->value;
         $excludeOrderStatuses = $excludeOrderStatuses ? explode(",", $excludeOrderStatuses) : array();
         $excludeOrderStatuses = array_merge($excludeOrderStatuses, SettingsHelper::$excludeOrderStatuses);
+        $excludeOrderStatuses = array_map('esc_sql', $excludeOrderStatuses);
 
         $availableStatuses = apply_filters($this->filter_orders_available_statuses, array());
+        $availableStatuses = array_map('esc_sql', $availableStatuses);
 
         if ($statuses) {
             $statuses = array_filter($statuses);
@@ -4002,7 +4004,6 @@ class ManagementActions
         }
 
         $orders = array();
-
 
         $paged = $page ? (int) $page : 1;
         $offset = ($paged - 1) * $perPage;
@@ -4033,9 +4034,9 @@ class ManagementActions
                     }
                 }
 
+                $_list = array_map('esc_sql', $_list);
                 $statusesList = implode("','", $_list);
             }
-
 
             $where .= " AND P.post_status IN ('{$statusesList}') ";
         }
@@ -4053,8 +4054,8 @@ class ManagementActions
                 }
             }
 
+            $_list = array_map('esc_sql', $_list);
             $statusesList = implode("','", $_list);
-
             $where .= " AND P.post_status NOT IN ('{$statusesList}') ";
         }
 
@@ -4097,7 +4098,7 @@ class ManagementActions
 
             foreach ($customFields as $field => $value) {
                 if (trim($value)) {
-                    $value = $wpdb->prepare(trim($value));
+                    $value = esc_sql(trim($value));
                     foreach ($mainMetaFields as $mainMetaField) {
                         if ($field == str_replace("`", "", $mainMetaField)) {
                             $where .= " AND P.{$field} LIKE '%{$value}%' ";
