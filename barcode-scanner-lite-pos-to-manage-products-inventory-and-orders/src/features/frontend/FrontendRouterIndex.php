@@ -123,6 +123,6 @@ if (function_exists('wp_print_scripts')) wp_print_scripts();
 
 ?>
 
-<script src="<?php echo esc_url($path); ?>assets/js/index-business-1.12.0-1776150596682.js"></script>
+<script src="<?php echo esc_url($path); ?>assets/js/index-business-1.12.2-1778508152670.js"></script> <!-- 1.12.2 -->
 
 <?php

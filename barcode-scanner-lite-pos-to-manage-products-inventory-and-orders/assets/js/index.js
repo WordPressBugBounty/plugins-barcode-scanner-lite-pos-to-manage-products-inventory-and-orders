@@ -21,7 +21,7 @@ var WebBarcodeScannerAdminMenuList = function () {
     jQuery("#adminmenu span.barcode_scanner_faq")
       .closest("a")
       .attr("target", "_blank")
-      .attr("href", "https://www.ukrsolution.com/ExtensionsSupport/Support?extension=25&version=1.12.0&pversion=");
+      .attr("href", "https://www.ukrsolution.com/ExtensionsSupport/Support?extension=25&version=1.12.2&pversion="); // 1.12.2
     jQuery("#adminmenu span.barcode_scanner_faq")
       .closest("a")
       .attr("target", "_blank")
@@ -29,7 +29,7 @@ var WebBarcodeScannerAdminMenuList = function () {
     jQuery("#adminmenu span.barcode_scanner_support")
       .closest("a")
       .attr("target", "_blank")
-      .attr("href", "https://www.ukrsolution.com/ExtensionsSupport/Support?extension=24&version=1.12.0&pversion=" + wpVersion + "&d=" + btoa(wpKey));
+      .attr("href", "https://www.ukrsolution.com/ExtensionsSupport/Support?extension=24&version=1.12.2&pversion=" + wpVersion + "&d=" + btoa(wpKey)); // 1.12.2
   } catch (error) {
     console.error(error.message);
   }
