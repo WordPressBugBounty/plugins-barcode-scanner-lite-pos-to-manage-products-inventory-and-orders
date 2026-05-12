@@ -711,10 +711,12 @@ class CartScannerActions
                     }
                     $_rate_data["subtotal_tax"] = $_tax_cost;
 
-                    if (isset($orderTaxDetails[$_rate_id]))
+                    if (isset($orderTaxDetails[$_rate_id])) {
                         $orderTaxDetails[$_rate_id]["subtotal_tax"] += $_tax_cost;
-                    else
+                    }
+                    else {
                         $orderTaxDetails[$_rate_id] = $_rate_data;
+                    }
 
                     $orderTaxDetails[$_rate_id]["subtotal_tax_c"] = ResultsHelper::getFormattedPrice(strip_tags(wc_price($orderTaxDetails[$_rate_id]["subtotal_tax"])));
 
@@ -1421,8 +1423,9 @@ class CartScannerActions
             $taxAddress = $this->getTaxAddress($extraData);
         }
 
-        if ($isPay)
+        if ($isPay) {
             $orderStatus = "wc-pending";
+        }
 
         $currentUserId = get_current_user_id();
         $tokenUserId = $request ? $request->get_param("token_user_id") : null;
@@ -1465,11 +1468,6 @@ class CartScannerActions
         } catch (\Throwable $th) {
         }
 
-        $data = array(
-            'status' => 'wc-pending',
-            'line_items' => array(),
-        );
-
         if (!$userId) {
             $userId = $currentUserId;
         }
@@ -1499,6 +1497,12 @@ class CartScannerActions
         }
 
         $details = $this->getCartDetails($request);
+
+        $data = array(
+            'status' => $orderStatus ? str_replace("wc-", "", $orderStatus) : 'wc-pending',
+            'line_items' => array(),
+        );
+
         $order = \wc_create_order($data);
 
         if ($order && $customerUserId) {
@@ -1830,17 +1834,8 @@ class CartScannerActions
                 }
             }
 
-            ob_start();
 
-            if ($orderStatus) {
-                try {
-                    $order->update_status(str_replace("wc-", "", $orderStatus));
-                    $order->save();
-                } catch (\Throwable $th) {
-                }
-            }
 
-            ob_end_clean();
 
             $this->cleanObOutput();
 

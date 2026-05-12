@@ -165,4 +165,19 @@ class ResultsHelper
 
         return trim($price, ".,");
     }
+
+    public static function getNumberPriceFormat($data)
+    {
+        $priceDecimalSeparator = ".";
+
+        if (function_exists('wc_get_price_decimal_separator')) {
+            $priceDecimalSeparator = \wc_get_price_decimal_separator();
+        }
+
+        if ($priceDecimalSeparator && $priceDecimalSeparator != '.') {
+            return str_replace($priceDecimalSeparator, '.', trim($data));
+        }
+
+        return trim($data);
+    }
 }

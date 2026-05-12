@@ -945,7 +945,6 @@ class Database
     {
         global $wpdb;
 
-
         Debug::addPoint("> updatePost " . $id);
 
         $wpdb->show_errors(true);
@@ -1352,7 +1351,21 @@ class Database
 
         Debug::addPoint("> updatePost indexed");
 
-        OrdersHelper::checkOrderFulfillment($id);
+        $triggersToSkippCalcFF = array("updatePostsTable");
+        $reqbsToSkippCalcFF = array(
+            "update-found-counter",
+            "reqbs-backgroundIndexing",
+            "order-change-shipping-method",
+            "order-change-payment-method",
+            "order-change-order-note"
+        );
+        $reqbs = $_GET && isset($_GET['reqbs']) ? sanitize_text_field($_GET['reqbs']) : '';
+
+        if (in_array($trigger, $triggersToSkippCalcFF) || in_array($reqbs, $reqbsToSkippCalcFF)) {
+        } else if ($trigger != "wp_insert_post") {
+            OrdersHelper::checkOrderFulfillment($id);
+        }
+
         Debug::addPoint("> updatePost checkOrderFulfillment " . $id);
 
         $wpdb->show_errors(false);

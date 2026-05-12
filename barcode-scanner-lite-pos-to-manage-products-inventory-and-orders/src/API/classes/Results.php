@@ -959,6 +959,7 @@ class Results
                 "quantity" => (float) $quantity,
                 "price" => $quantity ? self::clearPrice($item->get_total() / $quantity, $args) : self::clearPrice($item->get_total(), $args),
                 "price_c" => $price_c,
+                "price_formated" => self::clearPrice($item->get_total() / $quantity, array("currency" => " ")),
                 "subtotal" => $this->clearPrice($item->get_subtotal(), $args),
                 "subtotal_c" => $subtotal_c,
                 "total" => $this->clearPrice($item->get_total(), $args),

@@ -396,7 +396,7 @@ use UkrSolution\BarcodeScanner\features\settings\SettingsHelper;
                     $defaultValue = $defaultValue === null ? '' : $defaultValue->value;
                     ?>
                     <label>
-                        <?php $checked = $defaultValue == "on" ? ' checked=checked ' : ''; ?>
+                        <?php $checked = $defaultValue !== "off" ? ' checked=checked ' : ''; ?>
                         <input type="checkbox" <?php esc_html_e($checked, 'us-barcode-scanner'); ?>
                             onchange="WebbsSettingsCheckboxChange(`#displayTaxesForItems input[name='displayTaxesForItems']`,this.checked ? 'on' : 'off')" />
                         <input type="hidden" name="displayTaxesForItems"

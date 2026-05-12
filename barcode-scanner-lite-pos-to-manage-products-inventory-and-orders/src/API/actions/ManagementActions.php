@@ -13,6 +13,7 @@ use UkrSolution\BarcodeScanner\API\classes\PostsList;
 use UkrSolution\BarcodeScanner\API\classes\ProductsHelper;
 use UkrSolution\BarcodeScanner\API\classes\Results;
 use UkrSolution\BarcodeScanner\API\classes\Request;
+use UkrSolution\BarcodeScanner\API\classes\ResultsHelper;
 use UkrSolution\BarcodeScanner\API\classes\SearchFilter;
 use UkrSolution\BarcodeScanner\API\classes\Users;
 use UkrSolution\BarcodeScanner\API\classes\WPML;
@@ -82,9 +83,6 @@ class ManagementActions
             $findById = true;
         }
 
-        if (is_array($filterExcludes) && in_array("orders", $filterExcludes)) {
-            $findById = true;
-        }
 
         if ($findById === true && isset($filter["products"])) {
             $filter["products"]["ID"] = 1;
@@ -2078,6 +2076,7 @@ class ManagementActions
             foreach ($values as $data) {
                 $type = $data["type"];
                 $value = $data["value"];
+                $value = ResultsHelper::getNumberPriceFormat($value);
 
                 if ($type == "total") {
                     $order->set_total($value);
@@ -2113,12 +2112,6 @@ class ManagementActions
 
                     foreach ($items as $item) {
                         if ($item->get_id() == $itemId) {
-
-
-
-
-
-
                             $pricePerItem = $item->get_total() > 0 && $item->get_quantity() > 0 ? $item->get_total() / $item->get_quantity() : $item->get_total();
                             $item->set_subtotal($pricePerItem * $value);
                             $item->set_total($pricePerItem * $value);
