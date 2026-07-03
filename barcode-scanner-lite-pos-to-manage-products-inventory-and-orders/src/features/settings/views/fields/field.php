@@ -7,7 +7,9 @@ use UkrSolution\BarcodeScanner\API\classes\YITHPointOfSale;
 
 ?>
 <tr class="settings_field_section field_<?php echo esc_attr($field["field_name"]); ?> <?php echo (isset($rootClass) && $rootClass) ? esc_attr($rootClass) : "" ?>">
-    <td style="padding: 0; <?php if ($field[$statusField] == 0) { echo "opacity: 0.7;"; } ?>">
+    <td style="padding: 0; <?php if ($field[$statusField] == 0) {
+        echo "opacity: 0.7;";
+    } ?>">
         <div style="padding: 14px 10px 10px; background: #fff; margin-bottom: 10px; position: relative; width: 360px; box-shadow: 0 0 8px 1px #c7c7c7; border-radius: 4px;">
             <input type="hidden" class="usbs_field_order" name="fields[<?php echo esc_attr($field["id"]); ?>][<?php echo esc_attr($orderField); ?>]" value="<?php echo esc_attr($field[$orderField]); ?>" />
             <input type="hidden" class="usbs_field_position" name="fields[<?php echo esc_attr($field["id"]); ?>][position]" value="<?php echo esc_attr($field["position"]); ?>" />
@@ -20,7 +22,7 @@ use UkrSolution\BarcodeScanner\API\classes\YITHPointOfSale;
                 <span class="dashicons dashicons-arrow-down-alt2 active"></span>
                 <?php 
                 ?> <?php echo esc_html($field["field_label"]); ?>
-                <?php if ($field[$statusField] == 0) : ?>
+                <?php if ($field[$statusField] == 0): ?>
                     <span style="color: #f00; position: relative; top: -4px;}"><?php echo esc_html__("(disabled)", "us-barcode-scanner"); ?></span>
                 <?php endif; ?>
             </div>
@@ -36,22 +38,24 @@ use UkrSolution\BarcodeScanner\API\classes\YITHPointOfSale;
                             </td>
                             <td style="padding: 0 0 5px;">
                                 <!-- checkbox -->
-                                <?php 
+                                <?php
                                 $_status = "status";
-                                $checked = $field[$_status] == 1 ? ' ' . wp_kses_post('checked=checked') . ' ' : ''; 
+                                $checked = $field[$_status] == 1 ? ' ' . wp_kses_post('checked=checked') . ' ' : '';
                                 ?>
                                 <label>
-                                    <input type="checkbox" class="usbs_field_status" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> data-fid="<?php echo esc_attr($field["id"]); ?>" onchange="WebbsSettingsCheckboxChange(`#bs-settings-fields-tab .usbs_field_status input[data-fid='<?php echo esc_attr($field['id']); ?>']`, this.checked ? '1' : '0')" />
+                                    <input type="checkbox" class="usbs_field_status" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> data-fid="<?php echo esc_attr($field["id"]); ?>"
+                                        onchange="WebbsSettingsCheckboxChange(`#bs-settings-fields-tab .usbs_field_status input[data-fid='<?php echo esc_attr($field['id']); ?>']`, this.checked ? '1' : '0')" />
                                     <input type="hidden" name="fields[<?php echo esc_attr($field["id"]); ?>][<?php echo esc_attr($_status); ?>]" value="<?php echo $checked ? "1" : "0"; ?>" data-fid="<?php echo esc_attr($field["id"]); ?>" />
                                     <?php echo esc_html__("Desktop", "us-barcode-scanner"); ?>
                                 </label>
                                 <!-- checkbox -->
-                                <?php 
+                                <?php
                                 $_status = "mobile_status";
-                                $checked = $field[$_status] == 1 ? ' ' . wp_kses_post('checked=checked') . ' ' : ''; 
+                                $checked = $field[$_status] == 1 ? ' ' . wp_kses_post('checked=checked') . ' ' : '';
                                 ?>
                                 <label>
-                                    <input type="checkbox" class="usbs_field_mobile_status" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> data-fid="<?php echo esc_attr($field["id"]); ?>" onchange="WebbsSettingsCheckboxChange(`#bs-settings-fields-tab .usbs_field_status input[data-fid-mobile='<?php echo esc_attr($field['id']); ?>']`, this.checked ? '1' : '0')" />
+                                    <input type="checkbox" class="usbs_field_mobile_status" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> data-fid="<?php echo esc_attr($field["id"]); ?>"
+                                        onchange="WebbsSettingsCheckboxChange(`#bs-settings-fields-tab .usbs_field_status input[data-fid-mobile='<?php echo esc_attr($field['id']); ?>']`, this.checked ? '1' : '0')" />
                                     <input type="hidden" name="fields[<?php echo esc_attr($field["id"]); ?>][<?php echo esc_attr($_status); ?>]" value="<?php echo $checked ? "1" : "0"; ?>" data-fid-mobile="<?php echo esc_attr($field["id"]); ?>" />
                                     <?php echo esc_html__("Mobile", "us-barcode-scanner"); ?>
                                 </label>
@@ -67,7 +71,8 @@ use UkrSolution\BarcodeScanner\API\classes\YITHPointOfSale;
                             <td style="padding: 0 0 5px;">
                                 <!-- checkbox -->
                                 <?php $checked = $field["show_in_create_order"] == 1 ? ' checked=checked ' : ''; ?>
-                                <input type="checkbox" class="usbs_field_show_in_create_order" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> data-fid="<?php echo esc_attr($field["id"]); ?>" onchange="WebbsSettingsCheckboxChange(`#bs-settings-fields-tab .show_in_create_order input[data-fid='<?php echo esc_attr($field['id']); ?>']`, this.checked ? '1' : '0')" />
+                                <input type="checkbox" class="usbs_field_show_in_create_order" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> data-fid="<?php echo esc_attr($field["id"]); ?>"
+                                    onchange="WebbsSettingsCheckboxChange(`#bs-settings-fields-tab .show_in_create_order input[data-fid='<?php echo esc_attr($field['id']); ?>']`, this.checked ? '1' : '0')" />
                                 <input type="hidden" name="fields[<?php echo esc_attr($field["id"]); ?>][show_in_create_order]" value="<?php echo $checked ? esc_attr("1") : esc_attr("0"); ?>" data-fid="<?php echo esc_attr($field["id"]); ?>" />
                             </td>
                         </tr>
@@ -81,7 +86,8 @@ use UkrSolution\BarcodeScanner\API\classes\YITHPointOfSale;
                             <td style="padding: 0 0 5px;">
                                 <!-- checkbox -->
                                 <?php $checked = $field["read_only"] == 1 ? ' checked=checked ' : ''; ?>
-                                <input type="checkbox" class="usbs_field_read_only" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> data-fid="<?php echo esc_attr($field["id"]); ?>" onchange="WebbsSettingsCheckboxChange(`#bs-settings-fields-tab .read_only input[data-fid='<?php echo esc_attr($field['id']); ?>']`, this.checked ? '1' : '0')" />
+                                <input type="checkbox" class="usbs_field_read_only" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> data-fid="<?php echo esc_attr($field["id"]); ?>"
+                                    onchange="WebbsSettingsCheckboxChange(`#bs-settings-fields-tab .read_only input[data-fid='<?php echo esc_attr($field['id']); ?>']`, this.checked ? '1' : '0')" />
                                 <input type="hidden" name="fields[<?php echo esc_attr($field["id"]); ?>][read_only]" value="<?php echo $checked ? esc_attr("1") : esc_attr("0"); ?>" data-fid="<?php echo esc_attr($field["id"]); ?>" />
                             </td>
                         </tr>
@@ -92,39 +98,40 @@ use UkrSolution\BarcodeScanner\API\classes\YITHPointOfSale;
                             </td>
                             <td style="padding: 0;">
                                 <select class="usbs_field_type" name="fields[<?php echo esc_attr($field["id"]); ?>][type]" style="width: 177px;">
-                                    <option value="text" <?php echo $field["type"] == "text" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo  esc_html__("Text", "us-barcode-scanner"); ?></option>
-                                    <option value="price" <?php echo $field["type"] == "price" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo  esc_html__("Price", "us-barcode-scanner"); ?></option>
-                                    <option value="number_plus_minus" <?php echo $field["type"] == "number_plus_minus" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo  esc_html__("Number (plus/minus)", "us-barcode-scanner"); ?></option>
-                                    <option value="select" <?php echo $field["type"] == "select" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo  esc_html__("Dropdown", "us-barcode-scanner"); ?></option>
-                                    <?php if ($settingsHelper::is_plugin_active('product-expiry-for-woocommerce/product-expiry-for-woocommerce.php')) : ?>
-                                        <option value="ExpiryDate" <?php echo $field["type"] == "ExpiryDate" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo  esc_html__("ExpiryDate", "us-barcode-scanner"); ?></option>
+                                    <option value="text" <?php echo $field["type"] == "text" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo esc_html__("Text", "us-barcode-scanner"); ?></option>
+                                    <option value="price" <?php echo $field["type"] == "price" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo esc_html__("Price", "us-barcode-scanner"); ?></option>
+                                    <option value="number_plus_minus" <?php echo $field["type"] == "number_plus_minus" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo esc_html__("Number (plus/minus)", "us-barcode-scanner"); ?></option>
+                                    <option value="select" <?php echo $field["type"] == "select" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo esc_html__("Dropdown", "us-barcode-scanner"); ?></option>
+                                    <?php if ($settingsHelper::is_plugin_active('product-expiry-for-woocommerce/product-expiry-for-woocommerce.php')): ?>
+                                        <option value="ExpiryDate" <?php echo $field["type"] == "ExpiryDate" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo esc_html__("ExpiryDate", "us-barcode-scanner"); ?></option>
                                     <?php endif; ?>
-                                    <option value="action_button" <?php echo $field["type"] == "action_button" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo  esc_html__("JS Button", "us-barcode-scanner"); ?></option>
-                                    <option value="white_space" <?php echo $field["type"] == "white_space" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo  esc_html__("White space", "us-barcode-scanner"); ?></option>
-                                    <option value="categories" <?php echo $field["type"] == "categories" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo  esc_html__("Categories", "us-barcode-scanner"); ?></option>
-                                    <option value="taxonomy" <?php echo $field["type"] == "taxonomy" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo  esc_html__("Taxonomy", "us-barcode-scanner"); ?></option>
-                                    <option value="taxonomy_term" <?php echo $field["type"] == "taxonomy_term" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo  esc_html__("Taxonomy + Term", "us-barcode-scanner"); ?></option>
-                                    <option value="tags" <?php echo $field["type"] == "tags" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo  esc_html__("Tags", "us-barcode-scanner"); ?></option>
-                                    <option value="variation_attributes" <?php echo $field["type"] == "variation_attributes" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo  esc_html__("Variation attributes", "us-barcode-scanner"); ?></option>
-                                    <option value="global_attribute" <?php echo $field["type"] == "global_attribute" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo  esc_html__("Global attribute", "us-barcode-scanner"); ?></option>
-                                    <!-- <option value="locations" <?php echo $field["type"] == "locations" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo  esc_html__("Locations", "us-barcode-scanner"); ?></option> -->
-                                    <option value="usbs_date" <?php echo $field["type"] == "usbs_date" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo  esc_html__("Date", "us-barcode-scanner"); ?></option>
+                                    <option value="action_button" <?php echo $field["type"] == "action_button" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo esc_html__("JS Button", "us-barcode-scanner"); ?></option>
+                                    <option value="white_space" <?php echo $field["type"] == "white_space" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo esc_html__("White space", "us-barcode-scanner"); ?></option>
+                                    <option value="categories" <?php echo $field["type"] == "categories" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo esc_html__("Categories", "us-barcode-scanner"); ?></option>
+                                    <option value="taxonomy" <?php echo $field["type"] == "taxonomy" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo esc_html__("Taxonomy", "us-barcode-scanner"); ?></option>
+                                    <option value="taxonomy_term" <?php echo $field["type"] == "taxonomy_term" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo esc_html__("Taxonomy + Term", "us-barcode-scanner"); ?></option>
+                                    <option value="tags" <?php echo $field["type"] == "tags" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo esc_html__("Tags", "us-barcode-scanner"); ?></option>
+                                    <option value="variation_attributes" <?php echo $field["type"] == "variation_attributes" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo esc_html__("Variation attributes", "us-barcode-scanner"); ?></option>
+                                    <option value="global_attribute" <?php echo $field["type"] == "global_attribute" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo esc_html__("Global attribute", "us-barcode-scanner"); ?></option>
+                                    <!-- <option value="locations" <?php echo $field["type"] == "locations" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo esc_html__("Locations", "us-barcode-scanner"); ?></option> -->
+                                    <option value="usbs_date" <?php echo $field["type"] == "usbs_date" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo esc_html__("Date", "us-barcode-scanner"); ?></option>
                                     <!-- integrations -->
-                                    <?php if (BatchNumbers::status()) : ?>
-                                        <option value="usbs_wcpbn" <?php echo $field["type"] == "usbs_wcpbn" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo  esc_html__("Product Batch Numbers", "us-barcode-scanner"); ?></option>
+                                    <?php if (BatchNumbers::status()): ?>
+                                        <option value="usbs_wcpbn" <?php echo $field["type"] == "usbs_wcpbn" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo esc_html__("Product Batch Numbers", "us-barcode-scanner"); ?></option>
                                     <?php endif; ?>
-                                    <?php if (BatchNumbersWebis::status()) : ?>
-                                        <option value="usbs_webis" <?php echo $field["type"] == "usbs_webis" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo  esc_html__("Product Batch & Tracking", "us-barcode-scanner"); ?></option>
+                                    <?php if (BatchNumbersWebis::status()): ?>
+                                        <option value="usbs_webis" <?php echo $field["type"] == "usbs_webis" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo esc_html__("Product Batch & Tracking", "us-barcode-scanner"); ?></option>
                                     <?php endif; ?>
-                                    <?php if (YITHPointOfSale::status()) : ?>
-                                        <option value="_yith_pos_multistock" <?php echo $field["type"] == "_yith_pos_multistock" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo  esc_html__("YITH Point of Sale", "us-barcode-scanner"); ?></option>
-                                        <?php endif; ?>
-                                        <option value="checkbox" <?php echo $field["type"] == "checkbox" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo  esc_html__("Checkbox", "us-barcode-scanner"); ?></option>
-                                        <!-- <option value="search_section" <?php echo $field["type"] == "search_section" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo  esc_html__("Search section", "us-barcode-scanner"); ?></option> -->
-                                        <option value="product_name_section" <?php echo $field["type"] == "product_name_section" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo  esc_html__("Product name section", "us-barcode-scanner"); ?></option>
-                                        <?php if (ACFRepeater::status()) : ?>
-                                            <option value="acf_repeater" <?php echo $field["type"] == "acf_repeater" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo  esc_html__("ACF Repeater", "us-barcode-scanner"); ?></option>
-                                        <?php endif; ?>
+                                    <?php if (YITHPointOfSale::status()): ?>
+                                        <option value="_yith_pos_multistock" <?php echo $field["type"] == "_yith_pos_multistock" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo esc_html__("YITH Point of Sale", "us-barcode-scanner"); ?></option>
+                                    <?php endif; ?>
+                                    <option value="checkbox" <?php echo $field["type"] == "checkbox" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo esc_html__("Checkbox", "us-barcode-scanner"); ?></option>
+                                    <option value="textarea" <?php echo $field["type"] == "textarea" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo esc_html__("Textarea", "us-barcode-scanner"); ?></option>
+                                    <!-- <option value="search_section" <?php echo $field["type"] == "search_section" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo esc_html__("Search section", "us-barcode-scanner"); ?></option> -->
+                                    <option value="product_name_section" <?php echo $field["type"] == "product_name_section" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo esc_html__("Product name section", "us-barcode-scanner"); ?></option>
+                                    <?php if (ACFRepeater::status()): ?>
+                                        <option value="acf_repeater" <?php echo $field["type"] == "acf_repeater" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo esc_html__("ACF Repeater", "us-barcode-scanner"); ?></option>
+                                    <?php endif; ?>
                                 </select>
                             </td>
                         </tr>
@@ -138,7 +145,8 @@ use UkrSolution\BarcodeScanner\API\classes\YITHPointOfSale;
                             <td style="padding: 0 0 5px;">
                                 <!-- checkbox -->
                                 <?php $checked = $field["show_in_products_list"] == 1 ? ' checked=checked ' : ''; ?>
-                                <input type="checkbox" class="usbs_field_show_in_products_list" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> data-fid="<?php echo esc_attr($field["id"]); ?>" onchange="WebbsSettingsCheckboxChange(`#bs-settings-fields-tab .show_in_products_list input[data-fid='<?php echo esc_attr($field['id']); ?>']`, this.checked ? '1' : '0')" />
+                                <input type="checkbox" class="usbs_field_show_in_products_list" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> data-fid="<?php echo esc_attr($field["id"]); ?>"
+                                    onchange="WebbsSettingsCheckboxChange(`#bs-settings-fields-tab .show_in_products_list input[data-fid='<?php echo esc_attr($field['id']); ?>']`, this.checked ? '1' : '0')" />
                                 <input type="hidden" name="fields[<?php echo esc_attr($field["id"]); ?>][show_in_products_list]" value="<?php echo $checked ? esc_attr("1") : esc_attr("0"); ?>" data-fid="<?php echo esc_attr($field["id"]); ?>" />
                             </td>
                         </tr>
@@ -152,7 +160,8 @@ use UkrSolution\BarcodeScanner\API\classes\YITHPointOfSale;
                             <td style="padding: 0 0 5px;">
                                 <!-- checkbox -->
                                 <?php $checked = $field["show_on_mobile_preview"] == 1 ? ' checked=checked ' : ''; ?>
-                                <input type="checkbox" class="usbs_field_show_on_mobile_preview" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> data-fid="<?php echo esc_attr($field["id"]); ?>" onchange="WebbsSettingsCheckboxChange(`#bs-settings-fields-tab .show_on_mobile_preview input[data-fid='<?php echo esc_attr($field['id']); ?>']`, this.checked ? '1' : '0')" />
+                                <input type="checkbox" class="usbs_field_show_on_mobile_preview" <?php esc_html_e($checked, 'us-barcode-scanner'); ?> data-fid="<?php echo esc_attr($field["id"]); ?>"
+                                    onchange="WebbsSettingsCheckboxChange(`#bs-settings-fields-tab .show_on_mobile_preview input[data-fid='<?php echo esc_attr($field['id']); ?>']`, this.checked ? '1' : '0')" />
                                 <input type="hidden" name="fields[<?php echo esc_attr($field["id"]); ?>][show_on_mobile_preview]" value="<?php echo $checked ? esc_attr("1") : esc_attr("0"); ?>" data-fid="<?php echo esc_attr($field["id"]); ?>" />
                             </td>
                         </tr>
@@ -179,6 +188,14 @@ use UkrSolution\BarcodeScanner\API\classes\YITHPointOfSale;
                         </tr>
                         <tr>
                             <td scope="row" style="text-align:left; padding: 0 10px 0 10px; width: 110px; box-sizing: border-box;">
+                                <?php echo esc_html__("Lines", "us-barcode-scanner"); ?>
+                            </td>
+                            <td style="padding: 0;">
+                                <input type="number" class="textarea_lines" name="fields[<?php echo esc_attr($field["id"]); ?>][textarea_lines]" value="<?php echo esc_attr($field["textarea_lines"]); ?>" style="width: 100px" />
+                            </td>
+                        </tr>
+                        <tr>
+                            <td scope="row" style="text-align:left; padding: 0 10px 0 10px; width: 110px; box-sizing: border-box;">
                                 <?php echo esc_html__("Taxonomy", "us-barcode-scanner"); ?>
                             </td>
                             <td style="padding: 0;">
@@ -200,7 +217,7 @@ use UkrSolution\BarcodeScanner\API\classes\YITHPointOfSale;
                             <td style="padding: 0;">
                                 <select class="usbs_field_global_attribute" name="fields[<?php echo esc_attr($field["id"]); ?>][attribute_id]" style="width: 177px;">
                                     <?php foreach ($globalAttributes as $key => $value): ?>
-                                        <option value="<?php echo esc_attr($value->attribute_id) ?>" <?php echo $field["attribute_id"] == $value->attribute_id ? wp_kses_post("selected='selected'") : ""; ?>><?php echo  esc_html($value->attribute_label); ?></option>
+                                        <option value="<?php echo esc_attr($value->attribute_id) ?>" <?php echo $field["attribute_id"] == $value->attribute_id ? wp_kses_post("selected='selected'") : ""; ?>><?php echo esc_html($value->attribute_label); ?></option>
                                     <?php endforeach; ?>
                                 </select>
                             </td>
@@ -212,9 +229,9 @@ use UkrSolution\BarcodeScanner\API\classes\YITHPointOfSale;
                             <td style="padding: 5px 0;">
                                 <div class="type_select_options">
                                     <?php $options = isset($field["options"]) && $field["options"] ? @json_decode($field["options"], false) : null; ?>
-                                    <?php if ($options) : ?>
+                                    <?php if ($options): ?>
                                         <?php $optionIndex = 0; ?>
-                                        <?php foreach ($options as $key => $value) : ?>
+                                        <?php foreach ($options as $key => $value): ?>
                                             <div class="type_select_option">
                                                 <input type="text" name="fields[<?php echo esc_attr($field["id"]); ?>][options][<?php echo esc_attr($optionIndex); ?>][key]" value="<?php echo esc_attr($key); ?>" />
                                                 <input type="text" name="fields[<?php echo esc_attr($field["id"]); ?>][options][<?php echo esc_attr($optionIndex); ?>][value]" value="<?php echo esc_attr($value); ?>" />
@@ -234,10 +251,10 @@ use UkrSolution\BarcodeScanner\API\classes\YITHPointOfSale;
                             </td>
                             <td style="padding: 0;">
                                 <select class="usbs_field_label_position" name="fields[<?php echo esc_attr($field["id"]); ?>][label_position]" style="width: 177px;">
-                                    <option value="left" <?php echo $field["label_position"] == "left" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo  esc_html__("Left", "us-barcode-scanner"); ?></option>
-                                    <option value="right" <?php echo $field["label_position"] == "right" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo  esc_html__("Right", "us-barcode-scanner"); ?></option>
-                                    <option value="top" <?php echo $field["label_position"] == "top" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo  esc_html__("Top", "us-barcode-scanner"); ?></option>
-                                    <option value="bottom" <?php echo $field["label_position"] == "bottom" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo  esc_html__("Bottom", "us-barcode-scanner"); ?></option>
+                                    <option value="left" <?php echo $field["label_position"] == "left" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo esc_html__("Left", "us-barcode-scanner"); ?></option>
+                                    <option value="right" <?php echo $field["label_position"] == "right" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo esc_html__("Right", "us-barcode-scanner"); ?></option>
+                                    <option value="top" <?php echo $field["label_position"] == "top" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo esc_html__("Top", "us-barcode-scanner"); ?></option>
+                                    <option value="bottom" <?php echo $field["label_position"] == "bottom" ? wp_kses_post("selected='selected'") : ""; ?>><?php echo esc_html__("Bottom", "us-barcode-scanner"); ?></option>
                                 </select>
                             </td>
                         </tr>
@@ -262,16 +279,16 @@ use UkrSolution\BarcodeScanner\API\classes\YITHPointOfSale;
                                 <div class="edit_java_script_modal" style="display: none;">
                                     <div>
                                         <div onmousedown="event.stopPropagation()">
-                                            <?php echo "Get product details"; ?><br/>
+                                            <?php echo "Get product details"; ?><br />
                                             <?php echo "const product = window.BarcodeScannerApp.productTab.getCurrentProduct();"; ?>
-                                            <br/><br/>
-                                            <?php echo "Set and save field for product"; ?><br/>
+                                            <br /><br />
+                                            <?php echo "Set and save field for product"; ?><br />
                                             <?php echo 'window.BarcodeScannerApp.productTab.setProductMeta({ "_sku", "NEW_SKU" });'; ?>
-                                            <br/><br/>
-                                            <?php echo "Display prompt popup"; ?><br/>
+                                            <br /><br />
+                                            <?php echo "Display prompt popup"; ?><br />
                                             <?php echo 'const value = await window.BarcodeScannerApp.modals.prompt({ field_type: "number", title: "Prompt title" });'; ?>
-                                            <br/><br/>
-                                            <?php echo "Open URL in browser or new tab"; ?><br/>
+                                            <br /><br />
+                                            <?php echo "Open URL in browser or new tab"; ?><br />
                                             <?php echo 'window.openBrowser("https://www.google.com");'; ?>
                                         </div>
                                         <div>
@@ -302,7 +319,7 @@ use UkrSolution\BarcodeScanner\API\classes\YITHPointOfSale;
                         </tr>
                     </table>
 
-                    <span class="dashicons dashicons-trash settings_field_remove" title="<?php echo  esc_html__("Remove field", "us-barcode-scanner"); ?>" data-fid="<?php echo esc_attr($field["id"]); ?>"></span>
+                    <span class="dashicons dashicons-trash settings_field_remove" title="<?php echo esc_html__("Remove field", "us-barcode-scanner"); ?>" data-fid="<?php echo esc_attr($field["id"]); ?>"></span>
                 </div>
             </div>
         </div>

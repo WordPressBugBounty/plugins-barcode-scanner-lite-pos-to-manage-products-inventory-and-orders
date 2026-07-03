@@ -164,6 +164,7 @@ class Settings
                     'pickListProductCode',
                     'defaultProductQty',
                     'allowMarkFulfilled',
+                    'fulfilledAutoNote',
                     'role',
                     'disabledVariationsProducts',
                     'disabledVariationsOrders',
@@ -181,6 +182,8 @@ class Settings
                     'stripeApiEnabled',
                     'stripeDefaultTerminalId',
                     'displayTaxesForItems',
+                    'orderProductImageWidth',
+                    'customShippingStatuses',
                 );
 
                 foreach ($keys as $key) {
@@ -198,6 +201,12 @@ class Settings
                             )) && is_array($this->post[$key])
                         ) {
                             $this->post[$key] = implode(",", $this->post[$key]);
+                        } else if (
+                            in_array($key, array(
+                                "customShippingStatuses",
+                            )) && is_array($this->post[$key])
+                        ) {
+                            $this->post[$key] = json_encode($this->post[$key]);
                         }
                     }
                 }
@@ -240,7 +249,7 @@ class Settings
                 }
 
                 if (isset($this->post["key"])) {
-                    @delete_transient('ukrsolution_upgrade_scanner_1.12.2');
+                    @delete_transient('ukrsolution_upgrade_scanner_1.13.1');
                     $user_id = get_current_user_id();
                     update_option($user_id . '_' . basename(USBS_PLUGIN_BASE_PATH) . '_notice_dismissed', '', true);
                 }
@@ -311,6 +320,7 @@ class Settings
                 $settings["defaultProductQty"] = "1";
                 $settings["orderStatusesAreStillNotCompleted"] = "wc-pending,wc-processing,wc-on-hold";
                 $settings["allowMarkFulfilled"] = "on";
+                $settings["fulfilledAutoNote"] = "on";
                 $settings["defaultOrderTax"] = "based_on_store";
                 $settings["uslpBtnAutoCreate"] = "off";
                 $settings["allowNegativeStock"] = "on";
@@ -319,6 +329,8 @@ class Settings
                 $settings["stripeApiEnabled"] = "on";
                 $settings["priceFieldPriority"] = "wc_default";
                 $settings["displayTaxesForItems"] = "on";
+                $settings["FFrestrictOrderOpening"] = "on";
+                $settings["orderProductImageWidth"] = "64";
 
                 if (!isset($setting['sortOrderItemsByCategories'])) {
                     $settings["fulfillmentFrontendSearch"] = "on";
@@ -377,6 +389,7 @@ class Settings
                     'pickListProductCode',
                     'defaultProductQty',
                     'allowMarkFulfilled',
+                    'fulfilledAutoNote',
                     'disabledVariationsProducts',
                     'disabledVariationsOrders',
                     'defaultOrderTax',
@@ -391,6 +404,8 @@ class Settings
                     'FFexcludeIds',
                     'FFerrorsInPopup',
                     'displayTaxesForItems',
+                    'orderProductImageWidth',
+                    'customShippingStatuses',
                 );
 
                 if (
@@ -410,6 +425,12 @@ class Settings
                     if ($setting->field_name === "settings_prices") {
                         if ($setting->value) {
                             $settings["prices"] = (array) $setting->value;
+                        }
+                    } elseif ($setting->field_name === "customShippingStatuses") {
+                        if ($setting->value) {
+                            $_value = str_replace("'", '"', $setting->value);
+                            $_value = json_decode($_value, true);
+                            $settings["customShippingStatuses"] = array_values($_value);
                         }
                     }
                     else if (in_array($setting->field_name, $_fields_list)) {
@@ -850,7 +871,14 @@ class Settings
                     "app_qty_minus" => in_array($key, $defaultAccess) || in_array($key, $defaultFrontAccess) ? 1 : 0,
                     "app_save_list" => in_array($key, $defaultAccess) || in_array($key, $defaultFrontAccess) ? 1 : 0,
                     "prod_search_action" => in_array($key, $defaultAccess) || in_array($key, $defaultFrontAccess) ? 1 : 0,
-                    "order_search_action" => in_array($key, $defaultAccess) || in_array($key, $defaultFrontAccess) ? 1 : 0
+                    "psa_decrease_m1" => in_array($key, $defaultAccess) || in_array($key, $defaultFrontAccess) ? 1 : 0,
+                    "psa_decrease_my" => in_array($key, $defaultAccess) || in_array($key, $defaultFrontAccess) ? 1 : 0,
+                    "psa_increase_p1" => in_array($key, $defaultAccess) || in_array($key, $defaultFrontAccess) ? 1 : 0,
+                    "psa_increase_px" => in_array($key, $defaultAccess) || in_array($key, $defaultFrontAccess) ? 1 : 0,
+                    "psa_open_product" => in_array($key, $defaultAccess) || in_array($key, $defaultFrontAccess) ? 1 : 0,
+                    "order_search_action" => in_array($key, $defaultAccess) || in_array($key, $defaultFrontAccess) ? 1 : 0,
+                    "osa_open_in_tab" => in_array($key, $defaultAccess) || in_array($key, $defaultFrontAccess) ? 1 : 0,
+                    "osa_change_status" => in_array($key, $defaultAccess) || in_array($key, $defaultFrontAccess) ? 1 : 0,
                 );
             }
         }
@@ -875,7 +903,14 @@ class Settings
                 "app_qty_minus" => 1,
                 "app_save_list" => 1,
                 "prod_search_action" => 1,
-                "order_search_action" => 1
+                "psa_decrease_m1" => 1,
+                "psa_decrease_my" => 1,
+                "psa_increase_p1" => 1,
+                "psa_increase_px" => 1,
+                "psa_open_product" => 1,
+                "order_search_action" => 1,
+                "osa_open_in_tab" => 1,
+                "osa_change_status" => 1
             );
         }
 
@@ -919,7 +954,14 @@ class Settings
             "app_qty_minus" => 0,
             "app_save_list" => 0,
             "prod_search_action" => 0,
-            "order_search_action" => 0
+            "psa_decrease_m1" => 0,
+            "psa_decrease_my" => 0,
+            "psa_increase_p1" => 0,
+            "psa_increase_px" => 0,
+            "psa_open_product" => 0,
+            "order_search_action" => 0,
+            "osa_open_in_tab" => 0,
+            "osa_change_status" => 0
         );
 
         if (!$userId) {
@@ -946,6 +988,8 @@ class Settings
                 }
             }
         }
+
+        $result = apply_filters('barcode_scanner_tabs_permissions', $result, $userId);
 
         return $result;
     }

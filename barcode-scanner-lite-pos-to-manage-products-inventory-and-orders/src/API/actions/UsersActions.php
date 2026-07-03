@@ -24,10 +24,25 @@ class UsersActions
         $currentIds = $request->get_param("currentIds");
         $currentIds = $currentIds && is_array($currentIds) ? array_map('intval', $currentIds) : array();
 
+        $firstName = $query;
+        $lastName = $query;
+        $parts = $query ? explode(" ", $query) : array();
+
+        if (count($parts) == 2) {
+            $firstName = $parts[0];
+            $lastName = $parts[1];
+        }
+
+
         try {
             // @codingStandardsIgnoreStart
             $sql = "SELECT * FROM {$wpdb->users} as u ";
             $sql .= " WHERE u.ID = %s OR u.user_nicename LIKE %s OR u.user_email LIKE %s OR u.display_name LIKE %s ";
+            $sql .= " OR (
+                (SELECT _um.umeta_id FROM {$wpdb->usermeta} AS _um WHERE _um.user_id = u.ID AND _um.meta_key = 'first_name' AND _um.meta_value LIKE %s LIMIT 1)
+                AND (SELECT _um.umeta_id FROM {$wpdb->usermeta} AS _um WHERE _um.user_id = u.ID AND _um.meta_key = 'last_name' AND _um.meta_value LIKE %s LIMIT 1)
+            ) ";
+            $sql .= " OR (SELECT _um.umeta_id FROM {$wpdb->usermeta} AS _um WHERE _um.user_id = u.ID AND ( (_um.meta_key = 'billing_phone' AND _um.meta_value LIKE %s) OR (_um.meta_key = 'shipping_phone' AND _um.meta_value LIKE %s) ) LIMIT 1) ";
 
             if (count($currentIds) > 0) {
                 $ids = implode(",", $currentIds);
@@ -35,8 +50,20 @@ class UsersActions
             }
 
             $sql .= " LIMIT 10 ;";
+            $qetyLike = $wpdb->esc_like($query);
+            $qetyLike = str_replace(" ", "%", $qetyLike);
             $rows = $wpdb->get_results(
-                $wpdb->prepare($sql, $wpdb->esc_like($query), '%' . $wpdb->esc_like($query) . '%', '%' . $wpdb->esc_like($query) . '%', '%' . $wpdb->esc_like($query) . '%')
+                $wpdb->prepare(
+                    $sql,
+                    $wpdb->esc_like($query),
+                    '%' . $qetyLike . '%',
+                    '%' . $qetyLike . '%',
+                    '%' . $qetyLike . '%',
+                    '%' . $wpdb->esc_like($firstName) . '%',
+                    '%' . $wpdb->esc_like($lastName) . '%',
+                    '%' . $qetyLike . '%',
+                    '%' . $qetyLike . '%'
+                )
             );
             // @codingStandardsIgnoreEnd
 

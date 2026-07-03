@@ -9,6 +9,7 @@ use UkrSolution\BarcodeScanner\API\classes\ProductsHelper;
 use UkrSolution\BarcodeScanner\API\classes\Results;
 use UkrSolution\BarcodeScanner\API\classes\ResultsHelper;
 use UkrSolution\BarcodeScanner\API\classes\Users;
+use UkrSolution\BarcodeScanner\API\CouponHelper;
 use UkrSolution\BarcodeScanner\API\RequestHelper;
 use UkrSolution\BarcodeScanner\Database;
 use UkrSolution\BarcodeScanner\features\cart\Cart;
@@ -502,8 +503,9 @@ class CartScannerActions
 
         $couponError = $coupon && isset($coupon["error"]) ? $coupon["error"] : null;
 
-        if ($couponError)
+        if ($couponError) {
             $coupon = null;
+        }
 
         $settings = new Settings();
         $defaultOrderTax = $settings->getSettings("defaultOrderTax");
@@ -522,6 +524,7 @@ class CartScannerActions
         $cartShippingTotal = 0;
         $cartShippingTotalTax = 0;
         $cartShippingTax = 0;
+        $shippingLabel = "";
         $cartCogsTotal = 0;
         $additionalTaxes = array();
         $itemsForOrder = array();
@@ -570,6 +573,7 @@ class CartScannerActions
 
                         foreach ($globalShippings as $_shipping) {
                             if ($_shipping_id == $_shipping['id']) {
+                                $shippingLabel = $_shipping['title'];
                                 $shipping = array(
                                     'id' => $_shipping['id'],
                                     'title' => $_shipping['title'],
@@ -587,6 +591,24 @@ class CartScannerActions
                                 "cost" => $orderCustomShippingPrice,
                                 "instance_id" => '',
                             );
+                        } else if (preg_match('/cs_(\d+):0/', $activeShippingMethod, $m)) {
+                            $index = count($m) == 2 ? $m[1] : 0;
+                            $customShippingStatuses = $settings->getSettings("customShippingStatuses");
+                            $customShippingStatuses = $customShippingStatuses === null ? "{}" : str_replace("'", '"', $customShippingStatuses->value);
+                            $customShippingStatuses = json_decode($customShippingStatuses, true);
+                            $customShippingStatuses = $customShippingStatuses ? array_values($customShippingStatuses) : [];
+
+                            if ($customShippingStatuses && is_array($customShippingStatuses) && isset($customShippingStatuses[$index])) {
+                                $label = isset($customShippingStatuses[$index]['label']) ? $customShippingStatuses[$index]['label'] : 'Custom shipping';
+                                $price = isset($customShippingStatuses[$index]['price']) ? $this->formatPriceForUpdate($customShippingStatuses[$index]['price']) : 0;
+                                $shippingLabel = $label;
+                                $shipping = array(
+                                    "id" => 0,
+                                    "title" => __($label, "us-barcode-scanner"),
+                                    "cost" => $orderCustomShippingPrice ? $orderCustomShippingPrice : $price,
+                                    "instance_id" => '',
+                                );
+                            }
                         }
                     }
                 }
@@ -830,6 +852,7 @@ class CartScannerActions
             "shipping_total_tax" => ResultsHelper::getFormattedPrice(strip_tags(wc_price($cartShippingTotalTax))),
             "shipping_tax" => $cartShippingTax,
             "shipping_tax_c" => ResultsHelper::getFormattedPrice(strip_tags(wc_price($cartShippingTax))),
+            "shipping_label" => $shippingLabel,
             "cash_got" => ResultsHelper::getFormattedPrice(strip_tags(wc_price($orderCustomCashGot))),
             "cash_got_c" => strip_tags(wc_price($orderCustomCashGot)),
             "cash_change" => ResultsHelper::getFormattedPrice(strip_tags(wc_price($orderCustomCashGotChange))),
@@ -854,39 +877,22 @@ class CartScannerActions
 
         $coupon = $request ? $request->get_param("coupon") : "";
 
-        if (!$coupon)
+        if (!$coupon) {
             return null;
+        }
 
         if (preg_match('/^(\d+)([\.,]\d+)?\%$/', $coupon, $matches)) {
             $couponPercent = $matches[1] . $matches[2];
             $couponPercent = str_replace(",", ".", $couponPercent);
-            $customCoupon = array(
-                "id" => 999999999,
-                "code" => $coupon,
-                "amount" => $couponPercent,
-                "amount_discount" => 0,
-                "discount_type" => "percent",
-            );
-            $this->percentDiscount = $couponPercent;
-
-            return $customCoupon;
+            $couponData = CouponHelper::createPercentCoupon($couponPercent);
         }
         else if (preg_match('/^(\d+)([\.,]\d+)?$/', $coupon, $matches)) {
             $couponFixed = $matches[1] . $matches[2];
             $couponFixed = str_replace(",", ".", $couponFixed);
-            $customCoupon = array(
-                "id" => 999999999,
-                "code" => $coupon,
-                "amount" => $couponFixed,
-                "amount_discount" => 0,
-                "discount_type" => "fixed_product",
-            );
-            $this->prodDiscount = $couponFixed;
-
-            return $customCoupon;
+            $couponData = CouponHelper::createFixedCoupon($couponFixed);
+        } else {
+            $couponData = $coupon ? new \WC_Coupon(trim($coupon)) : null;
         }
-
-        $couponData = $coupon ? new \WC_Coupon(trim($coupon)) : null;
 
         if (!$couponData || !$couponData->get_id())
             return array("error" => __("Coupon not found.", "us-barcode-scanner"));
@@ -1499,7 +1505,7 @@ class CartScannerActions
         $details = $this->getCartDetails($request);
 
         $data = array(
-            'status' => $orderStatus ? str_replace("wc-", "", $orderStatus) : 'wc-pending',
+            'status' => 'wc-pending',
             'line_items' => array(),
         );
 
@@ -1590,7 +1596,7 @@ class CartScannerActions
 
                 $options = array(
                     "price" => $isPricesIncludeTax && $value["tax"] ? $value["price"] - $value["tax"] : $value["price"],
-                    "subtotal" => $isPricesIncludeTax && $value["tax"] ? $value["price"] - $value["tax"] : $value["subtotal"],
+                    "subtotal" => $isPricesIncludeTax && $value["tax"] ? $value["subtotal"] - $value["tax"] : $value["subtotal"],
                     "total" => $isPricesIncludeTax && $value["tax"] ? $value["price"] - $value["tax"] : $value["total"],
                 );
 
@@ -1663,7 +1669,7 @@ class CartScannerActions
                     $activeShippingMethod = $shippingMethod;
                 }
 
-                $shippingLabel = __("Shipping", "us-barcode-scanner");
+                $shippingLabel = isset($details['shipping_label']) && $details['shipping_label'] ? $details['shipping_label'] : __("Shipping", "us-barcode-scanner");
                 $shippingLabelByCustomerList = false;
 
                 $cart = new Cart();
@@ -1762,7 +1768,8 @@ class CartScannerActions
 
                 $order->set_discount_total($couponAmount);
 
-                $itemMetaId = $order->add_coupon($details["coupon"]["code"], $couponAmount);
+                $couponName = $details["coupon"]["code"] ? $details["coupon"]["code"] : $couponAmount;
+                $itemMetaId = $order->add_coupon($couponName, $couponAmount);
                 \wc_update_order_item_meta($itemMetaId, 'coupon_data', $details["coupon"]);
                 \wc_update_order_item_meta($itemMetaId, 'discount_amount', $couponAmount);
             }
@@ -1834,8 +1841,17 @@ class CartScannerActions
                 }
             }
 
+            ob_start();
 
+            if ($orderStatus) {
+                try {
+                    $order->update_status(str_replace("wc-", "", $orderStatus));
+                    $order->save();
+                } catch (\Throwable $th) {
+                }
+            }
 
+            ob_end_clean();
 
             $this->cleanObOutput();
 

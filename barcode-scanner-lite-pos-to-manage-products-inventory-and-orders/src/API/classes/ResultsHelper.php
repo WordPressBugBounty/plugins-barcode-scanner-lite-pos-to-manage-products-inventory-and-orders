@@ -66,9 +66,11 @@ class ResultsHelper
 
                 $id = isset($attributes["id"]) ? $attributes["id"] : null;
 
-                if ($id !== null) $shortcodeWithId = str_replace($id, $orderId, $shortcode);
+                if ($id !== null)
+                    $shortcodeWithId = str_replace($id, $orderId, $shortcode);
 
-                if ($match && count($match) === 2) $receiptShortcodesValue[$shortcode] = array("html" => do_shortcode($shortcodeWithId), "shortcode_id" => $match[1], "shortcode" => $shortcodeWithId);
+                if ($match && count($match) === 2)
+                    $receiptShortcodesValue[$shortcode] = array("html" => do_shortcode($shortcodeWithId), "shortcode_id" => $match[1], "shortcode" => $shortcodeWithId);
             }
         }
 
@@ -100,7 +102,8 @@ class ResultsHelper
                     $shortcodeWithId = str_replace($id, $sku, $shortcode);
                 }
 
-                if ($match && count($match) === 2) $receiptShortcodesValue[$shortcode] = array("html" => do_shortcode($shortcodeWithId), "shortcode_id" => $match[1], "shortcode" => $shortcodeWithId);
+                if ($match && count($match) === 2)
+                    $receiptShortcodesValue[$shortcode] = array("html" => do_shortcode($shortcodeWithId), "shortcode_id" => $match[1], "shortcode" => $shortcodeWithId);
             }
         }
 
@@ -127,7 +130,8 @@ class ResultsHelper
     {
         global $wpdb;
 
-        if (!$userId) return array();
+        if (!$userId)
+            return array();
 
         $table = $wpdb->prefix . Database::$cartData;
         $data = $wpdb->get_results(

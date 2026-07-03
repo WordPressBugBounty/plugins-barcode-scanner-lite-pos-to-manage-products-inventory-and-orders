@@ -116,6 +116,7 @@ class InterfaceData
                 "label_position" => isset($value["label_position"]) ? $value["label_position"] : "",
                 "field_height" => $value["field_height"],
                 "label_width" => $value["label_width"],
+                "textarea_lines" => isset($value["textarea_lines"]) ? $value["textarea_lines"] : 3,
                 "show_in_create_order" => isset($value["show_in_create_order"]) ? $value["show_in_create_order"] : "",
                 "show_in_products_list" => $value["show_in_products_list"],
                 "read_only" => $value["read_only"],

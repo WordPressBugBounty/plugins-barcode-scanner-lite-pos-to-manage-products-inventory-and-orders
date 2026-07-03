@@ -310,21 +310,21 @@ class Core
 
         if ($webview) {
             
-  $appJsPath = plugin_dir_url(__FILE__)."../assets/js/bundle-business-1.12.2-1778508152670.js"; // 1.12.2
+  $appJsPath = plugin_dir_url(__FILE__)."../assets/js/bundle-business-1.13.1-1783082258431.js";
 
-  $vendorJsPath = plugin_dir_url(__FILE__)."../assets/js/chunk-business-1.12.2-1778508152670.js"; // 1.12.2
+  $vendorJsPath = plugin_dir_url(__FILE__)."../assets/js/chunk-business-1.13.1-1783082258431.js";
 
   
         } else {
-            wp_enqueue_script("barcode_scanner_loader", $path."assets/js/index-business-1.12.2-1778508152670.js", array("jquery"), 1778508152670, true); // 1.12.2
+            wp_enqueue_script("barcode_scanner_loader", $path."assets/js/index-business-1.13.1-1783082258431.js", array("jquery"), 1783082258431, true);
 
-    $appJsPath = $path."assets/js/bundle-business-1.12.2-1778508152670.js"; // 1.12.2
+    $appJsPath = $path."assets/js/bundle-business-1.13.1-1783082258431.js";
 
-    $vendorJsPath = $path."assets/js/chunk-business-1.12.2-1778508152670.js"; // 1.12.2
+    $vendorJsPath = $path."assets/js/chunk-business-1.13.1-1783082258431.js";
 
         }
 
-        wp_enqueue_style('barcode_scanner_main', USBS_PLUGIN_BASE_URL . '/assets/css/style.css', array(), '1.12.2'); // 1.12.2
+        wp_enqueue_style('barcode_scanner_main', USBS_PLUGIN_BASE_URL . '/assets/css/style.css', array(), '1.13.1');
 
         if(!$isReturn) {
             $settings = get_option("barcode-scanner-settings-options", array());
@@ -453,7 +453,7 @@ class Core
             'pluginUrl' => USBS_PLUGIN_BASE_URL,
             'frontendLink' => get_home_url() . "/barcode-scanner-front",
             'jsonUrl' => get_rest_url(),
-            'pluginVersion' => '1.12.2', // 1.12.2
+            'pluginVersion' => '1.13.1',
             'isWoocommerceActive' => PluginsHelper::is_plugin_active('woocommerce/woocommerce.php'),
             'isStockLocations' => PluginsHelper::is_plugin_active('stock-locations-for-woocommerce/stock-locations-for-woocommerce.php'),
             'currencySymbol' => $currency,
@@ -656,7 +656,7 @@ class Core
 
         $deps = array('jquery');
 
-                wp_enqueue_script('barcode_scanner_settings', USBS_PLUGIN_BASE_URL . '/src/features/settings/assets/js/index-business-1.12.2-1778508152670.js', $deps, null, true); // 1.12.2
+                wp_enqueue_script('barcode_scanner_settings', USBS_PLUGIN_BASE_URL . '/src/features/settings/assets/js/index-business-1.13.1-1783082258431.js', $deps, null, true);
         wp_enqueue_style('barcode_scanner_settings', USBS_PLUGIN_BASE_URL . '/src/features/settings/assets/css/index.css');
 
         wp_enqueue_script('barcode_scanner_settings_chosen', USBS_PLUGIN_BASE_URL . '/src/features/settings/assets/js/chosen.jquery.min.js', $deps, null, true);
@@ -744,7 +744,7 @@ class Core
         $interfaceData = new InterfaceData();
 
         wp_enqueue_script('jquery-ui-datepicker');
-        wp_enqueue_script('barcode_scanner_logs', USBS_PLUGIN_BASE_URL . '/src/features/logs/assets/js/index-business-1.12.2-1778508152670.js', array('jquery'), null, true); // 1.12.2
+        wp_enqueue_script('barcode_scanner_logs', USBS_PLUGIN_BASE_URL . '/src/features/logs/assets/js/index-business-1.13.1-1783082258431.js', array('jquery'), null, true);
         wp_enqueue_style('barcode_scanner_logs', USBS_PLUGIN_BASE_URL . '/src/features/logs/assets/css/index.css');
         wp_register_style('jquery-ui', 'https://code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css');
         wp_enqueue_style('jquery-ui'); 
@@ -799,7 +799,7 @@ class Core
         }
 
         wp_enqueue_script('jquery-ui-datepicker');
-        wp_enqueue_script('barcode_scanner_logs', USBS_PLUGIN_BASE_URL . '/src/features/indexedData/assets/js/index-business-1.12.2-1778508152670.js', array('jquery'), null, true); // 1.12.2
+        wp_enqueue_script('barcode_scanner_logs', USBS_PLUGIN_BASE_URL . '/src/features/indexedData/assets/js/index-business-1.13.1-1783082258431.js', array('jquery'), null, true);
         wp_enqueue_style('barcode_scanner_logs', USBS_PLUGIN_BASE_URL . '/src/features/indexedData/assets/css/index.css');
         wp_register_style('jquery-ui', 'https://code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css');
         wp_enqueue_style('jquery-ui'); 

@@ -18,6 +18,7 @@ use UkrSolution\BarcodeScanner\API\classes\SearchFilter;
 use UkrSolution\BarcodeScanner\API\classes\Users;
 use UkrSolution\BarcodeScanner\API\classes\WPML;
 use UkrSolution\BarcodeScanner\API\classes\YITHPointOfSale;
+use UkrSolution\BarcodeScanner\API\CouponHelper;
 use UkrSolution\BarcodeScanner\API\RequestHelper;
 use UkrSolution\BarcodeScanner\Database;
 use UkrSolution\BarcodeScanner\features\debug\Debug;
@@ -505,7 +506,7 @@ class ManagementActions
             $data["dateFulfilled"] = $order["usbs_order_fulfillment_data"]["dateFulfilled"];
         }
 
-        OrdersHelper::setOrderFulfillmentDate($data, $order["ID"]);
+        OrdersHelper::setOrderFulfillmentDate($data, $order["ID"], $settings);
 
         return $data;
     }
@@ -2108,15 +2109,59 @@ class ManagementActions
                 }
                 else if ($type == "item-qty") {
                     $itemId = $data["itemId"];
+                    $approvedIncrease = $data["approvedIncrease"];
+                    $ignoredIncrease = $data["ignoredIncrease"];
+                    $newProductQty = $data["newProductQty"];
                     $items = $order->get_items();
 
                     foreach ($items as $item) {
                         if ($item->get_id() == $itemId) {
-                            $pricePerItem = $item->get_total() > 0 && $item->get_quantity() > 0 ? $item->get_total() / $item->get_quantity() : $item->get_total();
-                            $item->set_subtotal($pricePerItem * $value);
-                            $item->set_total($pricePerItem * $value);
-                            $item->set_quantity($value);
-                            $order->calculate_totals();
+                            if ($approvedIncrease && $newProductQty) {
+                                $product = $item->get_product();
+
+                                if ($product) {
+                                    $product_data = $item->get_name() . ' (' . $product->get_stock_quantity() . '&rarr;' . $newProductQty . ')';
+
+                                    $product->set_stock_quantity($newProductQty);
+                                    $product->save();
+
+                                    $order->add_order_note(__('Stock levels increased: ' . $product_data, 'woocommerce'));
+                                }
+                            }
+                            $currentQuantity = $item->get_quantity();
+                            $pricePerItem = $item->get_total() > 0 && $currentQuantity > 0 ? $item->get_total() / $currentQuantity : $item->get_total();
+                            $status = OrdersHelper::checkItemReducedStock($order, $item, $currentQuantity, $value, $ignoredIncrease);
+
+                            if ($status) {
+                                $item->set_subtotal($pricePerItem * $value);
+                                $item->set_total($pricePerItem * $value);
+                                $item->set_quantity($value);
+                                $order->calculate_totals();
+                            }
+                            else {
+                                $productId = $item->get_variation_id();
+
+                                if (!$productId) {
+                                    $productId = $item->get_product_id();
+                                }
+
+                                $_request = new WP_REST_Request("", "");
+                                $_request->set_param("query", $productId);
+                                $searchResult = (new ManagementActions())->productSearch($_request, false, true);
+                                $product = $searchResult->data["products"] ? $searchResult->data["products"][0] : null;
+
+                                if ($product) {
+                                    $diff = $value - $currentQuantity;
+                                    $product['updateQtyData'] = array(
+                                        'orderId' => $orderId,
+                                        'itemId' => $item->get_id(),
+                                        'newQty' => $diff,
+                                        'newItemQty' => $value
+                                    );
+
+                                    return rest_ensure_response(array("increase_qty" => $value, "item" => $product));
+                                }
+                            }
                         }
                     }
                 }
@@ -2257,33 +2302,22 @@ class ManagementActions
                 $item->save();
             }
 
-            $order->set_discount_total(0);
-            $order->set_discount_tax(0);
             $order->calculate_totals(true);
             $order->save();
 
-            if (false && preg_match('/^(\d+)\%$/', $coupon, $matches)) {
-                $couponPercent = $matches[1];
-                $coupon_code = 'dynamic' . $couponPercent . '-' . wp_generate_password(6, false);
-                $coupon_code = $couponPercent . "%";
-                $coupon = new \WC_Coupon();
-                $coupon->set_description('Barcode scanner - autogenerated coupon');
-                $coupon->set_code($coupon_code);
-                $coupon->set_discount_type('percent');
-                $coupon->set_amount($couponPercent);
-                $coupon->set_individual_use(true);
-                $coupon->set_usage_limit(1);
-                $coupon->set_date_expires(strtotime('+1 day'));
-                $coupon->save();
-
-                $order->apply_coupon($coupon->get_code());
-                $order->set_discount_total($coupon->get_amount());
-
-
-
-            }
-            else if ($coupon) {
-                $coupon = new \WC_Coupon($coupon);
+            if ($coupon) {
+                if (preg_match('/^(\d+)([\.,]\d+)?\%$/', $coupon, $matches)) {
+                    $couponPercent = $matches[1] . $matches[2];
+                    $couponPercent = str_replace(",", ".", $couponPercent);
+                    $coupon = CouponHelper::createPercentCoupon($couponPercent);
+                }
+                else if (preg_match('/^(\d+)([\.,]\d+)?$/', $coupon, $matches)) {
+                    $couponFixed = $matches[1] . $matches[2];
+                    $couponFixed = str_replace(",", ".", $couponFixed);
+                    $coupon = CouponHelper::createFixedCoupon($couponFixed);
+                } else {
+                    $coupon = new \WC_Coupon($coupon);
+                }
 
                 if ($coupon->get_id()) {
                     $coupon_code = $order->apply_coupon($coupon->get_code());
@@ -2332,38 +2366,10 @@ class ManagementActions
         $order = new \WC_Order($orderId);
 
         if ($order) {
-            $coupons = $order->get_items('coupon');
-            $coupon_codes = $order->get_coupon_codes();
-
-            foreach ($coupons as $item_id => $coupon_item) {
-                $order->remove_item($item_id);
-                $order->save();
-            }
-
-            foreach ($order->get_items() as $item_id => $item) {
-                $item->set_total_tax(0);
-                $item->set_total($item->get_subtotal());
-                $item->set_subtotal_tax(0);
-                $item->set_subtotal($item->get_subtotal());
-                $item->save();
-            }
-
-            $order->set_discount_total(0);
-            $order->set_discount_tax(0);
-            $order->calculate_totals(true);
-            $order->save();
-
-            foreach ($coupon_codes as $coupon_code) {
-                $coupon = new \WC_Coupon($coupon_code);
-
-                if ($coupon->get_id()) {
-                    $order->apply_coupon($coupon->get_code());
-                    $order->set_discount_total($coupon->get_amount());
-                }
-            }
 
             $order->calculate_totals(true);
             $order->save();
+
 
             $this->productIndexation($orderId, "orderReCalculate");
 
@@ -2418,7 +2424,8 @@ class ManagementActions
             OrdersHelper::set_meta_value($order, $orderId, "usbs_fulfillment_objects", "");
             OrdersHelper::set_meta_value($order, $orderId, "usbs_order_fulfillment_data", "");
 
-            OrdersHelper::checkOrderFulfillment($orderId);
+            $settings = new Settings();
+            OrdersHelper::checkOrderFulfillment($orderId, $settings);
 
             $order = wc_get_order($orderId);
             if ($order) {
@@ -2887,9 +2894,7 @@ class ManagementActions
             $this->setManageStock($variation_id);
 
             if ($qty !== "" && (int) $qty) {
-                $this->setQuantity($variation_id, $qty, null, true);
-            } else {
-                $this->setQuantity($variation_id, 0, null, true);
+                $this->setQuantity($variation_id, $qty, null, false);
             }
 
             if ($meta && isset($meta["_manage_stock"])) {
@@ -2921,9 +2926,7 @@ class ManagementActions
                 }
 
                 if ($qty !== "" && (int) $qty) {
-                    $this->setQuantity($product->get_id(), $qty, null, true);
-                } else {
-                    $this->setQuantity($product->get_id(), 0, null, true);
+                    $this->setQuantity($product->get_id(), $qty, null, false);
                 }
 
                 if ($meta && isset($meta["_manage_stock"])) {
@@ -4068,7 +4071,7 @@ class ManagementActions
         }
 
         if (trim($customerId) && is_numeric($customerId)) {
-            $where .= " AND P.customer_id = {$customerId} ";
+            $where .= " AND (P.customer_id = {$customerId} OR P.postmeta__customer_user = {$customerId}) ";
         }
 
         $order = " ORDER BY P.post_date DESC, P.post_id DESC ";
@@ -4305,7 +4308,8 @@ class ManagementActions
                     }
 
                     if ($usbs_order_fulfillment_data_updated) {
-                        OrdersHelper::setOrderFulfillmentDate($usbs_order_fulfillment_data, $id);
+                        $settings = new Settings();
+                        OrdersHelper::setOrderFulfillmentDate($usbs_order_fulfillment_data, $id, $settings);
                         OrdersHelper::set_meta_value($order, $id, "usbs_order_fulfillment_data", $usbs_order_fulfillment_data);
                     }
                 }
@@ -4383,7 +4387,8 @@ class ManagementActions
                 }
 
                 if ($usbs_order_fulfillment_data_updated) {
-                    OrdersHelper::setOrderFulfillmentDate($usbs_order_fulfillment_data, $id);
+                    $settings = new Settings();
+                    OrdersHelper::setOrderFulfillmentDate($usbs_order_fulfillment_data, $id, $settings);
                     OrdersHelper::set_meta_value($order, $id, "usbs_order_fulfillment_data", $usbs_order_fulfillment_data);
                 }
             }
@@ -4429,7 +4434,8 @@ class ManagementActions
                 }
 
                 if ($usbs_order_fulfillment_data_updated) {
-                    OrdersHelper::setOrderFulfillmentDate($usbs_order_fulfillment_data, $id);
+                    $settings = new Settings();
+                    OrdersHelper::setOrderFulfillmentDate($usbs_order_fulfillment_data, $id, $settings);
                     OrdersHelper::set_meta_value($order, $id, "usbs_order_fulfillment_data", $usbs_order_fulfillment_data);
                 }
             }

@@ -37,6 +37,7 @@
                 "label_position" => "top",
                 "field_height" => "",
                 "label_width" => "",
+                "textarea_lines" => "3",
                 "position" => "",
                 "type" => "text",
                 "order" => "",

@@ -2,7 +2,7 @@
 Contributors: UkrSolution <https://profiles.wordpress.org/ukrsolution>
 Tags: barcode, scanner, inventory, POS, Point Of Sale
 Requires at least: 4.0.1 
-Tested up to: 6.8
+Tested up to: 7.0
 Stable tag: trunk
 Requires PHP: 7.2
 License: GPLv2 or later 

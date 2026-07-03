@@ -4,6 +4,8 @@ namespace UkrSolution\BarcodeScanner\API\classes;
 
 use UkrSolution\BarcodeScanner\API\actions\ManagementActions;
 use UkrSolution\BarcodeScanner\features\interfaceData\InterfaceData;
+use UkrSolution\BarcodeScanner\features\settings\Settings;
+use WP_REST_Request;
 
 class OrdersHelper
 {
@@ -99,7 +101,7 @@ class OrdersHelper
         return $refundData;
     }
 
-    public static function checkOrderFulfillment($orderId)
+    public static function checkOrderFulfillment($orderId, $settings)
     {
         try {
             if (self::$managementActions == null) {
@@ -109,7 +111,7 @@ class OrdersHelper
             $infoData = self::$managementActions->getFulfillmentOrderData($orderId, false);
 
             if ($infoData) {
-                OrdersHelper::setOrderFulfillmentDate($infoData, $orderId);
+                OrdersHelper::setOrderFulfillmentDate($infoData, $orderId, $settings);
                 OrdersHelper::set_meta_value(null, $orderId, "usbs_order_fulfillment_data", $infoData);
             }
         } catch (\Throwable $th) {
@@ -234,6 +236,7 @@ class OrdersHelper
 
         $one_item_tax = $quantity ? self::clearPrice(($item->get_subtotal_tax() / $quantity), $args) : self::clearPrice($item->get_total_tax(), $args);
         $one_item_tax_c = $one_item_tax ? html_entity_decode(strip_tags(wc_price($one_item_tax)), ENT_COMPAT | ENT_HTML5, 'UTF-8') : $one_item_tax;
+        $itemTotal = $item->get_total();
 
         $_productData = array(
             "ID" => $_post->ID,
@@ -246,12 +249,12 @@ class OrdersHelper
             "item_price_qty" => $total_c,
             "item_price_qty_tax_total" => $item_price_tax_total_c,
             "quantity" => (float) $quantity,
-            "price" => $quantity ? self::clearPrice($item->get_total() / $quantity, $args) : self::clearPrice($item->get_total(), $args),
+            "price" => $quantity && $itemTotal ? self::clearPrice($itemTotal / $quantity, $args) : self::clearPrice($itemTotal, $args),
             "price_c" => $price_c,
-            "price_formated" => self::clearPrice($item->get_total() / $quantity, array("currency" => " ")),
+            "price_formated" => $itemTotal ? self::clearPrice($itemTotal / $quantity, array("currency" => " ")) : self::clearPrice($itemTotal, array("currency" => " ")),
             "subtotal" => self::clearPrice($item->get_subtotal(), $args),
             "subtotal_c" => $subtotal_c,
-            "total" => self::clearPrice($item->get_total(), $args),
+            "total" => self::clearPrice($itemTotal, $args),
             "total_c" => $total_c,
             "subtotal_tax" => self::clearPrice($item->get_subtotal_tax(), $args),
             "subtotal_tax_c" => $subtotal_tax_c,
@@ -342,11 +345,14 @@ class OrdersHelper
                         $order_subtotal_taxes[$tax_rate_id]['cost'] += $tax_amount;
                         $order_subtotal_taxes[$tax_rate_id]['cost_c'] = ResultsHelper::getFormattedPrice(strip_tags(wc_price($order_subtotal_taxes[$tax_rate_id]['cost'])));
                     } else {
+                        $rate = \WC_Tax::_get_tax_rate($tax_rate_id);
+
                         $order_subtotal_taxes[$tax_rate_id] = array(
                             'label' => \WC_Tax::get_rate_label($tax_rate_id),
                             'cost' => $tax_amount,
                             'cost_c' => ResultsHelper::getFormattedPrice(strip_tags(wc_price($tax_amount))),
                             'rate_id' => $tax_rate_id,
+                            'rate' => $rate && isset($rate['tax_rate']) ? (float) $rate['tax_rate'] : '',
                         );
                     }
                 }
@@ -428,7 +434,16 @@ class OrdersHelper
         $value = $default_value;
 
         if ($order) {
-            $value = $order->get_meta($meta_key, true);
+            $internalKeys = array(
+                '_cogs_total_value',
+            );
+
+            if (in_array($meta_key, $internalKeys)) {
+                $value = $order->get_cogs_total_value();
+            } else {
+                $value = $order->get_meta($meta_key, true);
+            }
+
         }
 
         if (!$value && $order_id) {
@@ -456,7 +471,7 @@ class OrdersHelper
         return $value;
     }
 
-    public static function setOrderFulfillmentDate(&$data, $orderId)
+    public static function setOrderFulfillmentDate(&$data, $orderId, $settings)
     {
         if (!$data || !is_array($data) || !isset($data["totalQty"]) || !$orderId) {
             return $data;
@@ -465,11 +480,14 @@ class OrdersHelper
         $order = wc_get_order($orderId);
         $currentData = $order ? OrdersHelper::get_meta_value($order, $orderId, "usbs_order_fulfillment_data") : null;
 
+        $fulfilledAutoNote = $settings->getSettings("fulfilledAutoNote");
+        $fulfilledAutoNote = $fulfilledAutoNote === null ? "on" : $fulfilledAutoNote->value;
+
         if ($data["totalQty"] && $data["totalScanned"] == $data["totalQty"]) {
             if (!$data["dateFulfilled"]) {
                 $data["dateFulfilled"] = gmdate("Y-m-d H:i:s");
                 if ($currentData && !$currentData["dateFulfilled"]) {
-                    if ($order) {
+                    if ($order && $fulfilledAutoNote == "on") {
                         $order->add_order_note('Order Fulfilled', false, Users::userId());
                         $order->save();
                     }
@@ -480,7 +498,7 @@ class OrdersHelper
             $data["dateFulfilled"] = "";
             if ($currentData && $currentData["dateFulfilled"] != "") {
                 $order = wc_get_order($orderId);
-                if ($order) {
+                if ($order && $fulfilledAutoNote == "on") {
                     $order->add_order_note('Order Fulfillment was canceled', false, Users::userId());
                 }
             }
@@ -769,6 +787,7 @@ class OrdersHelper
                     $item->set_subtotal($new_total);
                     $item->set_total($new_total);
 
+                    $order->calculate_totals(true);
                     $order->save();
 
                     \wc_update_order_item_meta($item_id, "usbs_check_product", "");
@@ -795,12 +814,20 @@ class OrdersHelper
                 }
 
 
+                $order->calculate_totals(true);
                 $order->save();
 
-                OrdersHelper::checkOrderFulfillment($orderId);
+                $settings = new Settings();
+                OrdersHelper::checkOrderFulfillment($orderId, $settings);
             }
 
-            return self::$managementActions->orderReCalculate($request);
+
+            self::$managementActions->productIndexation($orderId, "orderReCalculate");
+
+            $orderRequest = new WP_REST_Request("", "");
+            $orderRequest->set_param("query", $orderId);
+
+            return self::$managementActions->orderSearch($orderRequest, false, true);
         } catch (\Throwable $th) {
             return \rest_ensure_response(array("success" => false, "message" => $th->getMessage()));
         }
@@ -824,14 +851,85 @@ class OrdersHelper
 
             if ($order) {
                 $order->remove_item($itemId);
+                $order->calculate_totals(true);
                 $order->save();
 
-                OrdersHelper::checkOrderFulfillment($orderId);
+                $settings = new Settings();
+                OrdersHelper::checkOrderFulfillment($orderId, $settings);
             }
 
-            return self::$managementActions->orderReCalculate($request);
+
+            self::$managementActions->productIndexation($orderId, "orderReCalculate");
+
+            $orderRequest = new WP_REST_Request("", "");
+            $orderRequest->set_param("query", $orderId);
+
+            return self::$managementActions->orderSearch($orderRequest, false, true);
         } catch (\Throwable $th) {
             return \rest_ensure_response(array("success" => false, "message" => $th->getMessage()));
         }
+    }
+
+    public static function checkItemReducedStock($order, $item, $currentQuantity, $newQuantity, $ignoredIncrease)
+    {
+        if (!$item) {
+            return true;
+        }
+
+        $reducedStock = $item->get_meta('_reduced_stock');
+
+        if (!$reducedStock && $reducedStock !== '0') {
+            return true;
+        }
+
+        $product = $item->get_product();
+
+        if (!$product) {
+            return true;
+        }
+
+        $productManageStock = $product->managing_stock();
+        $productStockQuantity = (int) $product->get_stock_quantity();
+        $productBackordersAllowed = $product->backorders_allowed();
+        $diff = 0;
+
+        if ($currentQuantity < $newQuantity) {
+            $diff = $newQuantity - $currentQuantity;
+
+            if ($ignoredIncrease == 1) {
+            }
+            else if (!$productBackordersAllowed && $diff > $productStockQuantity) {
+                return false;
+            }
+
+            $diff *= -1;
+        }
+        else if ($currentQuantity > $newQuantity) {
+            $diff = $currentQuantity - $newQuantity;
+        }
+
+        if ($diff != 0) {
+            if ($productManageStock && ($productStockQuantity || $productStockQuantity == 0) && $diff) {
+                $updatedProductQuantity = null;
+
+                $updatedProductQuantity = $productStockQuantity + $diff;
+                $product->set_stock_quantity($updatedProductQuantity);
+                $product->save();
+
+                if ($productStockQuantity != $updatedProductQuantity) {
+                    $product_data = $item->get_name() . ' (' . $productStockQuantity . '&rarr;' . $updatedProductQuantity . ')';
+
+                    if ($diff > 0) {
+                        $order->add_order_note(__('Stock levels increased: ' . $product_data, 'woocommerce'));
+                    } else if ($diff < 0) {
+                        $order->add_order_note(__('Stock levels reduced: ' . $product_data, 'woocommerce'));
+                    }
+                }
+            }
+
+            $item->update_meta_data('_reduced_stock', $newQuantity);
+        }
+
+        return true;
     }
 }

@@ -8,6 +8,7 @@ use UkrSolution\BarcodeScanner\API\classes\Results;
 use UkrSolution\BarcodeScanner\API\classes\SearchFilter;
 use UkrSolution\BarcodeScanner\API\RequestHelper;
 use UkrSolution\BarcodeScanner\features\debug\Debug;
+use UkrSolution\BarcodeScanner\features\settings\Settings;
 use WP_REST_Request;
 
 class OrdersActions
@@ -199,7 +200,8 @@ class OrdersActions
                 }
 
                 if ($usbs_order_fulfillment_data_updated) {
-                    OrdersHelper::setOrderFulfillmentDate($usbs_order_fulfillment_data, $orderId);
+                    $settings = new Settings();
+                    OrdersHelper::setOrderFulfillmentDate($usbs_order_fulfillment_data, $orderId, $settings);
                     OrdersHelper::set_meta_value($order, $orderId, "usbs_order_fulfillment_data", $usbs_order_fulfillment_data);
                 }
             }

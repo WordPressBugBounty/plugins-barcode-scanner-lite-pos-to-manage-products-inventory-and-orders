@@ -500,6 +500,7 @@ class Database
             `position` varchar(255) DEFAULT NULL,
             `button_js` longtext DEFAULT NULL,
             `button_width` int(10) DEFAULT 100,
+            `textarea_lines` int(10) DEFAULT 3,
             `type` varchar(255) DEFAULT NULL,
             `options` longtext DEFAULT NULL,
             `attribute_id` bigint(10) DEFAULT NULL,
@@ -549,9 +550,10 @@ class Database
             array("field_name" => "_shipping_class", "field_label" => "Shipping class", "label_position" => "top", "label_width" => $widthRight, "position" => "product-middle-right", "type" => "select", "field_height" => 0, "status" => 0, "mobile_status" => 0, "order" => 860),
             array("field_name" => "_dokan_vendor", "field_label" => "Dokan vendor", "label_position" => "top", "label_width" => $widthRight, "position" => "product-middle-right", "type" => "select", "field_height" => 0, "status" => 1, "mobile_status" => 1, "order" => 860),
 
-            array("field_name" => "_backorders", "field_label" => "Allow backorders?", "label_position" => "top", "label_width" => $widthRight, "position" => "product-middle-right", "type" => "select", "field_height" => 0, "status" => 0, "options" => json_encode($_backorders), "order" => 920),
+                        array("field_name" => "_backorders", "field_label" => "Allow backorders?", "label_position" => "top", "label_width" => $widthRight, "position" => "product-middle-right", "type" => "select", "field_height" => 0, "status" => 0, "options" => json_encode($_backorders), "order" => 920),
             array("field_name" => "_switch_status", "field_label" => "Checkbox", "label_position" => "top", "label_width" => $widthRight, "position" => "product-middle-right", "type" => "checkbox", "field_height" => 0, "status" => 0, "mobile_status" => 0, "order" => 920),
             array("field_name" => "product_visibility", "term" => "featured", "field_label" => "Featured product", "label_position" => "left", "label_width" => $widthLeft, "position" => "product-middle-right", "type" => "taxonomy_term", "field_height" => 0, "status" => 1, "order" => 0),
+            array("field_name" => "product_tag", "field_label" => "Tags", "label_position" => "left", "label_width" => $widthLeft, "position" => "product-middle-left", "type" => "taxonomy", "field_height" => 0, "status" => 1, "order" => 920),
 
             array("field_name" => "product_name_section", "field_label" => "Product name section", "label_position" => "", "label_width" => $widthLeft, "position" => "product-middle-top", "type" => "product_name_section", "field_height" => 0, "status" => 1, "mobile_status" => 0, "order" => 3000),
         );
@@ -1363,7 +1365,8 @@ class Database
 
         if (in_array($trigger, $triggersToSkippCalcFF) || in_array($reqbs, $reqbsToSkippCalcFF)) {
         } else if ($trigger != "wp_insert_post") {
-            OrdersHelper::checkOrderFulfillment($id);
+            $settings = new Settings();
+            OrdersHelper::checkOrderFulfillment($id, $settings);
         }
 
         Debug::addPoint("> updatePost checkOrderFulfillment " . $id);

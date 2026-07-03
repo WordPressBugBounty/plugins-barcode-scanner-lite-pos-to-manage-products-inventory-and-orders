@@ -35,6 +35,8 @@ class Integrations
             add_action('init', array($this, "postDateFields"));
 
             add_action('init', array($this, "printInvoicesPackingSlipLabelsForWoocommerce"));
+
+            add_action('init', array($this, "couponsAdminPage"));
         } catch (\Throwable $th) {
         }
     }
@@ -52,7 +54,7 @@ class Integrations
                         if (is_array($customFilter) && isset($customFilter['tab']) && $customFilter['tab'] == 'cart') {
                             $cartQtyStep = get_post_meta($item['ID'], $field, true);
 
-                            if ($cartQtyStep && (int)$cartQtyStep) {
+                            if ($cartQtyStep && (int) $cartQtyStep) {
                                 $item['number_field_step'] = $cartQtyStep;
                             }
                         }
@@ -325,7 +327,7 @@ class Integrations
     public function dokan()
     {
 
-                try {
+        try {
             if (!is_plugin_active('dokan-lite/dokan.php')) {
                 return;
             }
@@ -367,7 +369,7 @@ class Integrations
                                 'meta_value' => 'yes',
                             ));
 
-                                                        $options = array();
+                            $options = array();
 
                             if ($vendors) {
                                 foreach ($vendors as $vendor) {
@@ -402,7 +404,7 @@ class Integrations
                     $parentId = get_post_field('post_parent', $id);
 
                     if ($parentId) {
-                        wp_update_post(array('ID' => $parentId, 'post_author' => $value ));
+                        wp_update_post(array('ID' => $parentId, 'post_author' => $value));
 
                         $args = array(
                             'post_type' => 'product_variation',
@@ -412,18 +414,18 @@ class Integrations
 
                         if ($posts) {
                             foreach ($posts as $post) {
-                                wp_update_post(array('ID' => $post->ID, 'post_author' => $value ));
+                                wp_update_post(array('ID' => $post->ID, 'post_author' => $value));
                             }
                         }
                     } else {
-                        wp_update_post(array('ID' => $id, 'post_author' => $value ));
+                        wp_update_post(array('ID' => $id, 'post_author' => $value));
                     }
                 }
 
                 return $value;
             }, 10, 3);
 
-                    } catch (\Throwable $th) {
+        } catch (\Throwable $th) {
         }
     }
 
@@ -528,13 +530,19 @@ class Integrations
 
 
                     foreach ($field_groups as $field_group) {
-                        if (!isset($field_group["active"]) || !$field_group["active"] || !isset($field_group["_valid"]) || !$field_group["_valid"]) continue;
+                        if (!isset($field_group["active"]) || !$field_group["active"] || !isset($field_group["_valid"]) || !$field_group["_valid"]) {
+                            continue;
+                        }
                         $fields = acf_get_fields($field_group);
 
-                        if (!$fields) continue;
+                        if (!$fields) {
+                            continue;
+                        }
 
                         foreach ($fields as $field) {
-                            if (!isset($field["_valid"]) || !$field["_valid"]) continue;
+                            if (!isset($field["_valid"]) || !$field["_valid"]) {
+                                continue;
+                            }
 
                             $userFields[] = $field;
                         }
@@ -559,13 +567,18 @@ class Integrations
             if ($field) {
                 $productStep = get_post_meta($productId, $field, true);
 
-                if ($productStep && is_numeric($productStep) && (int)$productStep) {
-                    return (int)$productStep;
+                if ($productStep && is_numeric($productStep) && (int) $productStep) {
+                    return (int) $productStep;
                 }
             }
 
             return $step;
         }, 10, 5);
+
+
+
+
+
     }
 
     public function postDateFields()
@@ -618,5 +631,24 @@ class Integrations
 
             return $meta_data;
         }, 1000, 4);
+    }
+
+    public function couponsAdminPage()
+    {
+        add_filter('post_class', function ($classes, $class, $post_id) {
+            if (get_post_type($post_id) === 'shop_coupon') {
+                if (get_post_meta($post_id, '_barcode_scanner_coupon', true) === 'yes') {
+                    $classes[] = 'barcode-scanner-coupon';
+                }
+            }
+
+            return $classes;
+        }, 10, 3);
+
+        add_action('pre_get_posts', function ($query) {
+            if (is_admin() && $query->is_main_query() && $query->get('post_type') === 'shop_coupon') {
+                $query->set('meta_query', [['key' => '_barcode_scanner_coupon', 'compare' => 'NOT EXISTS']]);
+            }
+        });
     }
 }

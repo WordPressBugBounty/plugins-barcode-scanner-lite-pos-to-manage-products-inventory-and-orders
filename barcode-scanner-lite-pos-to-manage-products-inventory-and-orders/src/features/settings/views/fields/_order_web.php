@@ -42,6 +42,7 @@ $afterProductRightWidth = $afterProductRightWidth === null ? '235' : $afterProdu
                 "label_position" => "left",
                 "field_height" => "",
                 "label_width" => "",
+                "textarea_lines" => "3",
                 "position" => "",
                 "type" => "text",
                 "order" => "",
